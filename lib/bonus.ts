@@ -1,0 +1,118 @@
+// Couche bonus côté client : catalogue (LA source des valeurs de
+// points, lue en base), événement du jour (RPC get_daily_event),
+// déclarations. Aucun montant en dur ici — tout vient du catalogue.
+
+import { addDays, parisToday } from "./challenge";
+import { supabase } from "./supabase";
+
+export type BonusKind = "exercise" | "execution" | "event" | "cap";
+
+export type BonusCatalogItem = {
+  key: string;
+  kind: BonusKind;
+  emoji: string;
+  label: string;
+  points: number;
+  sort: number;
+};
+
+export type BonusClaim = {
+  player_id: string;
+  day: string;
+  bonus_key: string;
+  points: number;
+};
+
+export type BonusState = {
+  catalog: BonusCatalogItem[];
+  event: BonusCatalogItem | null; // événement du jour, null si "rien"
+  todayClaims: BonusClaim[]; // tous joueurs, aujourd'hui (visibilité = anti-triche)
+  weekClaims: BonusClaim[]; // 7 jours glissants, pour afficher le plafond
+};
+
+/** Traduit une erreur des triggers bonus en phrase humaine. */
+export function humanBonusError(message: string): string {
+  if (message.includes("CAP_JOUR")) return "2 bonus max par jour 🔒";
+  if (message.includes("CAP_SEMAINE"))
+    return "Plafond de 20 pts de bonus sur 7 jours atteint";
+  if (message.includes("JOUR_VERROUILLE")) return "Ce jour est verrouillé 🔒";
+  if (message.includes("JOUR_FUTUR")) return "On ne déclare pas en avance";
+  if (message.includes("BOSS_INACTIF")) return "Pas de boss aujourd'hui";
+  if (message.includes("duplicate")) return "Déjà déclaré aujourd'hui";
+  return "Écriture échouée, re-tape pour réessayer";
+}
+
+/** Charge catalogue + événement du jour + déclarations récentes. */
+export async function fetchBonus(): Promise<BonusState | null> {
+  const today = parisToday();
+  const [cat, ev, claims] = await Promise.all([
+    supabase.from("bonus_catalog").select("*").order("sort"),
+    supabase.rpc("get_daily_event"),
+    supabase
+      .from("bonus_claims")
+      .select("player_id, day, bonus_key, points")
+      .gte("day", addDays(today, -6))
+      .lte("day", today),
+  ]);
+  if (cat.error || ev.error || claims.error) return null;
+
+  const catalog = (cat.data as BonusCatalogItem[]).map((c) => ({
+    ...c,
+    points: Number(c.points),
+  }));
+  const eventKey = ev.data as string | null;
+  const weekClaims = (claims.data as BonusClaim[]).map((c) => ({
+    ...c,
+    points: Number(c.points),
+  }));
+  return {
+    catalog,
+    event:
+      eventKey && eventKey !== "rien"
+        ? (catalog.find((c) => c.key === eventKey) ?? null)
+        : null,
+    todayClaims: weekClaims.filter((c) => c.day === today),
+    weekClaims,
+  };
+}
+
+/** Bonus d'exercice déclarables (le boss se déclare dans son bandeau). */
+export function claimables(state: BonusState): BonusCatalogItem[] {
+  return state.catalog.filter((c) => c.kind === "exercise");
+}
+
+/** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
+export function weekBonusPoints(state: BonusState, playerId: string): number {
+  const exerciseKeys = new Set(
+    state.catalog.filter((c) => c.kind === "exercise").map((c) => c.key),
+  );
+  return state.weekClaims
+    .filter((c) => c.player_id === playerId && exerciseKeys.has(c.bonus_key))
+    .reduce((sum, c) => sum + c.points, 0);
+}
+
+/** Déclare un bonus pour aujourd'hui. Les points sont figés par la base. */
+export async function insertClaim(
+  playerId: string,
+  item: BonusCatalogItem,
+): Promise<string | null> {
+  const { error } = await supabase.from("bonus_claims").insert({
+    player_id: playerId,
+    day: parisToday(),
+    bonus_key: item.key,
+    points: item.points, // écrasé par le trigger : le client ne décide pas
+  });
+  return error ? error.message : null;
+}
+
+/** Annule une déclaration du jour (erreur de pouce). */
+export async function deleteClaim(
+  playerId: string,
+  bonusKey: string,
+): Promise<string | null> {
+  const { error } = await supabase
+    .from("bonus_claims")
+    .delete()
+    .match({ player_id: playerId, day: parisToday(), bonus_key: bonusKey });
+  return error ? error.message : null;
+}

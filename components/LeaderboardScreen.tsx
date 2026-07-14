@@ -138,6 +138,9 @@ export default function LeaderboardScreen({ player, players, gamification }: Pro
                 <p className="text-xs text-muted">
                   {r.current_streak > 0 ? `🔥 ${r.current_streak} · ` : ""}
                   {completion}% de complétion
+                  {r.bonus_points > 0
+                    ? ` · dont ${fmtPoints(r.bonus_points)} pts bonus`
+                    : ""}
                 </p>
               </div>
               <span className="num-display text-xl">{fmtPoints(r.points)}</span>
