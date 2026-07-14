@@ -1,26 +1,169 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   Design tokens — sombre par défaut, taillé pour un lit à 23h.
+   Neutres purs (chroma 0) : la couleur vit dans les accents joueurs.
+------------------------------------------------------------------- */
+@theme {
+  --color-bg: oklch(0.115 0 0);
+  --color-surface: oklch(0.17 0 0);
+  --color-raised: oklch(0.22 0 0);
+  --color-ink: oklch(0.965 0 0);
+  --color-muted: oklch(0.68 0 0);
+  --color-faint: oklch(0.45 0 0);
+  --color-line: oklch(0.27 0 0);
+  --color-danger: oklch(0.68 0.19 25);
+
+  --font-body: var(--font-space), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-anton), var(--font-space), sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  /* accent joueur courant, injecté par l'app */
+  --pc: oklch(0.74 0.17 150);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html,
+body {
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Pas de halo de tap ni de sélection : l'app doit sembler native */
+button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Chiffres qui comptent : massifs, en display */
+.num-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------
+   Micro-moment de validation : réponse instantanée, transition nette.
+------------------------------------------------------------------- */
+.exo-card {
+  transition:
+    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.exo-card:active {
+  transform: scale(0.97);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
+.check-pop {
+  animation: check-pop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Célébration jour parfait : le fond respire, rien qui traîne */
+.celebrate-bg {
+  background:
+    radial-gradient(
+      120% 90% at 50% -20%,
+      color-mix(in oklch, var(--pc) 16%, transparent),
+      transparent 70%
+    ),
+    var(--color-bg);
+  transition: background 400ms ease-out;
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.rise-in {
+  animation: rise-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Mot de passe raté */
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+.shake {
+  animation: shake 400ms ease-out both;
+}
+
+/* Toast */
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.toast-in {
+  animation: toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Zones sûres (encoche, barre home) en mode installé */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+}
+
+/* Reduced motion : tout devient instantané, rien ne casse */
+@media (prefers-reduced-motion: reduce) {
+  .exo-card,
+  .celebrate-bg {
+    transition: none;
+  }
+  .check-pop,
+  .rise-in,
+  .toast-in,
+  .shake {
+    animation: none;
+  }
 }
