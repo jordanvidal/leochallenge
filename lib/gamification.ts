@@ -12,6 +12,7 @@ export type LeaderboardRow = {
   perfect_days: number;
   exos_done: number;
   current_streak: number;
+  bonus_points: number; // "dont X pts bonus", déjà inclus dans points
 };
 
 export type Gamification = {
@@ -87,6 +88,7 @@ function numify(r: LeaderboardRow): LeaderboardRow {
     perfect_days: Number(r.perfect_days),
     exos_done: Number(r.exos_done),
     current_streak: Number(r.current_streak),
+    bonus_points: Number(r.bonus_points),
   };
 }
 

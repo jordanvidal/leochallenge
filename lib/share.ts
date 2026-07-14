@@ -22,11 +22,13 @@ function daySquare(count: number): string {
 }
 
 /** Construit le message de la semaine en cours pour un joueur.
-    rankInfo (phase 2) ajoute la ligne classement si dispo. */
+    rankInfo (phase 2) ajoute la ligne classement si dispo.
+    todayBonuses (phase bonus) : libellés des bonus déclarés aujourd'hui. */
 export function buildWeekShare(
   player: Player,
   entries: Map<string, Entry>,
   rankInfo?: { rank: number; points: number } | null,
+  todayBonuses?: string[],
 ): string {
   const today = parisToday();
   const monday = mondayOf(today > CHALLENGE_END ? CHALLENGE_END : today);
@@ -55,11 +57,16 @@ export function buildWeekShare(
         `🏆 ${rankInfo.rank === 1 ? "1er" : `${rankInfo.rank}e`} au général — ${Number.isInteger(rankInfo.points) ? rankInfo.points : rankInfo.points.toFixed(1)} pts`,
       ]
     : [];
+  const bonusLine =
+    todayBonuses && todayBonuses.length > 0
+      ? [`⚡ Bonus du jour : ${todayBonuses.join(", ")}`]
+      : [];
 
   return [
     `💪 Challenge 100-100-100 — Semaine du ${frenchDayMonth(monday)}`,
     `${player.name} — ${perfect}/${elapsed || 7} jours parfaits — série : ${streak}${streak > 0 ? " 🔥" : ""}`,
     ...rankLine,
+    ...bonusLine,
     "",
     "L M M J V S D",
     squares.join(" "),

@@ -3,6 +3,7 @@
 // L'écran par défaut, celui qui doit être parfait : trois grosses cartes,
 // un tap = validé, retap = annulé. Ouvrir → cocher → fermer en 10 secondes.
 
+import { BonusCatalogItem, BonusState } from "@/lib/bonus";
 import {
   CHALLENGE_END,
   daysLeft,
@@ -18,6 +19,7 @@ import {
   EXERCISES,
   Player,
 } from "@/lib/types";
+import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
@@ -27,7 +29,10 @@ type Props = {
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  bonus: BonusState | null;
   onToggle: (day: string, exo: Exercise) => void;
+  onClaimBonus: (item: BonusCatalogItem) => void;
+  onUnclaimBonus: (item: BonusCatalogItem) => void;
   onShareWeek: () => void;
   onInvite: () => void;
   onGoLeaderboard: () => void;
@@ -39,7 +44,10 @@ export default function TodayScreen({
   players,
   entries,
   gamification,
+  bonus,
   onToggle,
+  onClaimBonus,
+  onUnclaimBonus,
   onShareWeek,
   onInvite,
   onGoLeaderboard,
@@ -51,6 +59,17 @@ export default function TodayScreen({
   const mine = entries.get(entryKey(player.id, today));
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);
+
+  // Emojis des bonus déclarés aujourd'hui par un joueur (anti-triche :
+  // ce qu'on déclare, tout le monde le voit).
+  const emojiByKey = new Map(
+    (bonus?.catalog ?? []).map((c) => [c.key, c.emoji]),
+  );
+  const claimedEmojis = (playerId: string): string =>
+    (bonus?.todayClaims ?? [])
+      .filter((c) => c.player_id === playerId)
+      .map((c) => emojiByKey.get(c.bonus_key) ?? "")
+      .join(" ");
 
   return (
     <div
@@ -154,6 +173,17 @@ export default function TodayScreen({
         </div>
       )}
 
+      {/* Bonus : bandeau événement + puces déclaratives. L'assaisonnement,
+          pas le plat — la séance de base reste le héros. */}
+      {!over && (
+        <BonusSection
+          player={player}
+          bonus={bonus}
+          onClaim={onClaimBonus}
+          onUnclaim={onUnclaimBonus}
+        />
+      )}
+
       {/* La ligne des potes : c'est ça qui fait tenir le truc. */}
       <section className="mt-5 mb-3">
         {others.length > 0 ? (
@@ -175,6 +205,14 @@ export default function TodayScreen({
                     entry={entries.get(entryKey(p.id, today))}
                     color={p.color}
                   />
+                  {claimedEmojis(p.id) && (
+                    <span
+                      className="text-[11px] leading-none"
+                      title="Bonus déclarés aujourd'hui"
+                    >
+                      {claimedEmojis(p.id)}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

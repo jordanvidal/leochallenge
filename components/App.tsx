@@ -4,9 +4,10 @@
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
 import { useEffect, useMemo, useState } from "react";
+import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useGamification } from "@/hooks/useGamification";
-import { backfillDays, backfillOpen } from "@/lib/challenge";
+import { backfillDays, backfillOpen, parisToday } from "@/lib/challenge";
 import { notifyOvertake } from "@/lib/gamification";
 import { buildWeekShare, shareText } from "@/lib/share";
 import { Exercise, Player } from "@/lib/types";
@@ -79,6 +80,14 @@ export default function App() {
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
   const { gamification, reloadGamification } = useGamification(!!player);
 
+  // Bonus : catalogue, événement du jour, déclarations. Chaque
+  // déclaration recalcule aussi le classement (onScored).
+  const { bonus, claim, unclaim } = useBonus(
+    !!player,
+    data.showToast,
+    reloadGamification,
+  );
+
   /** Coche + recalcul du classement + détection de dépassement. */
   async function toggleAndScore(day: string, exo: Exercise) {
     if (!player) return;
@@ -104,11 +113,21 @@ export default function App() {
   async function shareWeek() {
     if (!player) return;
     const mine = gamification?.total.find((r) => r.player_id === player.id);
+    // Bonus déclarés aujourd'hui par le joueur, libellés depuis le catalogue.
+    const today = parisToday();
+    const todayBonuses = (bonus?.todayClaims ?? [])
+      .filter((c) => c.player_id === player.id && c.day === today)
+      .map((c) => {
+        const item = bonus?.catalog.find((k) => k.key === c.bonus_key);
+        return item ? `${item.emoji} ${item.label} (+${item.points})` : "";
+      })
+      .filter(Boolean);
     const channel = await shareText(
       buildWeekShare(
         player,
         data.entries,
         mine ? { rank: mine.rank, points: mine.points } : null,
+        todayBonuses,
       ),
     );
     if (channel === "clipboard")
@@ -214,7 +233,10 @@ export default function App() {
             players={data.players}
             entries={data.entries}
             gamification={gamification}
+            bonus={bonus}
             onToggle={toggleAndScore}
+            onClaimBonus={(item) => claim(player.id, item)}
+            onUnclaimBonus={(item) => unclaim(player.id, item)}
             onShareWeek={shareWeek}
             onInvite={invite}
             onGoLeaderboard={() => setTab("leaderboard")}
