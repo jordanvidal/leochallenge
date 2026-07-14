@@ -31,6 +31,7 @@ type Props = {
   gamification: Gamification | null;
   bonus: BonusState | null;
   onToggle: (day: string, exo: Exercise) => void;
+  onStartWorkout: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
   onShareWeek: () => void;
@@ -46,6 +47,7 @@ export default function TodayScreen({
   gamification,
   bonus,
   onToggle,
+  onStartWorkout,
   onClaimBonus,
   onUnclaimBonus,
   onShareWeek,
@@ -163,6 +165,22 @@ export default function TodayScreen({
             );
           })}
         </div>
+      )}
+
+      {/* Le chemin en plus, jamais une obligation : l'app accompagne la
+          séance en temps réel. Disparaît une fois le jour à 3/3. */}
+      {!over && !perfect && (
+        <button
+          onClick={onStartWorkout}
+          className="mt-3 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+          style={{
+            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+            color: player.color,
+          }}
+        >
+          <span aria-hidden>▶</span> Lancer ma séance
+        </button>
       )}
 
       {over && (
