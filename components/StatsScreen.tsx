@@ -1,8 +1,9 @@
 "use client";
 
-// Stats, une seule vue : jours parfaits, complétion, série en cours.
-// Pas de classement, pas de points, pas de badges — c'est la phase 2.
+// Stats par joueur : jours parfaits, complétion, série — et les badges
+// (phase 2), débloqués automatiquement, sobres. Le profil, c'est ici.
 
+import { BADGES, Gamification } from "@/lib/gamification";
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import { Avatar } from "./ui";
@@ -11,8 +12,37 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  gamification: Gamification | null;
   onShareWeek: () => void;
 };
+
+/** Rangée de badges d'un joueur. Le sien montre aussi ce qui reste à prendre. */
+function BadgeRow({ unlocked, mine }: { unlocked: string[]; mine: boolean }) {
+  const set = new Set(unlocked);
+  const shown = mine ? BADGES : BADGES.filter((b) => set.has(b.key));
+  if (shown.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      {shown.map((b) => {
+        const has = set.has(b.key);
+        return (
+          <span
+            key={b.key}
+            title={b.hint}
+            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+            style={
+              has
+                ? { background: "var(--color-raised)", color: "var(--color-ink)" }
+                : { color: "var(--color-faint)", boxShadow: "inset 0 0 0 1px var(--color-line)", opacity: 0.6 }
+            }
+          >
+            {b.emoji} {b.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 function Metric({
   value,
@@ -37,6 +67,7 @@ export default function StatsScreen({
   player,
   players,
   entries,
+  gamification,
   onShareWeek,
 }: Props) {
   // Soi d'abord, puis l'ordre d'arrivée. Ce n'est pas un classement.
@@ -73,6 +104,10 @@ export default function StatsScreen({
                   label="série en cours"
                 />
               </div>
+              <BadgeRow
+                unlocked={gamification?.badges.get(p.id) ?? []}
+                mine={p.id === player.id}
+              />
             </section>
           );
         })}

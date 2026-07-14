@@ -5,11 +5,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useChallengeData } from "@/hooks/useChallengeData";
+import { useGamification } from "@/hooks/useGamification";
 import { backfillDays, backfillOpen } from "@/lib/challenge";
+import { notifyOvertake } from "@/lib/gamification";
 import { buildWeekShare, shareText } from "@/lib/share";
-import { Player } from "@/lib/types";
+import { Exercise, Player } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
 import HistoryScreen from "./HistoryScreen";
+import LeaderboardScreen from "./LeaderboardScreen";
 import InstallScreen, { InstallPromptEvent } from "./InstallScreen";
 import PasswordGate from "./PasswordGate";
 import PlayerSelect from "./PlayerSelect";
@@ -73,6 +76,17 @@ export default function App() {
     [data.players, playerId],
   );
 
+  // Gamification (phase 2) : chargée seulement une fois le joueur connu.
+  const { gamification, reloadGamification } = useGamification(!!player);
+
+  /** Coche + recalcul du classement + détection de dépassement. */
+  async function toggleAndScore(day: string, exo: Exercise) {
+    if (!player) return;
+    await data.toggleExercise(player.id, day, exo);
+    reloadGamification();
+    notifyOvertake(player.id);
+  }
+
   // Rattrapage sans aucun jour à rattraper (inscrit le jour 1) : on ferme direct.
   const needsBackfill = !!player && backfillOpen(player);
   useEffect(() => {
@@ -89,7 +103,14 @@ export default function App() {
 
   async function shareWeek() {
     if (!player) return;
-    const channel = await shareText(buildWeekShare(player, data.entries));
+    const mine = gamification?.total.find((r) => r.player_id === player.id);
+    const channel = await shareText(
+      buildWeekShare(
+        player,
+        data.entries,
+        mine ? { rank: mine.rank, points: mine.points } : null,
+      ),
+    );
     if (channel === "clipboard")
       data.showToast("Copié ! Colle-le dans WhatsApp 💬");
   }
@@ -192,9 +213,19 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
-            onToggle={(day, exo) => data.toggleExercise(player.id, day, exo)}
+            gamification={gamification}
+            onToggle={toggleAndScore}
             onShareWeek={shareWeek}
             onInvite={invite}
+            onGoLeaderboard={() => setTab("leaderboard")}
+            showToast={data.showToast}
+          />
+        )}
+        {tab === "leaderboard" && (
+          <LeaderboardScreen
+            player={player}
+            players={data.players}
+            gamification={gamification}
           />
         )}
         {tab === "history" && (
@@ -202,7 +233,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
-            onToggle={(day, exo) => data.toggleExercise(player.id, day, exo)}
+            onToggle={toggleAndScore}
             showToast={data.showToast}
           />
         )}
@@ -211,6 +242,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            gamification={gamification}
             onShareWeek={shareWeek}
           />
         )}

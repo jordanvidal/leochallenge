@@ -9,6 +9,7 @@ import {
   frenchDate,
   parisToday,
 } from "@/lib/challenge";
+import { Gamification } from "@/lib/gamification";
 import {
   Entry,
   entryCount,
@@ -17,24 +18,32 @@ import {
   EXERCISES,
   Player,
 } from "@/lib/types";
+import NotifBanner from "./NotifBanner";
+import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
 
 type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  gamification: Gamification | null;
   onToggle: (day: string, exo: Exercise) => void;
   onShareWeek: () => void;
   onInvite: () => void;
+  onGoLeaderboard: () => void;
+  showToast: (msg: string) => void;
 };
 
 export default function TodayScreen({
   player,
   players,
   entries,
+  gamification,
   onToggle,
   onShareWeek,
   onInvite,
+  onGoLeaderboard,
+  showToast,
 }: Props) {
   const today = parisToday();
   const over = today > CHALLENGE_END;
@@ -75,6 +84,16 @@ export default function TodayScreen({
           </div>
         )}
       </header>
+
+      {/* Le rang du joueur : c'est cette phrase qui fait faire les pompes */}
+      {!over && (
+        <RankLine
+          player={player}
+          players={players}
+          gamification={gamification}
+          onGoLeaderboard={onGoLeaderboard}
+        />
+      )}
 
       {/* Les trois cartes. Physiques, presque tactiles. */}
       {!over && (
@@ -172,6 +191,8 @@ export default function TodayScreen({
           </button>
         )}
       </section>
+
+      <NotifBanner player={player} onDone={showToast} />
 
       <button
         onClick={onShareWeek}

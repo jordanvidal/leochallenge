@@ -21,10 +21,12 @@ function daySquare(count: number): string {
   return "⬜";
 }
 
-/** Construit le message de la semaine en cours pour un joueur. */
+/** Construit le message de la semaine en cours pour un joueur.
+    rankInfo (phase 2) ajoute la ligne classement si dispo. */
 export function buildWeekShare(
   player: Player,
   entries: Map<string, Entry>,
+  rankInfo?: { rank: number; points: number } | null,
 ): string {
   const today = parisToday();
   const monday = mondayOf(today > CHALLENGE_END ? CHALLENGE_END : today);
@@ -48,10 +50,16 @@ export function buildWeekShare(
 
   const { streak } = computeStats(player.id, entries);
   const left = daysLeft();
+  const rankLine = rankInfo
+    ? [
+        `🏆 ${rankInfo.rank === 1 ? "1er" : `${rankInfo.rank}e`} au général — ${Number.isInteger(rankInfo.points) ? rankInfo.points : rankInfo.points.toFixed(1)} pts`,
+      ]
+    : [];
 
   return [
     `💪 Challenge 100-100-100 — Semaine du ${frenchDayMonth(monday)}`,
     `${player.name} — ${perfect}/${elapsed || 7} jours parfaits — série : ${streak}${streak > 0 ? " 🔥" : ""}`,
+    ...rankLine,
     "",
     "L M M J V S D",
     squares.join(" "),

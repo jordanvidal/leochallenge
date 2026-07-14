@@ -51,6 +51,38 @@ async function cacheFirst(request) {
   return response;
 }
 
+// ---- Notifications push (phase 2) ----
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload = { title: "💪 100 · 100 · 100", body: "" };
+  try {
+    payload = event.data.json();
+  } catch {
+    payload.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "lc100", // une seule notif visible à la fois, pas d'empilement
+    }),
+  );
+});
+
+// Tap sur la notification : on ouvre (ou focus) l'app.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const existing = list.find((c) => c.url.includes(self.location.origin));
+      if (existing) return existing.focus();
+      return clients.openWindow("/");
+    }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return; // écritures : jamais de cache

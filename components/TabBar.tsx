@@ -2,7 +2,21 @@
 
 // Trois onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
 
-export type Tab = "today" | "history" | "stats";
+export type Tab = "today" | "leaderboard" | "history" | "stats";
+
+function IconTrophy() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8 4h8v6a4 4 0 0 1-8 0V4ZM8 5H4.5v1.5A3.5 3.5 0 0 0 8 10M16 5h3.5v1.5A3.5 3.5 0 0 1 16 10M12 14v3.5M8.5 20h7M12 17.5c-1.2 0-2 .9-2.4 2.5h4.8c-.4-1.6-1.2-2.5-2.4-2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function IconToday() {
   return (
@@ -63,6 +77,7 @@ function IconStats() {
 
 const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "today", label: "Aujourd'hui", icon: IconToday },
+  { key: "leaderboard", label: "Classement", icon: IconTrophy },
   { key: "history", label: "Historique", icon: IconHistory },
   { key: "stats", label: "Stats", icon: IconStats },
 ];

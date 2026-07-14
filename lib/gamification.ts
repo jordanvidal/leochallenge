@@ -1,0 +1,138 @@
+// Couche gamification côté client : lecture des points serveur
+// (RPC leaderboard, vue player_badges), catalogue des badges,
+// souscription push. Aucun calcul de points ici — une seule vérité.
+
+import { addDays, mondayOf, parisToday } from "./challenge";
+import { supabase } from "./supabase";
+
+export type LeaderboardRow = {
+  player_id: string;
+  points: number;
+  rank: number;
+  perfect_days: number;
+  exos_done: number;
+  current_streak: number;
+};
+
+export type Gamification = {
+  total: LeaderboardRow[];
+  week: LeaderboardRow[];
+  lastWeekRanks: Map<string, number>; // rang au dimanche précédent
+  badges: Map<string, string[]>; // player_id → badges débloqués
+};
+
+export const BADGES: { key: string; emoji: string; label: string; hint: string }[] = [
+  { key: "premiere_semaine", emoji: "🌱", label: "Première semaine", hint: "7 jours parfaits d'affilée" },
+  { key: "machine", emoji: "⚙️", label: "Machine", hint: "14 jours parfaits d'affilée" },
+  { key: "increvable", emoji: "🛡️", label: "Increvable", hint: "30 jours parfaits d'affilée" },
+  { key: "sans_faute", emoji: "💎", label: "Sans faute", hint: "Aucun jour raté depuis le début" },
+  { key: "retour_de_flamme", emoji: "🔥", label: "Retour de flamme", hint: "Reprendre une série de 5+ après l'avoir cassée" },
+  { key: "premier_de_la_classe", emoji: "👑", label: "Premier de la classe", hint: "N°1 pendant 7 jours consécutifs" },
+  { key: "finisseur", emoji: "🏁", label: "Le finisseur", hint: "Les 3 exos validés le 31 août" },
+  { key: "centurion", emoji: "🏛️", label: "Centurion", hint: "100 exercices validés au total" },
+];
+
+/** "1er", "2e", "3e"… */
+export function frenchRank(n: number): string {
+  return n === 1 ? "1er" : `${n}e`;
+}
+
+/** Points affichés sans décimale inutile (47 plutôt que 47.0). */
+export function fmtPoints(p: number): string {
+  const n = Number(p);
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/** Charge tout l'état gamification en un aller-retour. */
+export async function fetchGamification(): Promise<Gamification | null> {
+  const today = parisToday();
+  const monday = mondayOf(today);
+  const lastSunday = addDays(monday, -1);
+
+  const [total, week, lastWeek, badges] = await Promise.all([
+    supabase.rpc("leaderboard"),
+    supabase.rpc("leaderboard", { p_from: monday }),
+    supabase.rpc("leaderboard", { p_until: lastSunday }),
+    supabase.from("player_badges").select("player_id, badge"),
+  ]);
+  if (total.error || week.error || lastWeek.error || badges.error) return null;
+
+  // Semaine 1 : personne n'avait de points dimanche dernier, la variation
+  // n'a pas de sens — on ne l'affiche pas plutôt que d'afficher du faux.
+  const lastWeekRows = lastWeek.data as LeaderboardRow[];
+  const lastWeekMeaningful = lastWeekRows.some((r) => Number(r.points) > 0);
+  const lastWeekRanks = new Map(
+    lastWeekMeaningful
+      ? lastWeekRows.map((r) => [r.player_id, Number(r.rank)] as [string, number])
+      : [],
+  );
+  const badgeMap = new Map<string, string[]>();
+  for (const row of badges.data as { player_id: string; badge: string }[]) {
+    badgeMap.set(row.player_id, [...(badgeMap.get(row.player_id) ?? []), row.badge]);
+  }
+  return {
+    total: (total.data as LeaderboardRow[]).map(numify),
+    week: (week.data as LeaderboardRow[]).map(numify),
+    lastWeekRanks,
+    badges: badgeMap,
+  };
+}
+
+/** Postgres renvoie les numeric en string : on renormalise. */
+function numify(r: LeaderboardRow): LeaderboardRow {
+  return {
+    ...r,
+    points: Number(r.points),
+    rank: Number(r.rank),
+    perfect_days: Number(r.perfect_days),
+    exos_done: Number(r.exos_done),
+    current_streak: Number(r.current_streak),
+  };
+}
+
+/** Signale une coche au serveur pour la détection de dépassement. */
+export function notifyOvertake(actorId: string): void {
+  fetch("/api/overtake", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actorId }),
+  }).catch(() => {
+    // silencieux : la notification de dépassement est un bonus, pas un contrat
+  });
+}
+
+/** Le push web est-il possible ici ? (iOS : PWA installée obligatoire) */
+export function pushSupported(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
+/** Demande la permission puis enregistre la subscription en base. */
+export async function subscribePush(playerId: string): Promise<boolean> {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    });
+    const json = sub.toJSON();
+    const { error } = await supabase.from("push_subscriptions").upsert(
+      {
+        player_id: playerId,
+        endpoint: sub.endpoint,
+        p256dh: json.keys?.p256dh ?? "",
+        auth: json.keys?.auth ?? "",
+      },
+      { onConflict: "endpoint" },
+    );
+    return !error;
+  } catch {
+    return false;
+  }
+}
