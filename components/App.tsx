@@ -9,8 +9,8 @@ import { useChallengeData } from "@/hooks/useChallengeData";
 import { useGamification } from "@/hooks/useGamification";
 import { backfillDays, backfillOpen, parisToday } from "@/lib/challenge";
 import { notifyOvertake } from "@/lib/gamification";
-import { buildWeekShare, shareText } from "@/lib/share";
-import { Exercise, Player } from "@/lib/types";
+import { shareInvite, shareWeekFlow } from "@/lib/share";
+import { Exercise, Player, entryKey } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
@@ -20,6 +20,7 @@ import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
 import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
+import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
 
 const GATE_KEY = "lc100.gate";
@@ -47,6 +48,7 @@ export default function App() {
     null,
   );
   const [tab, setTab] = useState<Tab>("today");
+  const [workoutOpen, setWorkoutOpen] = useState(false);
 
   // Lecture du contexte local une fois monté (pas de SSR ici).
   useEffect(() => {
@@ -96,6 +98,18 @@ export default function App() {
     notifyOvertake(player.id);
   }
 
+  /** Fin (ou abandon) de séance guidée : les exos couverts passent à
+      fait par le chemin d'écriture existant, puis recalcul du score. */
+  async function validateWorkout(exos: Exercise[]) {
+    if (!player) return false;
+    const ok = await data.setExercisesDone(player.id, parisToday(), exos);
+    if (ok && exos.length > 0) {
+      reloadGamification();
+      notifyOvertake(player.id);
+    }
+    return ok;
+  }
+
   // Rattrapage sans aucun jour à rattraper (inscrit le jour 1) : on ferme direct.
   const needsBackfill = !!player && backfillOpen(player);
   useEffect(() => {
@@ -112,40 +126,19 @@ export default function App() {
 
   async function shareWeek() {
     if (!player) return;
-    const mine = gamification?.total.find((r) => r.player_id === player.id);
-    // Bonus déclarés aujourd'hui par le joueur, libellés depuis le catalogue.
-    const today = parisToday();
-    const todayBonuses = (bonus?.todayClaims ?? [])
-      .filter((c) => c.player_id === player.id && c.day === today)
-      .map((c) => {
-        const item = bonus?.catalog.find((k) => k.key === c.bonus_key);
-        return item ? `${item.emoji} ${item.label} (+${item.points})` : "";
-      })
-      .filter(Boolean);
-    const channel = await shareText(
-      buildWeekShare(
-        player,
-        data.entries,
-        mine ? { rank: mine.rank, points: mine.points } : null,
-        todayBonuses,
-      ),
+    const channel = await shareWeekFlow(
+      player,
+      data.entries,
+      gamification,
+      bonus,
     );
     if (channel === "clipboard")
       data.showToast("Copié ! Colle-le dans WhatsApp 💬");
   }
 
   async function invite() {
-    const url = window.location.origin;
-    if (navigator.share) {
-      try {
-        await navigator.share({ url });
-        return;
-      } catch {
-        /* annulé */
-      }
-    }
-    await navigator.clipboard.writeText(url);
-    data.showToast("Lien copié, envoie-le au groupe");
+    const channel = await shareInvite();
+    if (channel === "clipboard") data.showToast("Lien copié, envoie-le au groupe");
   }
 
   // ---- Aiguillage des écrans ----
@@ -219,6 +212,23 @@ export default function App() {
     );
   }
 
+  // Mode séance guidée : plein écran, par-dessus tabs et contenu.
+  if (workoutOpen) {
+    return (
+      <div style={accent}>
+        <WorkoutMode
+          player={player}
+          todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
+          onValidate={validateWorkout}
+          onShare={shareWeek}
+          onClose={() => setWorkoutOpen(false)}
+          showToast={data.showToast}
+        />
+        <Toast message={data.toast} />
+      </div>
+    );
+  }
+
   return (
     <div style={accent} className="flex min-h-dvh flex-col">
       {data.offline && (
@@ -235,6 +245,7 @@ export default function App() {
             gamification={gamification}
             bonus={bonus}
             onToggle={toggleAndScore}
+            onStartWorkout={() => setWorkoutOpen(true)}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
             onShareWeek={shareWeek}

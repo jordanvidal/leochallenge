@@ -103,6 +103,42 @@ export function useChallengeData() {
     [entries, showToast],
   );
 
+  /** Force des exos à "fait" sans jamais en décocher (fin de séance
+      guidée). Même chemin que toggleExercise : optimiste + rollback. */
+  const setExercisesDone = useCallback(
+    async (playerId: string, day: string, exos: Exercise[]) => {
+      if (exos.length === 0) return true;
+      const key = entryKey(playerId, day);
+      const before = entries.get(key);
+      const next: Entry = {
+        player_id: playerId,
+        day,
+        pushups: before?.pushups ?? false,
+        abs: before?.abs ?? false,
+        squats: before?.squats ?? false,
+      };
+      for (const exo of exos) next[exo] = true;
+      if (before && exos.every((e) => before[e])) return true; // rien à écrire
+      setEntries((prev) => new Map(prev).set(key, next));
+
+      const { error } = await supabase
+        .from("entries")
+        .upsert(next, { onConflict: "player_id,day" });
+      if (error) {
+        setEntries((prev) => {
+          const map = new Map(prev);
+          if (before) map.set(key, before);
+          else map.delete(key);
+          return map;
+        });
+        showToast(humanError(error.message));
+        return false;
+      }
+      return true;
+    },
+    [entries, showToast],
+  );
+
   /** Upsert en masse pour le raccourci "tout parfait" du rattrapage. */
   const markAllPerfect = useCallback(
     async (playerId: string, days: string[]) => {
@@ -210,6 +246,7 @@ export function useChallengeData() {
     showToast,
     refresh,
     toggleExercise,
+    setExercisesDone,
     markAllPerfect,
     createPlayer,
     deletePlayer,
