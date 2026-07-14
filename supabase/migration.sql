@@ -190,3 +190,13 @@ create policy entries_insert on public.entries
   for insert to anon, authenticated with check (true);
 create policy entries_update on public.entries
   for update to anon, authenticated using (true) with check (true);
+
+-- -------------------------------------------------------------
+-- Durcissement : les fonctions de garde ne sont pas appelables
+-- via l'API RPC. Les triggers, eux, continuent de fonctionner.
+-- -------------------------------------------------------------
+
+revoke execute on function public.guard_player_insert() from public, anon, authenticated;
+revoke execute on function public.guard_player_delete() from public, anon, authenticated;
+revoke execute on function public.guard_player_update() from public, anon, authenticated;
+revoke execute on function public.guard_entry_write() from public, anon, authenticated;
