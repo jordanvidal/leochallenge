@@ -92,15 +92,19 @@ function numify(r: LeaderboardRow): LeaderboardRow {
   };
 }
 
-/** Signale une coche au serveur pour la détection de dépassement. */
-export function notifyOvertake(actorId: string): void {
-  fetch("/api/overtake", {
+/** Signale une coche au serveur : détection de dépassement (push) et
+    des moments du feed (prise de tête, badge, record, milestone).
+    Renvoie la promesse pour pouvoir recharger le fil derrière. */
+export function notifyMoments(actorId: string): Promise<void> {
+  return fetch("/api/moments", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ actorId }),
-  }).catch(() => {
-    // silencieux : la notification de dépassement est un bonus, pas un contrat
-  });
+  })
+    .then(() => undefined)
+    .catch(() => {
+      // silencieux : la détection des moments est un bonus, pas un contrat
+    });
 }
 
 /** Le push web est-il possible ici ? (iOS : PWA installée obligatoire) */

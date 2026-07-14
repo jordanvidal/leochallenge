@@ -1,8 +1,9 @@
 "use client";
 
-// Trois onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
+// Les onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
+// Cinq onglets, c'est le maximum absolu : au sixième, on fusionne.
 
-export type Tab = "today" | "leaderboard" | "history" | "stats";
+export type Tab = "today" | "feed" | "leaderboard" | "history" | "stats";
 
 function IconTrophy() {
   return (
@@ -62,6 +63,20 @@ function IconHistory() {
   );
 }
 
+function IconFeed() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M3 12.5h4l2.5-6.5 4.5 12 2.5-5.5H21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function IconStats() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -77,6 +92,7 @@ function IconStats() {
 
 const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "today", label: "Aujourd'hui", icon: IconToday },
+  { key: "feed", label: "Feed", icon: IconFeed },
   { key: "leaderboard", label: "Classement", icon: IconTrophy },
   { key: "history", label: "Historique", icon: IconHistory },
   { key: "stats", label: "Stats", icon: IconStats },
@@ -85,9 +101,12 @@ const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
 export default function TabBar({
   tab,
   onChange,
+  feedUnread = 0,
 }: {
   tab: Tab;
   onChange: (tab: Tab) => void;
+  /** Pastille de non-lu sur l'onglet Feed. C'est elle qui fait revenir. */
+  feedUnread?: number;
 }) {
   return (
     <nav
@@ -97,6 +116,7 @@ export default function TabBar({
       <div className="flex">
         {TABS.map(({ key, label, icon: Icon }) => {
           const active = key === tab;
+          const showBadge = key === "feed" && feedUnread > 0 && !active;
           return (
             <button
               key={key}
@@ -105,7 +125,18 @@ export default function TabBar({
               className="flex min-h-14 flex-1 flex-col items-center justify-center gap-1"
               style={{ color: active ? "var(--pc)" : "var(--color-faint)" }}
             >
-              <Icon />
+              <span className="relative">
+                <Icon />
+                {showBadge && (
+                  <span
+                    aria-label={`${feedUnread} non lus`}
+                    className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                    style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+                  >
+                    {feedUnread > 9 ? "9+" : feedUnread}
+                  </span>
+                )}
+              </span>
               <span className="text-[11px] font-bold">{label}</span>
             </button>
           );

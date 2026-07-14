@@ -3,18 +3,21 @@
 // L'orchestrateur : porte → joueur → rattrapage → installation → l'app.
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
+import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
+import { useIdentity } from "@/hooks/useIdentity";
 import { backfillDays, backfillOpen, parisToday } from "@/lib/challenge";
-import { notifyOvertake } from "@/lib/gamification";
+import { notifyMoments } from "@/lib/gamification";
 import { shareInvite, shareWeekFlow } from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
+import FeedScreen from "./feed/FeedScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
-import InstallScreen, { InstallPromptEvent } from "./InstallScreen";
+import InstallScreen from "./InstallScreen";
 import PasswordGate from "./PasswordGate";
 import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
@@ -22,10 +25,6 @@ import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
-
-const GATE_KEY = "lc100.gate";
-const PLAYER_KEY = "lc100.playerId";
-const LATER_KEY = "lc100.installLater"; // sessionStorage : revient à chaque ouverture
 
 function Splash() {
   return (
@@ -39,40 +38,10 @@ function Splash() {
 
 export default function App() {
   const data = useChallengeData();
-  const [mounted, setMounted] = useState(false);
-  const [gateOk, setGateOk] = useState(false);
-  const [playerId, setPlayerId] = useState<string | null>(null);
-  const [installLater, setInstallLater] = useState(false);
-  const [standalone, setStandalone] = useState(true); // vrai par défaut : pas de flash
-  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
-    null,
-  );
+  const id = useIdentity();
+  const { playerId } = id;
   const [tab, setTab] = useState<Tab>("today");
   const [workoutOpen, setWorkoutOpen] = useState(false);
-
-  // Lecture du contexte local une fois monté (pas de SSR ici).
-  useEffect(() => {
-    setGateOk(localStorage.getItem(GATE_KEY) === "1");
-    setPlayerId(localStorage.getItem(PLAYER_KEY));
-    setInstallLater(sessionStorage.getItem(LATER_KEY) === "1");
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true;
-    setStandalone(isStandalone);
-    setMounted(true);
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault(); // on déclenchera le prompt nous-mêmes
-      setInstallPrompt(e as InstallPromptEvent);
-    };
-    const onInstalled = () => setStandalone(true);
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -82,20 +51,36 @@ export default function App() {
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
   const { gamification, reloadGamification } = useGamification(!!player);
 
+  // Le fil : événements générés, réactions, commentaires, non-lus.
+  const feed = useFeed(!!player, playerId, data.showToast);
+  const { reload: reloadFeed } = feed;
+
+  /** Après toute écriture qui compte : classement rechargé, moments
+      détectés côté serveur (/api/moments), puis fil rafraîchi. */
+  const rescore = useCallback(
+    (actorId: string) => {
+      reloadGamification();
+      notifyMoments(actorId).finally(reloadFeed);
+    },
+    [reloadGamification, reloadFeed],
+  );
+
   // Bonus : catalogue, événement du jour, déclarations. Chaque
   // déclaration recalcule aussi le classement (onScored).
+  const onBonusScored = useCallback(() => {
+    if (playerId) rescore(playerId);
+  }, [playerId, rescore]);
   const { bonus, claim, unclaim } = useBonus(
     !!player,
     data.showToast,
-    reloadGamification,
+    onBonusScored,
   );
 
-  /** Coche + recalcul du classement + détection de dépassement. */
+  /** Coche + recalcul du classement + détection des moments. */
   async function toggleAndScore(day: string, exo: Exercise) {
     if (!player) return;
     await data.toggleExercise(player.id, day, exo);
-    reloadGamification();
-    notifyOvertake(player.id);
+    rescore(player.id);
   }
 
   /** Fin (ou abandon) de séance guidée : les exos couverts passent à
@@ -104,8 +89,7 @@ export default function App() {
     if (!player) return false;
     const ok = await data.setExercisesDone(player.id, parisToday(), exos);
     if (ok && exos.length > 0) {
-      reloadGamification();
-      notifyOvertake(player.id);
+      rescore(player.id);
     }
     return ok;
   }
@@ -118,11 +102,6 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsBackfill, player?.id]);
-
-  function selectPlayer(p: Player) {
-    localStorage.setItem(PLAYER_KEY, p.id);
-    setPlayerId(p.id);
-  }
 
   async function shareWeek() {
     if (!player) return;
@@ -143,17 +122,9 @@ export default function App() {
 
   // ---- Aiguillage des écrans ----
 
-  if (!mounted) return <Splash />;
+  if (!id.mounted) return <Splash />;
 
-  if (!gateOk)
-    return (
-      <PasswordGate
-        onPass={() => {
-          localStorage.setItem(GATE_KEY, "1");
-          setGateOk(true);
-        }}
-      />
-    );
+  if (!id.gateOk) return <PasswordGate onPass={id.openGate} />;
 
   if (data.players === null) return <Splash />;
 
@@ -173,7 +144,7 @@ export default function App() {
       <PlayerSelect
         players={data.players}
         entries={data.entries}
-        onSelect={selectPlayer}
+        onSelect={(p) => id.choosePlayer(p.id)}
         onCreate={data.createPlayer}
         onDelete={data.deletePlayer}
       />
@@ -198,15 +169,12 @@ export default function App() {
     );
   }
 
-  if (!standalone && !installLater) {
+  if (!id.standalone && !id.installLater) {
     return (
       <div style={accent}>
         <InstallScreen
-          installPrompt={installPrompt}
-          onLater={() => {
-            sessionStorage.setItem(LATER_KEY, "1");
-            setInstallLater(true);
-          }}
+          installPrompt={id.installPrompt}
+          onLater={id.installLaterOnce}
         />
       </div>
     );
@@ -254,6 +222,9 @@ export default function App() {
             showToast={data.showToast}
           />
         )}
+        {tab === "feed" && (
+          <FeedScreen player={player} players={data.players} feed={feed} />
+        )}
         {tab === "leaderboard" && (
           <LeaderboardScreen
             player={player}
@@ -282,16 +253,13 @@ export default function App() {
       </div>
       <div className="px-5 pb-1 text-center">
         <button
-          onClick={() => {
-            localStorage.removeItem(PLAYER_KEY);
-            setPlayerId(null);
-          }}
+          onClick={id.forgetPlayer}
           className="min-h-8 text-[11px] text-faint"
         >
           Ce n&apos;est pas moi ({player.name})
         </button>
       </div>
-      <TabBar tab={tab} onChange={setTab} />
+      <TabBar tab={tab} onChange={setTab} feedUnread={feed.unread} />
       <Toast message={data.toast} />
     </div>
   );
