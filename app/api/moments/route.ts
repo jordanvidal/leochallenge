@@ -3,11 +3,15 @@
 // changé dans le feed. Étend l'ancien /api/overtake : la détection de
 // dépassement (push "Sam vient de te passer") vit toujours ici,
 // plafonnée à une notif par destinataire par fenêtre de 4 heures.
-// L'unicité (player_id, kind, dedupe_key) rend tout ré-exécutable :
-// un appel raté est rattrapé au suivant, jamais de doublon.
+// Chaque moment réellement inséré part aussi en push aux autres
+// joueurs (groupé par joueur, une seule notif même si badge + record
+// tombent ensemble). L'unicité (player_id, kind, dedupe_key) rend tout
+// ré-exécutable : un appel raté est rattrapé au suivant, jamais de
+// doublon — ni dans le fil, ni en push.
 
 import { NextResponse } from "next/server";
 import { addDays } from "@/lib/challenge";
+import { BADGES } from "@/lib/gamification";
 import { parisToday, sendToPlayers, serverSupabase } from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +28,36 @@ type FeedInsert = {
 };
 
 const MILESTONES = [7, 14, 21, 30];
+
+// Ordre d'importance quand un joueur décroche plusieurs nouveautés
+// d'un coup : la plus forte fait le titre, les autres passent en corps.
+const KIND_PRIORITY: FeedInsert["kind"][] = [
+  "lead",
+  "milestone",
+  "record",
+  "badge",
+];
+
+/** La phrase d'un moment, sans le prénom (même ton que le fil). */
+function momentPhrase(
+  kind: FeedInsert["kind"],
+  payload: Record<string, unknown>,
+): { emoji: string; text: string } {
+  switch (kind) {
+    case "lead":
+      return { emoji: "👑", text: "prend la tête du classement" };
+    case "badge": {
+      const b = BADGES.find((x) => x.key === payload.badge);
+      return b
+        ? { emoji: b.emoji, text: `décroche « ${b.label} »` }
+        : { emoji: "🏅", text: "décroche un badge" };
+    }
+    case "record":
+      return { emoji: "📈", text: `bat sa meilleure série : ${payload.streak} jours` };
+    case "milestone":
+      return { emoji: "⚡", text: `aligne ${payload.streak} jours parfaits d'affilée` };
+  }
+}
 
 // Fenêtre de silence du push de dépassement : une notif max par
 // destinataire par 4 heures, quel que soit le nombre de dépasseurs.
@@ -179,11 +213,40 @@ export async function POST(request: Request) {
   // 📈⚡ Records et milestones de série.
   moments.push(...streakMoments(streaks.data as StreakRow[], today));
 
+  // 🗞️ L'upsert en ignoreDuplicates ne rend que les lignes vraiment
+  // insérées : la dédup en base garantit qu'un moment ne part qu'une
+  // fois en push, même si l'appel est rejoué. Erreur → data null →
+  // aucun push (rater une notif vaut mieux que spammer).
+  let feedPush = 0;
   if (moments.length > 0) {
-    await supabase.from("feed_events").upsert(moments, {
-      onConflict: "player_id,kind,dedupe_key",
-      ignoreDuplicates: true,
-    });
+    const { data: inserted } = await supabase
+      .from("feed_events")
+      .upsert(moments, {
+        onConflict: "player_id,kind,dedupe_key",
+        ignoreDuplicates: true,
+      })
+      .select("player_id, kind, payload");
+
+    const byPlayer = new Map<string, FeedInsert[]>();
+    for (const m of (inserted ?? []) as FeedInsert[]) {
+      byPlayer.set(m.player_id, [...(byPlayer.get(m.player_id) ?? []), m]);
+    }
+    const allIds = (players.data as { id: string }[]).map((p) => p.id);
+    for (const [pid, ms] of byPlayer) {
+      ms.sort(
+        (a, b) => KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind),
+      );
+      const [first, ...rest] = ms.map((m) => momentPhrase(m.kind, m.payload));
+      feedPush += await sendToPlayers(
+        allIds.filter((id) => id !== pid),
+        {
+          title: `${first.emoji} ${names.get(pid) ?? "Quelqu'un"} ${first.text}`,
+          body: rest.length
+            ? `Et aussi : ${rest.map((p) => p.text).join(" · ")}`
+            : "Ça se passe dans le feed.",
+        },
+      );
+    }
   }
 
   // On fige le nouvel état des rangs, y compris pour les sans-snapshot.
@@ -203,5 +266,6 @@ export async function POST(request: Request) {
     overtaken: overtaken.length,
     sent,
     moments: moments.length,
+    feedPush,
   });
 }
