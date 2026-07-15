@@ -202,11 +202,30 @@ export default function PlayerBreakdown({ player, row, view, onClose }: Props) {
           )}
 
           {/* Mini-barème */}
-          <div className="mt-8 mb-4 rounded-2xl bg-surface p-4 text-xs leading-relaxed text-muted">
-            <p className="mb-1 font-bold text-faint">Comment on marque</p>
-            <p>1 pt par exo · +2 pour une journée parfaite (3/3)</p>
-            <p>Série de 3 jours parfaits ×1,5 · série de 7 jours ×2</p>
-            <p>Les bonus (premier du jour, séances, événements, exos déclarés) s&apos;ajoutent par-dessus.</p>
+          <div className="mt-8 mb-4 rounded-2xl bg-surface p-4 text-xs text-muted">
+            <p className="mb-3 font-bold text-faint">Comment on marque</p>
+            <dl className="space-y-2">
+              <div className="flex items-baseline gap-3">
+                <dt className="num-display w-14 shrink-0 text-ink">1 pt</dt>
+                <dd>par exo coché</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="num-display w-14 shrink-0 text-ink">+2</dt>
+                <dd>journée parfaite (3 exos sur 3)</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="num-display w-14 shrink-0 text-ink">×1,5</dt>
+                <dd>série de 3 jours parfaits</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="num-display w-14 shrink-0 text-ink">×2</dt>
+                <dd>série de 7 jours parfaits</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
+                <dd>premier du jour, séances, événements et exos déclarés s&apos;ajoutent par-dessus</dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}
