@@ -16,29 +16,24 @@ type Props = {
   onShareWeek: () => void;
 };
 
-/** Rangée des 8 badges d'un joueur : obtenus en clair, verrouillés grisés.
+/** Rangée des badges obtenus par un joueur : on n'affiche que ceux débloqués.
     Même vue pour soi et pour les autres — c'est la comparaison qui motive. */
 function BadgeRow({ unlocked }: { unlocked: string[] }) {
   const set = new Set(unlocked);
+  const earned = BADGES.filter((b) => set.has(b.key));
+  if (earned.length === 0) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
-      {BADGES.map((b) => {
-        const has = set.has(b.key);
-        return (
-          <span
-            key={b.key}
-            title={b.hint}
-            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-            style={
-              has
-                ? { background: "var(--color-raised)", color: "var(--color-ink)" }
-                : { color: "var(--color-faint)", boxShadow: "inset 0 0 0 1px var(--color-line)", opacity: 0.6 }
-            }
-          >
-            {b.emoji} {b.label}
-          </span>
-        );
-      })}
+      {earned.map((b) => (
+        <span
+          key={b.key}
+          title={b.hint}
+          className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+          style={{ background: "var(--color-raised)", color: "var(--color-ink)" }}
+        >
+          {b.emoji} {b.label}
+        </span>
+      ))}
     </div>
   );
 }
