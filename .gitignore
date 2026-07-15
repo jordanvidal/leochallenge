@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# captures Playwright locales (scripts/screenshot.mjs)
+/screenshots/
+
 # outillage local Claude
 .claude/
 .claude-flow/
