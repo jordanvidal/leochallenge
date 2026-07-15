@@ -6,7 +6,8 @@
 
 import { entryCount } from "@/lib/types";
 import type { Player } from "@/lib/types";
-import { formatClock } from "@/lib/workout";
+import { DayBreakdown, formatClock } from "@/lib/workout";
+import { fmtPoints } from "@/lib/gamification";
 
 type Props = {
   player: Player;
@@ -15,7 +16,7 @@ type Props = {
   official: boolean;
   /** Exos cochés sur l'entrée du jour après l'upsert (0 à 3). */
   exosDone: ReturnType<typeof entryCount>;
-  dayPoints: number | null;
+  breakdown: DayBreakdown | null;
   onShare: () => void;
   onClose: () => void;
 };
@@ -25,7 +26,7 @@ export default function DoneScreen({
   durationSeconds,
   official,
   exosDone,
-  dayPoints,
+  breakdown,
   onShare,
   onClose,
 }: Props) {
@@ -42,7 +43,9 @@ export default function DoneScreen({
           {formatClock(durationSeconds)}
         </p>
         <p className="mt-1 text-sm font-medium text-muted">
-          {official ? "durée totale" : "durée estimée — chrono non enregistré"}
+          {official
+            ? "durée totale"
+            : "durée estimée — chrono non enregistré, le bonus vitesse ne comptera pas cette fois"}
         </p>
 
         <p className="mt-8 text-lg font-bold">
@@ -50,10 +53,12 @@ export default function DoneScreen({
             ? "Journée validée 3/3 ✓"
             : `${exosDone}/3 exos validés aujourd'hui`}
         </p>
-        {dayPoints !== null && (
+        {breakdown !== null && (
           <p className="mt-1 text-sm font-medium text-muted">
-            {Number.isInteger(dayPoints) ? dayPoints : dayPoints.toFixed(1)}{" "}
-            pts aujourd&apos;hui
+            {fmtPoints(breakdown.points)} pts aujourd&apos;hui
+            {breakdown.bonusPoints > 0
+              ? ` · dont ${fmtPoints(breakdown.bonusPoints)} pts bonus 🎁`
+              : ""}
           </p>
         )}
       </div>

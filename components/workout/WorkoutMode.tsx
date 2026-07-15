@@ -10,8 +10,9 @@ import { parisToday } from "@/lib/challenge";
 import { Entry, entryCount, EXERCISES, Exercise, Player } from "@/lib/types";
 import {
   coveredExos,
+  DayBreakdown,
   DEFAULT_CONFIG,
-  fetchDayPoints,
+  fetchDayBreakdown,
   fetchPresets,
   presetToConfig,
   WorkoutPreset,
@@ -41,7 +42,7 @@ export default function WorkoutMode({
   const w = useWorkout(player.id, showToast);
   const [presets, setPresets] = useState<WorkoutPreset[] | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
-  const [dayPoints, setDayPoints] = useState<number | null>(null);
+  const [breakdown, setBreakdown] = useState<DayBreakdown | null>(null);
   const validated = useRef(false);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function WorkoutMode({
     validated.current = true;
     const exos = coveredExos(w.config);
     onValidate(exos).then(() => {
-      fetchDayPoints(player.id, parisToday()).then(setDayPoints);
+      fetchDayBreakdown(player.id, parisToday()).then(setBreakdown);
     });
   }, [w.step, w.config, onValidate, player.id]);
 
@@ -92,7 +93,7 @@ export default function WorkoutMode({
         durationSeconds={w.displayDuration}
         official={w.serverDuration !== null}
         exosDone={entryCount(todayEntry)}
-        dayPoints={dayPoints}
+        breakdown={breakdown}
         onShare={onShare}
         onClose={() => {
           w.reset();
