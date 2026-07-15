@@ -25,6 +25,7 @@ import {
 import { Exercise, Player, entryKey } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
 import BilanScreen from "./BilanScreen";
+import DailyEventModal from "./DailyEventModal";
 import FeedScreen from "./feed/FeedScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
@@ -34,6 +35,7 @@ import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
 import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
+import TutorialScreen from "./TutorialScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
 
@@ -60,6 +62,11 @@ export default function App() {
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
   const [workoutOpen, setWorkoutOpen] = useState(false);
+  // Rouvrir le tuto à la demande (« Revoir les règles »), même déjà vu.
+  const [replayTuto, setReplayTuto] = useState(false);
+  // Modale « événement du jour » : montrée une fois par jour si un
+  // événement a été tiré (pas les jours « rien »).
+  const [showEventModal, setShowEventModal] = useState(false);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -93,6 +100,21 @@ export default function App() {
     data.showToast,
     onBonusScored,
   );
+
+  // Un événement a été tiré aujourd'hui et on ne l'a pas encore vu : on
+  // ouvre la modale. Le flag est daté, donc elle revient chaque matin.
+  useEffect(() => {
+    if (!player || !bonus?.event) return;
+    if (localStorage.getItem("lc100.eventSeenDay") !== parisToday()) {
+      setShowEventModal(true);
+    }
+  }, [player, bonus?.event]);
+
+  /** Modale d'événement fermée : mémorisé pour la journée. */
+  function dismissEventModal() {
+    localStorage.setItem("lc100.eventSeenDay", parisToday());
+    setShowEventModal(false);
+  }
 
   /** Coche + recalcul du classement + détection des moments. */
   async function toggleAndScore(day: string, exo: Exercise) {
@@ -203,6 +225,25 @@ export default function App() {
     );
   }
 
+  // Tuto de première connexion : une fois après le choix du joueur, ou
+  // rouvert à la demande. Passe avant l'install : on apprend le jeu, puis
+  // on installe pour ne pas perdre son profil.
+  if (!id.tutorialSeen || replayTuto) {
+    return (
+      <div style={accent}>
+        <TutorialScreen
+          player={player}
+          replay={replayTuto}
+          onDone={() => {
+            id.markTutorialSeen();
+            setReplayTuto(false);
+          }}
+        />
+        <Toast message={data.toast} />
+      </div>
+    );
+  }
+
   if (!id.standalone && !id.installLater) {
     return (
       <div style={accent}>
@@ -233,6 +274,13 @@ export default function App() {
 
   return (
     <div style={accent} className="flex min-h-dvh flex-col">
+      {showEventModal && bonus?.event && (
+        <DailyEventModal
+          player={player}
+          event={bonus.event}
+          onClose={dismissEventModal}
+        />
+      )}
       {data.offline && (
         <p className="bg-raised py-1.5 text-center text-xs font-medium text-muted">
           Hors ligne — dernier état connu
@@ -296,7 +344,16 @@ export default function App() {
           />
         )}
       </div>
-      <div className="px-5 pb-1 text-center">
+      <div className="flex items-center justify-center gap-4 px-5 pb-1">
+        <button
+          onClick={() => setReplayTuto(true)}
+          className="min-h-8 text-[11px] text-faint"
+        >
+          Revoir les règles
+        </button>
+        <span className="text-[11px] text-faint" aria-hidden>
+          ·
+        </span>
         <button
           onClick={id.forgetPlayer}
           className="min-h-8 text-[11px] text-faint"

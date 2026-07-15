@@ -10,11 +10,13 @@ import { InstallPromptEvent } from "@/components/InstallScreen";
 const GATE_KEY = "lc100.gate";
 const PLAYER_KEY = "lc100.playerId";
 const LATER_KEY = "lc100.installLater"; // sessionStorage : revient à chaque ouverture
+const TUTO_KEY = "lc100.tutorialSeen"; // localStorage : le tuto ne s'impose qu'une fois
 
 export function useIdentity() {
   const [mounted, setMounted] = useState(false);
   const [gateOk, setGateOk] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [tutorialSeen, setTutorialSeen] = useState(true); // vrai par défaut : pas de flash
   const [installLater, setInstallLater] = useState(false);
   const [standalone, setStandalone] = useState(true); // vrai par défaut : pas de flash
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
@@ -25,6 +27,7 @@ export function useIdentity() {
   useEffect(() => {
     setGateOk(localStorage.getItem(GATE_KEY) === "1");
     setPlayerId(localStorage.getItem(PLAYER_KEY));
+    setTutorialSeen(localStorage.getItem(TUTO_KEY) === "1");
     setInstallLater(sessionStorage.getItem(LATER_KEY) === "1");
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -69,10 +72,17 @@ export function useIdentity() {
     setInstallLater(true);
   }
 
+  /** Tuto vu : mémorisé pour toujours, il ne s'imposera plus. */
+  function markTutorialSeen() {
+    localStorage.setItem(TUTO_KEY, "1");
+    setTutorialSeen(true);
+  }
+
   return {
     mounted,
     gateOk,
     playerId,
+    tutorialSeen,
     installLater,
     standalone,
     installPrompt,
@@ -80,5 +90,6 @@ export function useIdentity() {
     choosePlayer,
     forgetPlayer,
     installLaterOnce,
+    markTutorialSeen,
   };
 }
