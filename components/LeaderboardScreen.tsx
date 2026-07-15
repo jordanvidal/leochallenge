@@ -8,6 +8,7 @@ import { useState } from "react";
 import { elapsedDays } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
 import { Player } from "@/lib/types";
+import PlayerBreakdown from "./PlayerBreakdown";
 import { Avatar } from "./ui";
 
 type Props = {
@@ -35,6 +36,8 @@ function Variation({ delta }: { delta: number | null }) {
 
 export default function LeaderboardScreen({ player, players, gamification }: Props) {
   const [view, setView] = useState<"total" | "week">("total");
+  // Joueur dont on regarde le détail des points (overlay), null = fermé.
+  const [detail, setDetail] = useState<LeaderboardRow | null>(null);
   const byId = new Map(players.map((p) => [p.id, p]));
   const nDays = Math.max(elapsedDays().length, 1);
 
@@ -96,7 +99,12 @@ export default function LeaderboardScreen({ player, players, gamification }: Pro
           const p = byId.get(r.player_id)!;
           const first = r.rank === 1;
           return (
-            <div key={r.player_id} className="flex flex-col items-center gap-1">
+            <button
+              key={r.player_id}
+              onClick={() => setDetail(r)}
+              aria-label={`Voir le détail des points de ${p.name}`}
+              className="flex flex-col items-center gap-1 rounded-xl p-1 transition-transform active:scale-95"
+            >
               <Avatar name={p.name} color={p.color} size={first ? 64 : 48} />
               <span className="max-w-20 truncate text-sm font-bold">{p.name}</span>
               <span
@@ -108,7 +116,7 @@ export default function LeaderboardScreen({ player, players, gamification }: Pro
               <span className="text-[10px] font-medium text-faint">
                 {frenchRank(r.rank)} · pts
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -120,35 +128,47 @@ export default function LeaderboardScreen({ player, players, gamification }: Pro
           const me = r.player_id === player.id;
           const completion = Math.round((r.exos_done / (nDays * 3)) * 100);
           return (
-            <li
-              key={r.player_id}
-              className="flex items-center gap-3 rounded-2xl px-4 py-3"
-              style={{
-                background: me
-                  ? `color-mix(in oklch, ${p.color} 12%, var(--color-surface))`
-                  : "var(--color-surface)",
-              }}
-            >
-              <span className="num-display w-8 text-2xl text-faint">{r.rank}</span>
-              <Avatar name={p.name} color={p.color} size={36} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">
-                  {me ? "Toi" : p.name}
-                </p>
-                <p className="text-xs text-muted">
-                  {r.current_streak > 0 ? `🔥 ${r.current_streak} · ` : ""}
-                  {completion}% de complétion
-                  {r.bonus_points > 0
-                    ? ` · dont ${fmtPoints(r.bonus_points)} pts bonus`
-                    : ""}
-                </p>
-              </div>
-              <span className="num-display text-xl">{fmtPoints(r.points)}</span>
-              <Variation delta={variation(r)} />
+            <li key={r.player_id}>
+              <button
+                onClick={() => setDetail(r)}
+                aria-label={`Voir le détail des points de ${me ? "toi" : p.name}`}
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-transform active:scale-[0.99]"
+                style={{
+                  background: me
+                    ? `color-mix(in oklch, ${p.color} 12%, var(--color-surface))`
+                    : "var(--color-surface)",
+                }}
+              >
+                <span className="num-display w-8 text-2xl text-faint">{r.rank}</span>
+                <Avatar name={p.name} color={p.color} size={36} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">
+                    {me ? "Toi" : p.name}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {r.current_streak > 0 ? `🔥 ${r.current_streak} · ` : ""}
+                    {completion}% de complétion
+                    {r.bonus_points > 0
+                      ? ` · dont ${fmtPoints(r.bonus_points)} pts bonus`
+                      : ""}
+                  </p>
+                </div>
+                <span className="num-display text-xl">{fmtPoints(r.points)}</span>
+                <Variation delta={variation(r)} />
+              </button>
             </li>
           );
         })}
       </ul>
+
+      {detail && byId.has(detail.player_id) && (
+        <PlayerBreakdown
+          player={byId.get(detail.player_id)!}
+          row={detail}
+          view={view}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </div>
   );
 }
