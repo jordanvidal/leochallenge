@@ -8,6 +8,9 @@ export const CHALLENGE_END = "2026-08-31";
 // Fenêtre d'édition glissante : aujourd'hui, hier, avant-hier.
 export const EDIT_WINDOW_DAYS = 2;
 
+// Nombre total de jours du challenge, jour de début et de fin compris (50).
+export const CHALLENGE_DAYS = 50;
+
 // Formateur figé sur Europe/Paris. en-CA donne directement 'YYYY-MM-DD'.
 const parisDayFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Paris",
@@ -16,9 +19,26 @@ const parisDayFmt = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+/**
+ * Simulation de date, dev uniquement. Permet de voir le Bilan avant le 1er
+ * septembre : `?date=2026-09-01` dans l'URL, ou NEXT_PUBLIC_SIM_DATE en env.
+ * Jamais actif en production : aucun risque de tuer l'onglet Aujourd'hui trop tôt.
+ */
+export function simulatedToday(): string | null {
+  if (process.env.NODE_ENV === "production") return null;
+  const isDay = (v: string | null | undefined): v is string =>
+    !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  if (typeof window !== "undefined") {
+    const fromUrl = new URLSearchParams(window.location.search).get("date");
+    if (isDay(fromUrl)) return fromUrl;
+  }
+  const fromEnv = process.env.NEXT_PUBLIC_SIM_DATE;
+  return isDay(fromEnv) ? fromEnv : null;
+}
+
 /** Jour civil actuel à Paris, quel que soit le fuseau du téléphone. */
 export function parisToday(): string {
-  return parisDayFmt.format(new Date());
+  return simulatedToday() ?? parisDayFmt.format(new Date());
 }
 
 /** Ajoute n jours à un jour 'YYYY-MM-DD'. Midi UTC pour ignorer les DST. */
@@ -72,6 +92,37 @@ export function elapsedDays(): string[] {
 /** Jours à rattraper à l'inscription : tous les jours écoulés sauf aujourd'hui. */
 export function backfillDays(): string[] {
   return elapsedDays().filter((d) => d !== parisToday());
+}
+
+/** Les 50 jours du challenge, du 13/07 au 31/08, dans l'ordre chronologique. */
+export function allChallengeDays(): string[] {
+  const days: string[] = [];
+  for (let i = 0; i < CHALLENGE_DAYS; i++) days.push(addDays(CHALLENGE_START, i));
+  return days;
+}
+
+/** Le challenge est-il terminé ? Vrai à partir du 1er septembre (heure de Paris).
+    C'est la garde qui fait apparaître le Bilan et disparaître « Aujourd'hui ». */
+export function challengeIsOver(): boolean {
+  return parisToday() > CHALLENGE_END;
+}
+
+/** Le bilan est-il encore provisoire ? Vrai les 1er et 2 septembre, tant que le
+    31/08 tombe dans la fenêtre 48h. Faux dès le 3 : tout est verrouillé. */
+export function bilanProvisoire(): boolean {
+  return isEditable(CHALLENGE_END);
+}
+
+/** Heures restantes avant le verrouillage définitif (fin de la fenêtre 48h sur
+    le 31/08), pour le bandeau provisoire. Basé sur l'horloge réelle ; en
+    simulation de date, part de minuit du jour simulé. */
+export function hoursUntilFinalLock(): number {
+  // Le 31/08 sort de la fenêtre 48h à minuit (Paris) le 3 septembre.
+  const lockDay = addDays(CHALLENGE_END, EDIT_WINDOW_DAYS + 1);
+  const deadline = new Date(`${lockDay}T00:00:00+02:00`).getTime(); // CEST en sept.
+  const sim = simulatedToday();
+  const now = sim ? new Date(`${sim}T00:00:00+02:00`).getTime() : Date.now();
+  return Math.max(0, Math.ceil((deadline - now) / 3_600_000));
 }
 
 /** Le rattrapage initial d'un joueur est-il encore ouvert ? (48h max) */

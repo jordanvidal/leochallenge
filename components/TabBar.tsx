@@ -2,8 +2,9 @@
 
 // Les onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
 // Cinq onglets, c'est le maximum absolu : au sixième, on fusionne.
+// « Aujourd'hui » et « Bilan » se partagent le premier slot selon la date.
 
-export type Tab = "today" | "feed" | "leaderboard" | "history" | "stats";
+export type Tab = "today" | "bilan" | "feed" | "leaderboard" | "history" | "stats";
 
 function IconTrophy() {
   return (
@@ -90,8 +91,23 @@ function IconStats() {
   );
 }
 
-const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
-  { key: "today", label: "Aujourd'hui", icon: IconToday },
+function IconBilan() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 21V4M5 4h11l-1.5 3.5L16 11H5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const TODAY_TAB = { key: "today" as Tab, label: "Aujourd'hui", icon: IconToday };
+const BILAN_TAB = { key: "bilan" as Tab, label: "Bilan", icon: IconBilan };
+const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "feed", label: "Feed", icon: IconFeed },
   { key: "leaderboard", label: "Classement", icon: IconTrophy },
   { key: "history", label: "Historique", icon: IconHistory },
@@ -102,19 +118,23 @@ export default function TabBar({
   tab,
   onChange,
   feedUnread = 0,
+  over = false,
 }: {
   tab: Tab;
   onChange: (tab: Tab) => void;
   /** Pastille de non-lu sur l'onglet Feed. C'est elle qui fait revenir. */
   feedUnread?: number;
+  // Challenge terminé : « Aujourd'hui » s'efface, « Bilan » prend sa place en tête.
+  over?: boolean;
 }) {
+  const tabs = [over ? BILAN_TAB : TODAY_TAB, ...REST_TABS];
   return (
     <nav
       aria-label="Navigation"
       className="sticky bottom-0 z-30 border-t border-line bg-bg/95 pb-safe backdrop-blur"
     >
       <div className="flex">
-        {TABS.map(({ key, label, icon: Icon }) => {
+        {tabs.map(({ key, label, icon: Icon }) => {
           const active = key === tab;
           const showBadge = key === "feed" && feedUnread > 0 && !active;
           return (

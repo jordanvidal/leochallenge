@@ -188,18 +188,22 @@ export async function fetchTodaySessionDuration(
   return Number(data.duration_seconds);
 }
 
-/** Points du jour d'un joueur (RPC leaderboard bornée à un jour). */
-export async function fetchDayPoints(
+export type DayBreakdown = { points: number; bonusPoints: number };
+
+/** Points du jour d'un joueur, base et bonus séparés (RPC leaderboard
+    bornée à un jour — la vue daily_points fait déjà le calcul, on lit). */
+export async function fetchDayBreakdown(
   playerId: string,
   day: string,
-): Promise<number | null> {
+): Promise<DayBreakdown | null> {
   const { data, error } = await supabase.rpc("leaderboard", {
     p_from: day,
     p_until: day,
   });
   if (error || !data) return null;
-  const mine = (data as { player_id: string; points: number }[]).find(
-    (r) => r.player_id === playerId,
-  );
-  return mine ? Number(mine.points) : null;
+  const mine = (
+    data as { player_id: string; points: number; bonus_points: number }[]
+  ).find((r) => r.player_id === playerId);
+  if (!mine) return null;
+  return { points: Number(mine.points), bonusPoints: Number(mine.bonus_points) };
 }
