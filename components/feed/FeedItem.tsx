@@ -3,7 +3,7 @@
 // Un événement du fil : avatar, phrase, heure, rangée de réactions,
 // commentaires repliés. Tout se passe inline — pas de modale.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   eventPhrase,
   FeedComment,
@@ -25,45 +25,126 @@ type Props = {
   onAddComment: (event: FeedEvent, body: string) => void;
 };
 
-/** Une pastille emoji + compteur. Tap = ajoute, retap = enlève. */
+/**
+ * Une pastille emoji + compteur. Tap = ajoute, retap = enlève.
+ * Appui long = qui a réagi (petit popover des collègues).
+ */
 function ReactionPill({
   emoji,
   count,
   mine,
+  who,
   onTap,
 }: {
   emoji: string;
   count: number;
   mine: boolean;
+  who: Player[];
   onTap: () => void;
 }) {
+  const [showWho, setShowWho] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Un appui long ouvre le popover ; on gèle alors le clic qui suit
+  // pour ne pas déclencher la réaction par-dessus.
+  const longPressed = useRef(false);
+
+  function clearTimer() {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }
+
+  function onPointerDown() {
+    longPressed.current = false;
+    if (who.length === 0) return;
+    clearTimer();
+    timer.current = setTimeout(() => {
+      longPressed.current = true;
+      setShowWho(true);
+      navigator.vibrate?.(12);
+    }, 450);
+  }
+
+  function handleClick() {
+    if (longPressed.current) {
+      longPressed.current = false;
+      return; // l'appui long a déjà agi
+    }
+    onTap();
+  }
+
+  // Ferme le popover au prochain tap ailleurs (ou au scroll).
+  useEffect(() => {
+    if (!showWho) return;
+    const close = () => setShowWho(false);
+    const id = setTimeout(() => {
+      document.addEventListener("pointerdown", close);
+      document.addEventListener("scroll", close, true);
+    }, 0);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("scroll", close, true);
+    };
+  }, [showWho]);
+
+  useEffect(() => () => clearTimer(), []);
+
   return (
-    <button
-      onClick={onTap}
-      aria-pressed={mine}
-      aria-label={`Réagir ${emoji}${count > 0 ? ` (${count})` : ""}`}
-      className="flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 text-sm transition-transform active:scale-95"
-      style={
-        mine
-          ? {
-              background: "color-mix(in oklch, var(--pc) 18%, var(--color-surface))",
-              boxShadow: "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)",
-            }
-          : { background: "var(--color-raised)" }
-      }
-    >
-      <span className={count === 0 && !mine ? "opacity-45" : undefined}>
-        {emoji}
-      </span>
-      {count > 0 && (
-        <span
-          className="text-xs font-bold"
-          style={{ color: mine ? "var(--pc)" : "var(--color-muted)" }}
+    <div className="relative">
+      {showWho && (
+        <div
+          role="tooltip"
+          className="absolute bottom-full left-1/2 z-10 mb-1.5 flex max-w-[60vw] -translate-x-1/2 flex-col gap-0.5 whitespace-nowrap rounded-xl px-3 py-2 shadow-lg"
+          style={{ background: "var(--color-raised)" }}
         >
-          {count}
-        </span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+            {emoji} {who.length === 1 ? "1 réaction" : `${who.length} réactions`}
+          </span>
+          {who.map((p) => (
+            <span
+              key={p.id}
+              className="text-sm font-bold leading-snug"
+              style={{ color: p.color }}
+            >
+              {p.name}
+            </span>
+          ))}
+        </div>
       )}
-    </button>
+      <button
+        onClick={handleClick}
+        onPointerDown={onPointerDown}
+        onPointerUp={clearTimer}
+        onPointerLeave={clearTimer}
+        onPointerCancel={clearTimer}
+        onContextMenu={(e) => e.preventDefault()}
+        aria-pressed={mine}
+        aria-label={`Réagir ${emoji}${count > 0 ? ` (${count})` : ""}`}
+        className="flex min-h-11 min-w-11 select-none items-center justify-center gap-1 rounded-full px-2 text-sm transition-transform active:scale-95"
+        style={
+          mine
+            ? {
+                background: "color-mix(in oklch, var(--pc) 18%, var(--color-surface))",
+                boxShadow: "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)",
+              }
+            : { background: "var(--color-raised)" }
+        }
+      >
+        <span className={count === 0 && !mine ? "opacity-45" : undefined}>
+          {emoji}
+        </span>
+        {count > 0 && (
+          <span
+            className="text-xs font-bold"
+            style={{ color: mine ? "var(--pc)" : "var(--color-muted)" }}
+          >
+            {count}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
 
@@ -191,16 +272,18 @@ export default function FeedItem({
         <p className="mt-0.5 text-[11px] text-faint">{timeOf(event.created_at)}</p>
         <div className="mt-2 flex gap-1.5">
           {REACTION_EMOJIS.map((e) => {
-            const count = reactions.filter((r) => r.emoji === e).length;
-            const isMine = reactions.some(
-              (r) => r.emoji === e && r.player_id === me.id,
-            );
+            const who = reactions
+              .filter((r) => r.emoji === e)
+              .map((r) => byId.get(r.player_id))
+              .filter((p): p is Player => Boolean(p));
+            const isMine = who.some((p) => p.id === me.id);
             return (
               <ReactionPill
                 key={e}
                 emoji={e}
-                count={count}
+                count={who.length}
                 mine={isMine}
+                who={who}
                 onTap={() => onToggleReaction(event, e)}
               />
             );
