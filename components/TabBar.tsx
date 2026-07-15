@@ -2,7 +2,7 @@
 
 // Trois onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
 
-export type Tab = "today" | "leaderboard" | "history" | "stats";
+export type Tab = "today" | "bilan" | "leaderboard" | "history" | "stats";
 
 function IconTrophy() {
   return (
@@ -75,8 +75,23 @@ function IconStats() {
   );
 }
 
-const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
-  { key: "today", label: "Aujourd'hui", icon: IconToday },
+function IconBilan() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 21V4M5 4h11l-1.5 3.5L16 11H5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const TODAY_TAB = { key: "today" as Tab, label: "Aujourd'hui", icon: IconToday };
+const BILAN_TAB = { key: "bilan" as Tab, label: "Bilan", icon: IconBilan };
+const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "leaderboard", label: "Classement", icon: IconTrophy },
   { key: "history", label: "Historique", icon: IconHistory },
   { key: "stats", label: "Stats", icon: IconStats },
@@ -85,17 +100,21 @@ const TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
 export default function TabBar({
   tab,
   onChange,
+  over = false,
 }: {
   tab: Tab;
   onChange: (tab: Tab) => void;
+  // Challenge terminé : « Aujourd'hui » s'efface, « Bilan » prend sa place en tête.
+  over?: boolean;
 }) {
+  const tabs = [over ? BILAN_TAB : TODAY_TAB, ...REST_TABS];
   return (
     <nav
       aria-label="Navigation"
       className="sticky bottom-0 z-30 border-t border-line bg-bg/95 pb-safe backdrop-blur"
     >
       <div className="flex">
-        {TABS.map(({ key, label, icon: Icon }) => {
+        {tabs.map(({ key, label, icon: Icon }) => {
           const active = key === tab;
           return (
             <button

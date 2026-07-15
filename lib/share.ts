@@ -4,6 +4,7 @@
 import { BonusState } from "./bonus";
 import {
   addDays,
+  CHALLENGE_DAYS,
   CHALLENGE_END,
   CHALLENGE_START,
   daysLeft,
@@ -11,7 +12,7 @@ import {
   mondayOf,
   parisToday,
 } from "./challenge";
-import { Gamification } from "./gamification";
+import { Gamification, LeaderboardRow } from "./gamification";
 import { computeStats } from "./stats";
 import { Entry, entryCount, entryKey } from "./types";
 import { Player } from "./types";
@@ -80,6 +81,86 @@ export function buildWeekShare(
     "",
     left > 0 ? `Plus que ${left} jour${left > 1 ? "s" : ""}` : "Challenge terminé 🏁",
   ].join("\n");
+}
+
+/** Répétitions cumulées d'un joueur : chaque exo validé = 100 mouvements. */
+function reps(exosDone: number): number {
+  return exosDone * 100;
+}
+
+/** Nombre à la française : 13800 → "13 800". */
+function frNum(n: number): string {
+  return n.toLocaleString("fr-FR");
+}
+
+/**
+ * Le partage de clôture, façon Wordle : classement final, jours parfaits,
+ * répétitions, totaux du groupe et meilleure série. Texte + emojis, ça se
+ * colle partout. On lit tout depuis le RPC leaderboard() et les entries — aucun
+ * recalcul de points côté client.
+ */
+export function buildFinalShare(
+  players: Player[],
+  rows: LeaderboardRow[],
+  entries: Map<string, Entry>,
+): string {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const ranked = [...rows]
+    .filter((r) => byId.has(r.player_id))
+    .sort((a, b) => a.rank - b.rank);
+  const medals = ["🥇", "🥈", "🥉"];
+
+  const lines = ranked.map((r, i) => {
+    const name = byId.get(r.player_id)!.name;
+    const perfect = `${r.perfect_days} jours parfaits`;
+    if (i < 3) {
+      return `${medals[i]} ${name} — ${perfect} — ${frNum(reps(r.exos_done))} répétitions`;
+    }
+    return `${i + 1}. ${name} — ${perfect}`;
+  });
+
+  const groupPerfect = ranked.reduce((s, r) => s + r.perfect_days, 0);
+  const groupReps = ranked.reduce((s, r) => s + reps(r.exos_done), 0);
+
+  // Meilleure série du groupe : calculée sur les entries déjà chargées.
+  let best = { name: "", streak: 0 };
+  for (const p of players) {
+    const { bestStreak } = computeStats(p.id, entries);
+    if (bestStreak > best.streak) best = { name: p.name, streak: bestStreak };
+  }
+
+  return [
+    "🏁 Challenge 100-100-100 — TERMINÉ",
+    `${frenchDayMonth(CHALLENGE_START)} → ${frenchDayMonth(CHALLENGE_END)} · ${CHALLENGE_DAYS} jours`,
+    "",
+    ...lines,
+    "",
+    `Le groupe : ${groupPerfect} jours parfaits cumulés, ${frNum(groupReps)} répétitions.`,
+    ...(best.streak > 0
+      ? [`Meilleure série : ${best.name}, ${best.streak} jours d'affilée 🔥`]
+      : []),
+  ].join("\n");
+}
+
+/** Message « nouvelle saison » : un thermomètre, pas un moteur de challenge.
+    Il prépare juste un texte à balancer dans le groupe. */
+export const REMATCH_MESSAGE = [
+  "On remet ça en septembre ? 💪",
+  "Même format, nouvelles dates. Répondez 👍 si vous êtes dedans.",
+].join("\n");
+
+/** Partage le bilan de clôture. Sorti de App.tsx, comme shareWeekFlow. */
+export function shareFinalFlow(
+  players: Player[],
+  rows: LeaderboardRow[],
+  entries: Map<string, Entry>,
+): Promise<"share" | "clipboard"> {
+  return shareText(buildFinalShare(players, rows, entries));
+}
+
+/** Prépare le message « on remet ça » pour le groupe. */
+export function shareRematch(): Promise<"share" | "clipboard"> {
+  return shareText(REMATCH_MESSAGE);
 }
 
 /** Rassemble classement, bonus du jour et séance chronométrée, puis

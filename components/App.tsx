@@ -7,11 +7,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useGamification } from "@/hooks/useGamification";
-import { backfillDays, backfillOpen, parisToday } from "@/lib/challenge";
+import {
+  backfillDays,
+  backfillOpen,
+  challengeIsOver,
+  parisToday,
+} from "@/lib/challenge";
 import { notifyOvertake } from "@/lib/gamification";
-import { shareInvite, shareWeekFlow } from "@/lib/share";
+import {
+  shareFinalFlow,
+  shareInvite,
+  shareRematch,
+  shareWeekFlow,
+} from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
+import BilanScreen from "./BilanScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
 import InstallScreen, { InstallPromptEvent } from "./InstallScreen";
@@ -47,7 +58,14 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
     null,
   );
-  const [tab, setTab] = useState<Tab>("today");
+  // Challenge terminé (1er sept.+) : le Bilan remplace « Aujourd'hui » et
+  // devient l'onglet par défaut. Garde stable sur toute la session.
+  const over = challengeIsOver();
+  const [tab, setTab] = useState<Tab>(() =>
+    challengeIsOver() ? "bilan" : "today",
+  );
+  // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
+  const effTab: Tab = over && tab === "today" ? "bilan" : tab;
   const [workoutOpen, setWorkoutOpen] = useState(false);
 
   // Lecture du contexte local une fois monté (pas de SSR ici).
@@ -139,6 +157,22 @@ export default function App() {
   async function invite() {
     const channel = await shareInvite();
     if (channel === "clipboard") data.showToast("Lien copié, envoie-le au groupe");
+  }
+
+  async function shareFinal() {
+    if (!gamification) return;
+    const channel = await shareFinalFlow(
+      data.players ?? [],
+      gamification.total,
+      data.entries,
+    );
+    if (channel === "clipboard")
+      data.showToast("Copié ! Colle-le dans WhatsApp 💬");
+  }
+
+  async function rematch() {
+    const channel = await shareRematch();
+    if (channel === "clipboard") data.showToast("Copié ! Envoie-le au groupe 💬");
   }
 
   // ---- Aiguillage des écrans ----
@@ -237,7 +271,7 @@ export default function App() {
         </p>
       )}
       <div className="flex flex-1 flex-col">
-        {tab === "today" && (
+        {!over && effTab === "today" && (
           <TodayScreen
             player={player}
             players={data.players}
@@ -254,14 +288,25 @@ export default function App() {
             showToast={data.showToast}
           />
         )}
-        {tab === "leaderboard" && (
+        {over && effTab === "bilan" && (
+          <BilanScreen
+            player={player}
+            players={data.players}
+            entries={data.entries}
+            gamification={gamification}
+            onShareFinal={shareFinal}
+            onRematch={rematch}
+            onGoHistory={() => setTab("history")}
+          />
+        )}
+        {effTab === "leaderboard" && (
           <LeaderboardScreen
             player={player}
             players={data.players}
             gamification={gamification}
           />
         )}
-        {tab === "history" && (
+        {effTab === "history" && (
           <HistoryScreen
             player={player}
             players={data.players}
@@ -270,7 +315,7 @@ export default function App() {
             showToast={data.showToast}
           />
         )}
-        {tab === "stats" && (
+        {effTab === "stats" && (
           <StatsScreen
             player={player}
             players={data.players}
@@ -291,7 +336,7 @@ export default function App() {
           Ce n&apos;est pas moi ({player.name})
         </button>
       </div>
-      <TabBar tab={tab} onChange={setTab} />
+      <TabBar tab={effTab} onChange={setTab} over={over} />
       <Toast message={data.toast} />
     </div>
   );
