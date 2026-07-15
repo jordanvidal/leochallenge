@@ -48,3 +48,23 @@ Points côté serveur (1/exo, +2 le jour parfait, ×1,5 dès 3 jours parfaits co
 - **Pas de comptes.** Un mot de passe partagé, un prénom, c'est tout. L'identité vit en localStorage — d'où l'écran qui insiste pour installer la PWA (Safari purge le localStorage des sites peu visités).
 - **Les règles vivent en base.** Fenêtre d'édition de 48h (heure de Paris), pas de jour futur, pas d'entrée hors challenge : triggers Postgres, pas seulement du React. Les devtools ne servent à rien.
 - **Icônes** : régénérables avec `node scripts/make-icons.mjs` (aucune dépendance).
+
+## Captures d'écran (Playwright)
+
+Certains écrans sont « gatés » (mot de passe de groupe, choix du joueur, tuto, événement du jour), donc pas atteignables par une simple URL. `scripts/screenshot.mjs` injecte les flags `localStorage` pour tomber directement sur l'écran voulu et le photographier.
+
+Une fois, pour récupérer le navigateur (mis en cache global, hors repo) :
+
+```bash
+npx playwright install chromium
+```
+
+Puis, avec le serveur lancé à côté (`npm run dev`) :
+
+```bash
+node scripts/screenshot.mjs tutorial                     # les 5 cartes du tuto
+node scripts/screenshot.mjs event --event=jour_miroir    # la modale d'un événement
+node scripts/screenshot.mjs app --tab=leaderboard        # un onglet de l'app
+```
+
+Les images atterrissent dans `screenshots/` (ignoré par git). Options : `--event=<clé>` (`leve_tot`, `quitte_ou_double`, `jour_miroir`, `happy_hour`, `pompes_double`, `boss_dimanche`…), `--tab=<onglet>`, `--url=<base>` (défaut `http://localhost:3000`), `--player=<uuid>` (défaut : premier joueur en base), `--out=<dossier>`. L'événement forcé est **mocké côté client** (interception de la RPC `get_daily_event`) : la base n'est jamais touchée.
