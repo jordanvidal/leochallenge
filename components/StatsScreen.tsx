@@ -16,14 +16,13 @@ type Props = {
   onShareWeek: () => void;
 };
 
-/** Rangée de badges d'un joueur. Le sien montre aussi ce qui reste à prendre. */
-function BadgeRow({ unlocked, mine }: { unlocked: string[]; mine: boolean }) {
+/** Rangée des 8 badges d'un joueur : obtenus en clair, verrouillés grisés.
+    Même vue pour soi et pour les autres — c'est la comparaison qui motive. */
+function BadgeRow({ unlocked }: { unlocked: string[] }) {
   const set = new Set(unlocked);
-  const shown = mine ? BADGES : BADGES.filter((b) => set.has(b.key));
-  if (shown.length === 0) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
-      {shown.map((b) => {
+      {BADGES.map((b) => {
         const has = set.has(b.key);
         return (
           <span
@@ -104,10 +103,7 @@ export default function StatsScreen({
                   label="série en cours"
                 />
               </div>
-              <BadgeRow
-                unlocked={gamification?.badges.get(p.id) ?? []}
-                mine={p.id === player.id}
-              />
+              <BadgeRow unlocked={gamification?.badges.get(p.id) ?? []} />
             </section>
           );
         })}
