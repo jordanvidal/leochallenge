@@ -1,7 +1,8 @@
 // Les "moments" : appelée après chaque coche, compare l'état calculé
 // (classement, badges, séries) à l'état stocké et insère ce qui a
 // changé dans le feed. Étend l'ancien /api/overtake : la détection de
-// dépassement (push "Sam vient de te passer") vit toujours ici.
+// dépassement (push "Sam vient de te passer") vit toujours ici,
+// plafonnée à une notif par destinataire par fenêtre de 4 heures.
 // L'unicité (player_id, kind, dedupe_key) rend tout ré-exécutable :
 // un appel raté est rattrapé au suivant, jamais de doublon.
 
@@ -23,6 +24,10 @@ type FeedInsert = {
 };
 
 const MILESTONES = [7, 14, 21, 30];
+
+// Fenêtre de silence du push de dépassement : une notif max par
+// destinataire par 4 heures, quel que soit le nombre de dépasseurs.
+const OVERTAKE_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 /** 📈 records et ⚡ milestones, dérivés des streak_pos de daily_points.
     Un seul record par série (dedupe = jour de départ de la série) :
@@ -115,12 +120,27 @@ export async function POST(request: Request) {
       if (oldRank < actorOld && newRank > actorNew) overtaken.push(pid);
     }
   }
+  // Plafond : verrou par destinataire (même patron atomique que
+  // /api/feed-notify). L'update conditionnel ne rend que les joueurs
+  // hors fenêtre de silence — les autres ont déjà été prévenus qu'ils
+  // glissaient, on les laisse tranquilles 4h. Erreur → on n'envoie rien
+  // (rater un push vaut mieux que spammer).
   let sent = 0;
   if (overtaken.length > 0) {
-    sent = await sendToPlayers(overtaken, {
-      title: "📉 Tu viens de te faire doubler",
-      body: `${names.get(actorId) ?? "Quelqu'un"} vient de te passer au classement.`,
-    });
+    const cutoff = new Date(Date.now() - OVERTAKE_WINDOW_MS).toISOString();
+    const { data: locked } = await supabase
+      .from("rank_snapshots")
+      .update({ last_overtake_at: new Date().toISOString() })
+      .in("player_id", overtaken)
+      .or(`last_overtake_at.is.null,last_overtake_at.lt.${cutoff}`)
+      .select("player_id");
+    const notifiable = (locked ?? []).map((r) => r.player_id);
+    if (notifiable.length > 0) {
+      sent = await sendToPlayers(notifiable, {
+        title: "📉 Tu viens de te faire doubler",
+        body: `${names.get(actorId) ?? "Quelqu'un"} vient de te passer au classement.`,
+      });
+    }
   }
 
   // ---- Événements du feed ----
@@ -167,6 +187,8 @@ export async function POST(request: Request) {
   }
 
   // On fige le nouvel état des rangs, y compris pour les sans-snapshot.
+  // Surtout ne pas inclure last_overtake_at ici : PostgREST en merge ne
+  // touche que les colonnes fournies, le verrou de 4h doit survivre.
   const upserts = lbRows.map((r) => ({
     player_id: r.player_id,
     rank: r.rank,
