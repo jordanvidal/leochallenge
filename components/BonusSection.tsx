@@ -76,6 +76,9 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
                 ? "Fait ✓"
                 : `Je l'ai fait +${fmtPoints(boss.points)}`}
             </button>
+          ) : bonus.event.key === "quitte_ou_double" ? (
+            // Valeur dynamique (tout le jour ×2) : on montre le facteur, pas +0.
+            <span className="num-display shrink-0 text-xl text-muted">×2</span>
           ) : (
             <span className="num-display shrink-0 text-xl text-muted">
               +{fmtPoints(bonus.event.points)}
