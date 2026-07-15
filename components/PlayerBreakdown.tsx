@@ -226,6 +226,45 @@ export default function PlayerBreakdown({ player, row, view, onClose }: Props) {
                 <dd>premier du jour, séances, événements et exos déclarés s&apos;ajoutent par-dessus</dd>
               </div>
             </dl>
+
+            {/* Les événements du jour : tirés au hasard, expliqués une bonne fois */}
+            <p className="mt-4 mb-3 border-t border-line pt-4 font-bold text-faint">
+              Les événements du jour{" "}
+              <span className="font-normal">(tirés au hasard, 1 max/jour)</span>
+            </p>
+            <dl className="space-y-2">
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
+                <dd>pompes double : tes pompes comptent double ce jour-là</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>🍻</dt>
+                <dd>happy hour : séance finie entre 18h et 20h → +5</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>🌄</dt>
+                <dd>lève-tôt : séance finie avant 7h → +6</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>🎰</dt>
+                <dd>
+                  quitte ou double : si tu boucles ton 3/3, <b>tous</b> tes
+                  points du jour comptent double. Si tu rates, rien ne change
+                  (aucune perte).
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>🪞</dt>
+                <dd>
+                  jour miroir : le <b>dernier</b> du classement général reçoit
+                  +8 pour se relancer
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-6 shrink-0 text-center" aria-hidden>👊</dt>
+                <dd>boss du dimanche : 200 pompes au total → +10 (dimanche only)</dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}
