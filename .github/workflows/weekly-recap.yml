@@ -1,0 +1,21 @@
+# Cron externe du récap hebdo : le plan Vercel Hobby plafonne à 2 crons,
+# déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
+# 08:00 UTC = 10h00 Paris pendant le challenge (13/07 → 31/08, CEST).
+# La route elle-même ne fait rien hors challenge ou le tout premier lundi.
+
+name: Récap hebdo du lundi
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # lundi 08:00 UTC
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler /api/cron/weekly-recap
+        run: |
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://leochallenge.vercel.app/api/cron/weekly-recap
