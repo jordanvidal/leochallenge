@@ -45,9 +45,10 @@ const COPY: Record<string, { howto: string }> = {
 export default function DailyEventModal({ player, event, onClose }: Props) {
   const accent = { "--pc": player.color } as React.CSSProperties;
   const howto = COPY[event.key]?.howto ?? event.label;
-  // Le quitte ou double n'a pas de montant fixe : c'est un multiplicateur.
+  // Multiplicateurs : « pompes double » double les pompes, « quitte ou
+  // double » double tout le jour. Le badge dit ×2 plutôt qu'un montant.
   const badge =
-    event.key === "quitte_ou_double"
+    event.key === "quitte_ou_double" || event.key === "pompes_double"
       ? "×2"
       : event.points > 0
         ? `+${fmtPoints(event.points)}`
