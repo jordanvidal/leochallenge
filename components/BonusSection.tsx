@@ -18,9 +18,9 @@ type Props = {
 export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Props) {
   if (!bonus) return null;
 
-  const capDay = bonus.catalog.find((c) => c.key === "cap_claims_jour")?.points ?? 2;
+  const capDay = bonus.catalog.find((c) => c.key === "cap_claims_jour")?.points ?? 3;
   const capWeek =
-    bonus.catalog.find((c) => c.key === "cap_points_semaine")?.points ?? 20;
+    bonus.catalog.find((c) => c.key === "cap_points_semaine")?.points ?? 25;
   const exerciseKeys = new Set(
     bonus.catalog.filter((c) => c.kind === "exercise").map((c) => c.key),
   );
@@ -29,9 +29,18 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
   const weekUsed = weekBonusPoints(bonus, player.id);
   const items = claimables(bonus);
 
-  /** Une puce est déclarable si les deux plafonds le permettent encore. */
+  // Échelles déjà entamées aujourd'hui : avoir coché « +50 pompes » ferme
+  // « +100 pompes », sinon les 50 premières seraient payées deux fois.
+  const myLadders = new Set(
+    mineToday
+      .map((c) => bonus.catalog.find((i) => i.key === c.bonus_key)?.ladder)
+      .filter((l): l is string => !!l),
+  );
+
+  /** Une puce est déclarable si l'échelle est libre et les plafonds le permettent. */
   function blocked(item: BonusCatalogItem): boolean {
     if (item.kind !== "exercise") return false; // le boss échappe aux plafonds
+    if (item.ladder && myLadders.has(item.ladder)) return true;
     return mineCount >= capDay || weekUsed + item.points > capWeek;
   }
 
