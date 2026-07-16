@@ -27,6 +27,33 @@ function groupByDay(events: FeedEvent[]): { day: string; items: FeedEvent[] }[] 
   return groups;
 }
 
+// Une coche déclenche une cascade : le trigger SQL écrit la séance, puis
+// /api/moments ajoute la prise de tête et le record une à quatre secondes
+// plus tard. Trois lignes en base, mais un seul moment vécu. La fenêtre
+// couvre aussi la visite complète (« je coche, puis je déclare mes bonus »),
+// qui tient en moins de deux minutes dans les données réelles.
+const BURST_MS = 120_000;
+
+/** Regroupe les événements consécutifs d'un même joueur tombés ensemble.
+    La fenêtre part du premier du groupe : un groupe ne s'étire donc jamais
+    au-delà de 2 min, même si les événements s'enchaînent un par un. */
+function groupBursts(events: FeedEvent[]): FeedEvent[][] {
+  const bursts: FeedEvent[][] = [];
+  for (const e of events) {
+    const last = bursts[bursts.length - 1];
+    const head = last?.[0];
+    const together =
+      head &&
+      head.player_id === e.player_id &&
+      Math.abs(
+        new Date(head.created_at).getTime() - new Date(e.created_at).getTime(),
+      ) <= BURST_MS;
+    if (together) last.push(e);
+    else bursts.push([e]);
+  }
+  return bursts;
+}
+
 export default function FeedScreen({ player, players, feed }: Props) {
   const byId = new Map(players.map((p) => [p.id, p]));
 
@@ -58,14 +85,16 @@ export default function FeedScreen({ player, players, feed }: Props) {
               {dayLabel(day)}
             </h2>
             <ul className="flex flex-col gap-2">
-              {items.map((e) => (
+              {groupBursts(items).map((burst) => (
                 <FeedItem
-                  key={e.id}
-                  event={e}
+                  key={burst[0].id}
+                  events={burst}
                   me={player}
                   byId={byId}
-                  reactions={feed.reactions.get(e.id) ?? []}
-                  comments={feed.comments.get(e.id) ?? []}
+                  // Réactions et commentaires de tout le groupe : chacun
+                  // porte son event_id, donc rien ne se perd au passage.
+                  reactions={burst.flatMap((e) => feed.reactions.get(e.id) ?? [])}
+                  comments={burst.flatMap((e) => feed.comments.get(e.id) ?? [])}
                   onToggleReaction={feed.toggleReaction}
                   onAddComment={feed.addComment}
                 />
