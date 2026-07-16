@@ -17,6 +17,7 @@ export type FeedKind =
   | "bonus"
   | "event"
   | "lead"
+  | "co_lead"
   | "badge"
   | "record"
   | "milestone";
@@ -30,6 +31,7 @@ export type FeedPayload = {
   points?: number | string;
   badge?: string;
   streak?: number;
+  co?: string[];
 };
 
 export type FeedEvent = {
@@ -95,6 +97,15 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
     }
     case "lead":
       return { emoji: "👑", text: "prend la tête du classement" };
+    case "co_lead": {
+      // Auteur rendu à part (prénom coloré) : la phrase enchaîne dessus.
+      const co = p.co ?? [];
+      const list =
+        co.length <= 1
+          ? co[0] ?? ""
+          : `${co.slice(0, -1).join(", ")} et ${co[co.length - 1]}`;
+      return { emoji: "👑", text: `et ${list} se partagent la tête` };
+    }
     case "badge": {
       const b = BADGES.find((x) => x.key === p.badge);
       return b
