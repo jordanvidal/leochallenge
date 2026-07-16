@@ -14,6 +14,10 @@ export type BonusCatalogItem = {
   label: string;
   points: number;
   sort: number;
+  // Échelle de volume : deux bonus qui la partagent sont le même exercice
+  // à deux hauteurs (+50 pompes / +100 pompes). Un seul par jour. null =
+  // bonus hors échelle, aucune exclusion.
+  ladder: string | null;
 };
 
 export type BonusClaim = {
@@ -32,9 +36,13 @@ export type BonusState = {
 
 /** Traduit une erreur des triggers bonus en phrase humaine. */
 export function humanBonusError(message: string): string {
-  if (message.includes("CAP_JOUR")) return "2 bonus max par jour 🔒";
+  // Pas de chiffre en dur : les plafonds sont des lignes de catalogue et
+  // s'affichent déjà en toutes lettres au-dessus de la rangée de puces.
+  if (message.includes("CAP_PALIER"))
+    return "Un seul palier par exo et par jour 🔒";
+  if (message.includes("CAP_JOUR")) return "Plafond de bonus du jour atteint 🔒";
   if (message.includes("CAP_SEMAINE"))
-    return "Plafond de 20 pts de bonus sur 7 jours atteint";
+    return "Plafond de bonus sur 7 jours atteint 🔒";
   if (message.includes("JOUR_VERROUILLE")) return "Ce jour est verrouillé 🔒";
   if (message.includes("JOUR_FUTUR")) return "On ne déclare pas en avance";
   if (message.includes("BOSS_INACTIF")) return "Pas de boss aujourd'hui";

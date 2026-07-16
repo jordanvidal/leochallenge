@@ -69,8 +69,11 @@ export function humanFeedError(message: string): string {
 
 const BONUS_PHRASES: Record<string, string> = {
   pompes_50: "a enchaîné 50 pompes en plus",
+  pompes_100: "a enchaîné 100 pompes en plus",
   abdos_100: "a remis 100 abdos",
+  abdos_200: "a remis 200 abdos",
   squats_100: "a remis 100 squats",
+  squats_200: "a remis 200 squats",
   course_5km: "a couru 5 km",
   gainage_3min: "a tenu 3 min de gainage",
   corde_10min: "a sauté 10 min à la corde",
