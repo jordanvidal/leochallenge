@@ -1,7 +1,13 @@
 "use client";
 
-// Un événement du fil : avatar, phrase, heure, rangée de réactions,
-// commentaires repliés. Tout se passe inline — pas de modale.
+// Un moment du fil : avatar, une ou plusieurs phrases, heure, rangée de
+// réactions, commentaires repliés. Tout se passe inline — pas de modale.
+//
+// Une carte peut porter plusieurs événements : une coche écrit la séance,
+// la prise de tête et le record à deux secondes d'intervalle, et ça reste
+// un seul moment. Les lignes en base ne bougent pas — c'est le journal ;
+// seul l'affichage les rassemble. Le premier événement du groupe sert
+// d'ancre : c'est lui qui porte les nouvelles réactions et commentaires.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -16,11 +22,11 @@ import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 
 type Props = {
-  event: FeedEvent;
+  events: FeedEvent[]; // 1..n, même joueur, même moment. events[0] = l'ancre.
   me: Player;
   byId: Map<string, Player>;
-  reactions: FeedReaction[];
-  comments: FeedComment[];
+  reactions: FeedReaction[]; // du groupe entier
+  comments: FeedComment[]; // du groupe entier
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
   onAddComment: (event: FeedEvent, body: string) => void;
 };
@@ -242,7 +248,7 @@ function Comments({
 }
 
 export default function FeedItem({
-  event,
+  events,
   me,
   byId,
   reactions,
@@ -250,49 +256,80 @@ export default function FeedItem({
   onToggleReaction,
   onAddComment,
 }: Props) {
-  const author = byId.get(event.player_id);
-  const { emoji, text } = eventPhrase(event);
+  const anchor = events[0];
+  const author = byId.get(anchor.player_id);
+
+  // Les commentaires viennent de plusieurs événements : on les remet dans
+  // l'ordre où ils ont été écrits, pas dans celui des événements portants.
+  const ordered = [...comments].sort((a, b) =>
+    a.created_at < b.created_at ? -1 : 1,
+  );
 
   return (
     <li className="flex gap-3 rounded-2xl bg-surface px-4 py-3">
       {author && <Avatar name={author.name} color={author.color} size={36} />}
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="text-sm leading-snug">
-          <span aria-hidden>{emoji}</span>{" "}
-          {/* Le prénom pour tout le monde, y compris soi : le fil raconte
-              à la 3e personne, la couleur marque déjà l'appartenance. */}
-          <span
-            className="font-bold"
-            style={{ color: author?.color ?? "var(--color-muted)" }}
-          >
-            {author?.name ?? "?"}
-          </span>{" "}
-          {text}
-        </p>
-        <p className="mt-0.5 text-[11px] text-faint">{timeOf(event.created_at)}</p>
+        {/* Le prénom sur la première ligne seulement : les suivantes
+            s'enchaînent dessus ("Jordan bat sa meilleure série / a validé
+            ses 3 exos"). L'ordre du fil est conservé, donc le moment fort
+            (prise de tête, record) mène et la séance suit. */}
+        {events.map((e, i) => {
+          const { emoji, text } = eventPhrase(e);
+          return (
+            <p key={e.id} className={i > 0 ? "mt-0.5 text-sm leading-snug" : "text-sm leading-snug"}>
+              <span aria-hidden>{emoji}</span>{" "}
+              {i === 0 && (
+                <>
+                  <span
+                    className="font-bold"
+                    style={{ color: author?.color ?? "var(--color-muted)" }}
+                  >
+                    {author?.name ?? "?"}
+                  </span>{" "}
+                </>
+              )}
+              {text}
+            </p>
+          );
+        })}
+        <p className="mt-0.5 text-[11px] text-faint">{timeOf(anchor.created_at)}</p>
         <div className="mt-2 flex gap-1.5">
           {REACTION_EMOJIS.map((e) => {
-            const who = reactions
-              .filter((r) => r.emoji === e)
-              .map((r) => byId.get(r.player_id))
+            // Un joueur qui a mis le même emoji sur deux événements du
+            // groupe ne compte qu'une fois : on compte des gens, pas des
+            // lignes.
+            const who = [
+              ...new Set(
+                reactions.filter((r) => r.emoji === e).map((r) => r.player_id),
+              ),
+            ]
+              .map((id) => byId.get(id))
               .filter((p): p is Player => Boolean(p));
-            const isMine = who.some((p) => p.id === me.id);
+            const mine = reactions.find(
+              (r) => r.emoji === e && r.player_id === me.id,
+            );
+            // Retirer : sur l'événement qui porte VRAIMENT ma réaction,
+            // sinon le retap en ajouterait une deuxième ailleurs.
+            // Ajouter : toujours sur l'ancre.
+            const target = mine
+              ? (events.find((ev) => ev.id === mine.event_id) ?? anchor)
+              : anchor;
             return (
               <ReactionPill
                 key={e}
                 emoji={e}
                 count={who.length}
-                mine={isMine}
+                mine={!!mine}
                 who={who}
-                onTap={() => onToggleReaction(event, e)}
+                onTap={() => onToggleReaction(target, e)}
               />
             );
           })}
         </div>
         <Comments
-          event={event}
+          event={anchor}
           byId={byId}
-          comments={comments}
+          comments={ordered}
           onAddComment={onAddComment}
         />
       </div>
