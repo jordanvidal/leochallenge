@@ -1,16 +1,61 @@
 // Constantes du challenge + helpers de dates en heure de Paris.
-// Les dates sont volontairement en dur : elles ne changeront pas.
 // Toutes les dates manipulées ici sont des chaînes 'YYYY-MM-DD' (jour civil Paris).
+//
+// Les dates viennent de l'env pour qu'une deuxième bande de copains puisse
+// tourner sur le MÊME code, déployé sur un autre projet Vercel + une autre base
+// Supabase. Sans variable posée, on retombe sur le challenge d'origine
+// (13/07 → 31/08/2026) : l'instance existante ne bouge pas d'un octet.
+//
+// Attention : ces valeurs sont figées au build par Next.js (préfixe NEXT_PUBLIC_).
+// Changer une date en prod = redéployer. Et il faut aussi adapter les contraintes
+// CHECK côté SQL (voir supabase/README-nouvelle-instance.md) — l'env ne pilote
+// que le front, la base a ses propres garde-fous.
 
-export const CHALLENGE_START = "2026-07-13";
-export const CHALLENGE_END = "2026-08-31";
+/**
+ * Lit un jour 'YYYY-MM-DD' depuis l'env. Je throw plutôt que de retomber
+ * silencieusement sur le fallback : une date mal tapée doit casser le build,
+ * pas donner une instance qui se croit terminée depuis un an.
+ */
+function readDayFromEnv(raw: string | undefined, fallback: string, name: string): string {
+  const value = raw?.trim();
+  if (!value) return fallback;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${name} doit être au format YYYY-MM-DD, reçu : "${value}"`);
+  }
+  // Round-trip : élimine les dates syntaxiquement valides mais inexistantes
+  // (2026-02-31, que Date accepte en la décalant au 3 mars).
+  const parsed = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`${name} n'est pas une date réelle : "${value}"`);
+  }
+  return value;
+}
+
+export const CHALLENGE_START = readDayFromEnv(
+  process.env.NEXT_PUBLIC_CHALLENGE_START,
+  "2026-07-13",
+  "NEXT_PUBLIC_CHALLENGE_START",
+);
+export const CHALLENGE_END = readDayFromEnv(
+  process.env.NEXT_PUBLIC_CHALLENGE_END,
+  "2026-08-31",
+  "NEXT_PUBLIC_CHALLENGE_END",
+);
+
+if (CHALLENGE_START > CHALLENGE_END) {
+  throw new Error(
+    `Challenge à l'envers : début ${CHALLENGE_START} après fin ${CHALLENGE_END}.`,
+  );
+}
 
 // Fenêtre d'édition : le jour en cours uniquement. On ne déclare ses exos
 // que le jour même — ni rattrapage, ni fenêtre glissante sur les jours passés.
 export const EDIT_WINDOW_DAYS = 0;
 
-// Nombre total de jours du challenge, jour de début et de fin compris (50).
-export const CHALLENGE_DAYS = 50;
+// Nombre total de jours du challenge, début et fin compris. Déduit des deux
+// dates : c'est le dénominateur des "X / N jours parfaits" du Bilan et du
+// partage, il doit suivre la config sinon il ment.
+export const CHALLENGE_DAYS = diffDays(CHALLENGE_START, CHALLENGE_END) + 1;
 
 // Formateur figé sur Europe/Paris. en-CA donne directement 'YYYY-MM-DD'.
 const parisDayFmt = new Intl.DateTimeFormat("en-CA", {
@@ -96,21 +141,21 @@ export function backfillDays(): string[] {
   return [];
 }
 
-/** Les 50 jours du challenge, du 13/07 au 31/08, dans l'ordre chronologique. */
+/** Tous les jours du challenge, du début à la fin, dans l'ordre chronologique. */
 export function allChallengeDays(): string[] {
   const days: string[] = [];
   for (let i = 0; i < CHALLENGE_DAYS; i++) days.push(addDays(CHALLENGE_START, i));
   return days;
 }
 
-/** Le challenge est-il terminé ? Vrai à partir du 1er septembre (heure de Paris).
+/** Le challenge est-il terminé ? Vrai dès le lendemain du dernier jour (Paris).
     C'est la garde qui fait apparaître le Bilan et disparaître « Aujourd'hui ». */
 export function challengeIsOver(): boolean {
   return parisToday() > CHALLENGE_END;
 }
 
-/** Le bilan est-il encore provisoire ? Vrai les 1er et 2 septembre, tant que le
-    31/08 tombe dans la fenêtre 48h. Faux dès le 3 : tout est verrouillé. */
+/** Le bilan est-il encore provisoire ? Vrai tant que le dernier jour tombe dans
+    la fenêtre d'édition. Avec EDIT_WINDOW_DAYS = 0, uniquement le jour même. */
 export function bilanProvisoire(): boolean {
   return isEditable(CHALLENGE_END);
 }
@@ -121,7 +166,10 @@ export function bilanProvisoire(): boolean {
 export function hoursUntilFinalLock(): number {
   // Le 31/08 sort de la fenêtre 48h à minuit (Paris) le 3 septembre.
   const lockDay = addDays(CHALLENGE_END, EDIT_WINDOW_DAYS + 1);
-  const deadline = new Date(`${lockDay}T00:00:00+02:00`).getTime(); // CEST en sept.
+  // +02:00 = CEST. Vrai pour un challenge qui finit entre avril et octobre.
+  // Une bande qui jouerait l'hiver verrait ce compteur décalé d'une heure —
+  // c'est un bandeau cosmétique, je n'ai pas sorti l'artillerie fuseau pour ça.
+  const deadline = new Date(`${lockDay}T00:00:00+02:00`).getTime();
   const sim = simulatedToday();
   const now = sim ? new Date(`${sim}T00:00:00+02:00`).getTime() : Date.now();
   return Math.max(0, Math.ceil((deadline - now) / 3_600_000));
