@@ -22,7 +22,7 @@ type BadgeRow = { player_id: string; badge: string };
 type StreakRow = { player_id: string; day: string; streak_pos: number };
 type FeedInsert = {
   player_id: string;
-  kind: "lead" | "badge" | "record" | "milestone";
+  kind: "lead" | "co_lead" | "badge" | "record" | "milestone";
   dedupe_key: string;
   payload: Record<string, unknown>;
 };
@@ -33,10 +33,21 @@ const MILESTONES = [7, 14, 21, 30];
 // d'un coup : la plus forte fait le titre, les autres passent en corps.
 const KIND_PRIORITY: FeedInsert["kind"][] = [
   "lead",
+  "co_lead",
   "milestone",
   "record",
   "badge",
 ];
+
+/** "et Hichem se partagent la tête" — la queue d'un ex-æquo en tête,
+    à accrocher derrière le prénom de l'auteur (rendu à part). */
+function coLeadText(coNames: string[]): string {
+  const list =
+    coNames.length <= 1
+      ? coNames[0] ?? ""
+      : `${coNames.slice(0, -1).join(", ")} et ${coNames[coNames.length - 1]}`;
+  return `et ${list} se partagent la tête`;
+}
 
 /** La phrase d'un moment, sans le prénom (même ton que le fil). */
 function momentPhrase(
@@ -46,6 +57,10 @@ function momentPhrase(
   switch (kind) {
     case "lead":
       return { emoji: "👑", text: "prend la tête du classement" };
+    case "co_lead": {
+      const co = Array.isArray(payload.co) ? (payload.co as string[]) : [];
+      return { emoji: "👑", text: coLeadText(co) };
+    }
     case "badge": {
       const b = BADGES.find((x) => x.key === payload.badge);
       return b
@@ -181,23 +196,40 @@ export async function POST(request: Request) {
   const today = parisToday();
   const moments: FeedInsert[] = [];
 
-  // 👑 Prise de la 1re place : rang 1 maintenant, pas rang 1 avant.
-  // points > 0 évite le "tout le monde prend la tête" du jour 1.
-  for (const r of lbRows) {
+  // 👑 Tête du classement. rank() rend le même rang 1 à un ex-æquo :
+  // deux joueurs à égalité en tête ne "prennent" pas la tête chacun de
+  // leur côté. On distingue donc le leader unique ("prend la tête") du
+  // partage ("se partagent la tête"), et on ne pousse qu'un seul
+  // événement — jamais deux "prend la tête" à la même seconde.
+  // points > 0 évite le "tout le monde en tête" du jour 1.
+  const leaders = lbRows
+    .filter((r) => Number(r.rank) === 1 && Number(r.points) > 0)
+    .sort((a, b) =>
+      (names.get(a.player_id) ?? "").localeCompare(names.get(b.player_id) ?? ""),
+    );
+  // Nouveau seulement si quelqu'un vient d'arriver en tête (rang > 1
+  // avant) : sinon on répéterait une tête inchangée à chaque coche.
+  const leadChanged = leaders.some((r) => {
     const old = oldRanks.get(r.player_id);
-    if (
-      Number(r.rank) === 1 &&
-      Number(r.points) > 0 &&
-      old !== undefined &&
-      old > 1
-    ) {
-      moments.push({
-        player_id: r.player_id,
-        kind: "lead",
-        dedupe_key: today,
-        payload: { day: today },
-      });
-    }
+    return old !== undefined && old > 1;
+  });
+  if (leadChanged && leaders.length === 1) {
+    moments.push({
+      player_id: leaders[0].player_id,
+      kind: "lead",
+      dedupe_key: today,
+      payload: { day: today },
+    });
+  } else if (leadChanged && leaders.length >= 2) {
+    // Ex-æquo : un seul event, porté par le premier (ordre alphabétique,
+    // stable → la dédup du jour tient), les autres dans le payload.
+    const [owner, ...rest] = leaders;
+    moments.push({
+      player_id: owner.player_id,
+      kind: "co_lead",
+      dedupe_key: today,
+      payload: { day: today, co: rest.map((r) => names.get(r.player_id) ?? "?") },
+    });
   }
 
   // 🏅 Badges : on pousse tout, l'unicité en base ne garde que les nouveaux.
