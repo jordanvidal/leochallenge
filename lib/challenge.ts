@@ -5,8 +5,9 @@
 export const CHALLENGE_START = "2026-07-13";
 export const CHALLENGE_END = "2026-08-31";
 
-// Fenêtre d'édition glissante : aujourd'hui, hier, avant-hier.
-export const EDIT_WINDOW_DAYS = 2;
+// Fenêtre d'édition : le jour en cours uniquement. On ne déclare ses exos
+// que le jour même — ni rattrapage, ni fenêtre glissante sur les jours passés.
+export const EDIT_WINDOW_DAYS = 0;
 
 // Nombre total de jours du challenge, jour de début et de fin compris (50).
 export const CHALLENGE_DAYS = 50;
@@ -89,9 +90,10 @@ export function elapsedDays(): string[] {
   return days;
 }
 
-/** Jours à rattraper à l'inscription : tous les jours écoulés sauf aujourd'hui. */
+/** Rattrapage désactivé : on ne déclare ses exos que le jour en cours.
+    Renvoyer une liste vide referme automatiquement l'onboarding (App.tsx). */
 export function backfillDays(): string[] {
-  return elapsedDays().filter((d) => d !== parisToday());
+  return [];
 }
 
 /** Les 50 jours du challenge, du 13/07 au 31/08, dans l'ordre chronologique. */
