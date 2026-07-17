@@ -17,7 +17,7 @@ jobs:
         run: |
           [ "$(date -u +%F)" = "2026-07-19" ] || { echo "pas le 19/07, no-op"; exit 0; }
           echo "SEND=1" >> "$GITHUB_ENV"
-      - name: Envoi manuel : toujours
+      - name: "Envoi manuel : toujours"
         if: github.event_name == 'workflow_dispatch'
         run: echo "SEND=1" >> "$GITHUB_ENV"
       - name: Envoyer l'annonce
