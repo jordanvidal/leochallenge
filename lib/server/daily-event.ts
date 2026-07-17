@@ -19,6 +19,14 @@ const TEASERS = [
   "Événement du jour tiré. Il ne dure que jusqu'à minuit.",
 ];
 
+export const EVENT_PUSH_TITLE = "🎲 Événement du jour";
+
+/** Teaser du jour. Pur et déterministe : même jour, même texte, donc
+    deux envois le même jour ne se contredisent pas. */
+export function teaserFor(day: string): string {
+  return TEASERS[Number(day.slice(-2)) % TEASERS.length];
+}
+
 export async function notifyDailyEvent(): Promise<{
   day: string;
   event: string | null;
@@ -41,10 +49,9 @@ export async function notifyDailyEvent(): Promise<{
   if (players.error) throw new Error("lecture joueurs échouée");
 
   const ids = (players.data as { id: string }[]).map((p) => p.id);
-  const teaser = TEASERS[Number(day.slice(-2)) % TEASERS.length];
   const sent = await sendToPlayers(ids, {
-    title: "🎲 Événement du jour",
-    body: teaser,
+    title: EVENT_PUSH_TITLE,
+    body: teaserFor(day),
   });
   return { day, event, sent };
 }
