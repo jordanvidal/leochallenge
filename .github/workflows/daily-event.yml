@@ -1,13 +1,20 @@
 # Cron externe du tirage de 6h : le plan Vercel Hobby plafonne à 2 crons,
 # déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
-# 04:00 UTC = 06:00 Paris pendant le challenge (13/07 → 31/08, CEST).
+# 03:50 UTC = 05:50 Paris pendant le challenge (13/07 → 31/08, CEST).
 # La route tire l'événement du jour et annonce qu'il y en a un — jamais lequel.
+#
+# Pourquoi 03:50 et pas 04:00 : les workflows planifiés de GitHub sont mis
+# en file, et la file est au plus haut pile à l'heure ronde — un départ à
+# xx:00 part couramment avec 5 à 20 minutes de retard. Le lève-tôt exige de
+# finir avant 7h : à 06:20, un tiers de la fenêtre est déjà mangé, et c'est
+# précisément l'événement que ce cron devait rendre jouable. Dix minutes
+# d'avance sur un creux valent mieux que vingt de retard sur un pic.
 
 name: Tirage du jour à 6h
 
 on:
   schedule:
-    - cron: "0 4 * * *" # tous les jours 04:00 UTC
+    - cron: "50 3 * * *" # tous les jours 03:50 UTC — hors de l'heure ronde
   workflow_dispatch: {} # déclenchement manuel pour tester
 
 jobs:
