@@ -24,8 +24,8 @@ export async function GET(request: Request) {
   const sent = await sendToPlayers(ids, {
     title: "⚔️ Demain, les duels débarquent",
     body:
-      `Chaque semaine, un face-à-face contre ton voisin de classement : ` +
-      `le plus de jours parfaits d'ici dimanche prend ${DUEL_POINTS} pts à l'autre. ` +
+      `Un face-à-face d'une semaine contre ton voisin de classement : ` +
+      `le plus de journées parfaites l'emporte et prend ${DUEL_POINTS} pts à l'autre. ` +
       `Premier tirage lundi ${frenchDayMonth(DUELS_FROM)} à 10h. Sois prêt.`,
   });
 

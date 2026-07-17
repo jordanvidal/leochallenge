@@ -25,15 +25,19 @@ export default function DuelAnnounceModal({ player, onClose }: Props) {
   const rules: { emoji: string; text: string }[] = [
     {
       emoji: "🤝",
-      text: "Chaque lundi matin, l'app t'apparie avec ton voisin de classement. Course serrée garantie.",
+      text: "Chaque lundi à 10h, l'app te donne ton adversaire de la semaine : ton voisin direct au classement.",
     },
     {
       emoji: "✅",
-      text: "Le plus de jours parfaits d'ici dimanche gagne. Égalité ? Le total d'exos départage.",
+      text: "Du lundi au dimanche, celui qui fait le plus de journées parfaites — les 3 exos cochés dans la journée — remporte le duel.",
+    },
+    {
+      emoji: "⚖️",
+      text: "Égalité en journées parfaites ? Le total d'exos cochés dans la semaine tranche. Toujours égalité : match nul, personne ne perd rien.",
     },
     {
       emoji: "⚔️",
-      text: `Le gagnant prend ${DUEL_POINTS} pts au perdant. Pas de lot de consolation.`,
+      text: `Le gagnant prend ${DUEL_POINTS} pts au perdant. Et le lundi d'après, même rendez-vous : le verdict de ton duel, puis ton nouvel adversaire. Un duel par semaine, jusqu'à la fin.`,
     },
   ];
 
