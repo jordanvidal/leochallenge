@@ -1,0 +1,21 @@
+# Cron externe du tirage de 6h : le plan Vercel Hobby plafonne à 2 crons,
+# déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
+# 04:00 UTC = 06:00 Paris pendant le challenge (13/07 → 31/08, CEST).
+# La route tire l'événement du jour et annonce qu'il y en a un — jamais lequel.
+
+name: Tirage du jour à 6h
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # tous les jours 04:00 UTC
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler /api/cron/daily-event
+        run: |
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://leochallenge.vercel.app/api/cron/daily-event
