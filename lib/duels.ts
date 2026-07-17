@@ -15,6 +15,13 @@ export const DUELS_FROM = addDays(mondayOf(CHALLENGE_START), 7);
 /** Montant du transfert, miroir de bonus_catalog('duel_hebdo'). */
 export const DUEL_POINTS = 3;
 
+/** Ouverture de l'annonce in-app des duels : la veille du 1er tirage à 19h
+    Paris (17h UTC en CEST), alignée sur la notif push GitHub Actions. Avant
+    ce moment la modale reste muette — sinon elle s'affiche en avance. */
+export const DUELS_ANNOUNCE_FROM = new Date(
+  `${addDays(DUELS_FROM, -1)}T17:00:00Z`,
+);
+
 export type Duel = {
   week_monday: string;
   player_a: string; // le mieux classé des deux à l'appariement

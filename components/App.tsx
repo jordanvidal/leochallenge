@@ -15,6 +15,7 @@ import {
   challengeIsOver,
   parisToday,
 } from "@/lib/challenge";
+import { DUELS_ANNOUNCE_FROM } from "@/lib/duels";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -125,18 +126,22 @@ export default function App() {
     setShowEventModal(false);
   }
 
-  // Annonce des duels, une seule fois par appareil. L'événement du jour
-  // garde la priorité : l'annonce attend qu'il soit fermé.
+  // Annonce des duels, une seule fois par appareil. Muette avant dimanche
+  // 19h Paris (cf. DUELS_ANNOUNCE_FROM), pour partir en même temps que la
+  // notif push. L'événement du jour garde la priorité : l'annonce attend
+  // qu'il soit fermé. Clé v2 : ceux qui ont vu l'annonce partie trop tôt
+  // la revoient au bon moment.
   useEffect(() => {
     if (!player || showEventModal) return;
-    if (localStorage.getItem("lc100.duelsAnnounceSeen") !== "1") {
+    if (new Date() < DUELS_ANNOUNCE_FROM) return;
+    if (localStorage.getItem("lc100.duelsAnnounceSeen.v2") !== "1") {
       setShowDuelAnnounce(true);
     }
   }, [player, showEventModal]);
 
   /** Annonce des duels fermée : on ne la remontre jamais. */
   function dismissDuelAnnounce() {
-    localStorage.setItem("lc100.duelsAnnounceSeen", "1");
+    localStorage.setItem("lc100.duelsAnnounceSeen.v2", "1");
     setShowDuelAnnounce(false);
   }
 
