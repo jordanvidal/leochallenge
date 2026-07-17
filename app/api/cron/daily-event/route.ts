@@ -1,6 +1,6 @@
-// Tirage + annonce de 6h (Paris) : le serveur tire l'événement du jour et
-// prévient tout le monde s'il y en a un. Déclenché par Vercel Cron
-// (4h UTC l'été, même convention que les rappels du soir).
+// Tirage + annonce de 9h (Paris) : le serveur tire l'événement du jour et
+// prévient tout le monde s'il y en a un. Déclenché par GitHub Actions
+// (07:00 UTC l'été ; le plan Vercel Hobby ne laisse que 2 crons, déjà pris).
 
 import { NextResponse } from "next/server";
 import { notifyDailyEvent } from "@/lib/server/daily-event";

@@ -5,8 +5,8 @@
 // Ce cron répare aussi un défaut du tirage paresseux : sans lui,
 // get_daily_event() n'est appelé qu'à la première ouverture de l'app.
 // Le 14/07 elle est tombée à 20h06 — un « happy hour » (fenêtre 18h-20h)
-// tiré à cette heure-là aurait désigné une fenêtre déjà fermée. À 6h,
-// l'événement existe avant que la journée commence.
+// tiré à cette heure-là aurait désigné une fenêtre déjà fermée. Tiré le
+// matin par le cron (9h), l'événement existe tôt dans la journée.
 
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
