@@ -62,12 +62,24 @@ self.addEventListener("push", (event) => {
     payload.body = event.data.text();
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: "lc100", // une seule notif visible à la fois, pas d'empilement
-    }),
+    (async () => {
+      // Badge d'icône porté par le push (rappels aux 0/3) : posé même
+      // app fermée. L'app le recalcule et l'efface à l'ouverture.
+      if (typeof payload.badge === "number" && "setAppBadge" in self.navigator) {
+        try {
+          if (payload.badge > 0) await self.navigator.setAppBadge(payload.badge);
+          else await self.navigator.clearAppBadge();
+        } catch {
+          // le badge est un bonus, la notif reste l'essentiel
+        }
+      }
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: "lc100", // une seule notif visible à la fois, pas d'empilement
+      });
+    })(),
   );
 });
 

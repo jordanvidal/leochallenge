@@ -87,7 +87,7 @@ function configureVapid() {
  */
 export async function sendToPlayers(
   playerIds: string[],
-  payload: { title: string; body: string },
+  payload: { title: string; body: string; badge?: number },
 ): Promise<number> {
   if (playerIds.length === 0) return 0;
   configureVapid();
