@@ -117,28 +117,57 @@ export function pushSupported(): boolean {
   );
 }
 
+/** Enregistre en base la subscription du navigateur, en la créant si le
+    navigateur n'en a pas. La permission doit déjà être accordée. */
+async function saveSubscription(playerId: string): Promise<boolean> {
+  const reg = await navigator.serviceWorker.ready;
+  // subscribe() rend la subscription existante si elle est encore valide,
+  // et en forge une neuve sinon : c'est ce qui rattrape un endpoint périmé.
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  });
+  const json = sub.toJSON();
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      player_id: playerId,
+      endpoint: sub.endpoint,
+      p256dh: json.keys?.p256dh ?? "",
+      auth: json.keys?.auth ?? "",
+    },
+    { onConflict: "endpoint" },
+  );
+  return !error;
+}
+
 /** Demande la permission puis enregistre la subscription en base. */
 export async function subscribePush(playerId: string): Promise<boolean> {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return false;
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    });
-    const json = sub.toJSON();
-    const { error } = await supabase.from("push_subscriptions").upsert(
-      {
-        player_id: playerId,
-        endpoint: sub.endpoint,
-        p256dh: json.keys?.p256dh ?? "",
-        auth: json.keys?.auth ?? "",
-      },
-      { onConflict: "endpoint" },
-    );
-    return !error;
+    return await saveSubscription(playerId);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Re-synchronise la subscription à chaque ouverture, sans rien demander.
+ *
+ * Pourquoi : un endpoint push n'est pas éternel (PWA réinstallée, token
+ * recyclé par l'OS). Sans ça, une subscription morte le reste à vie — le
+ * bandeau d'opt-in, lui, ne réapparaît jamais puisqu'il exige une
+ * permission « default » et que la nôtre est déjà « granted ». Le groupe
+ * se serait vidé de ses abonnés, un par un, en silence.
+ *
+ * Ne demande jamais la permission : si elle n'est pas déjà accordée, on
+ * ne fait rien et le bandeau garde son rôle.
+ */
+export async function resyncPush(playerId: string): Promise<void> {
+  try {
+    if (!pushSupported() || Notification.permission !== "granted") return;
+    await saveSubscription(playerId);
+  } catch {
+    // silencieux : c'est une réparation opportuniste, pas un contrat
   }
 }
