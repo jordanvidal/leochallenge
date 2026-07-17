@@ -144,7 +144,7 @@ export function useFeed(
         patchReaction(rx, mine);
         showToast(humanFeedError(err));
       } else if (!mine && event.player_id !== myId) {
-        notifyFeedActivity(event.id);
+        notifyFeedActivity(event.id, myId);
       }
     },
     [annex.reactions, myId, patchReaction, showToast],
@@ -181,8 +181,12 @@ export function useFeed(
           ),
         }));
         showToast(humanFeedError(err));
-      } else if (event.player_id !== myId) {
-        notifyFeedActivity(event.id);
+      } else {
+        // Toujours notifier : l'auteur du moment ET les autres
+        // participants au fil. Commenter son propre moment prévient
+        // donc ceux qui ont déjà commenté (le serveur exclut l'auteur
+        // du commentaire, et n'envoie rien s'il n'y a personne à prévenir).
+        notifyFeedActivity(event.id, myId);
       }
     },
     [myId, showToast],
