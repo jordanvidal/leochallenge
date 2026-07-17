@@ -30,6 +30,13 @@ const STREAK_AT_RISK = 3;
 // le 2e rappel du soir (22h30) se tait pour lui, on ne garde que le 20h.
 const DAYS_GONE = 3;
 
+// Win-back du lundi : on retend la main à qui a décroché depuis au moins
+// WINBACK_SILENT_DAYS jours mais reste un vrai participant récent (une coche
+// dans les WINBACK_LOOKBACK_DAYS). Au-delà, silence : on ne relance pas sans
+// fin — ni les fantômes jamais partis, ni les absents de longue date.
+const WINBACK_SILENT_DAYS = 7;
+const WINBACK_LOOKBACK_DAYS = 21;
+
 /** Hors des dates du challenge, aucun rappel ne part. */
 function offSeason(today: string): boolean {
   return today < CHALLENGE_START || today > CHALLENGE_END;
@@ -190,4 +197,57 @@ export async function sendLastStanding(): Promise<{
     body: "Tout le monde a coché aujourd'hui. Sauf toi.",
   });
   return { notified: 1, sent };
+}
+
+/** Lundi 10h — la main tendue aux décrochés, greffée sur le récap (le récap
+    les exclut, ils reçoivent CE message à la place, un seul push). Muet
+    depuis WINBACK_SILENT_DAYS mais vu dans les WINBACK_LOOKBACK_DAYS : un
+    vrai participant qui a lâché, ni fantôme ni parti depuis un mois. Ton
+    chaud, barre basse, une fois par semaine — l'inverse du « Pas toi » du
+    soir qui les a fait fuir. Renvoie les IDs relancés pour dédoubler. */
+export async function sendWinBack(): Promise<{
+  notified: number;
+  sent: number;
+  reengaged: string[];
+}> {
+  const supabase = serverSupabase();
+  const today = parisToday();
+  if (offSeason(today)) return { notified: 0, sent: 0, reengaged: [] };
+
+  const [players, entries] = await Promise.all([
+    supabase.from("players").select("id, name"),
+    supabase
+      .from("entries")
+      .select("player_id, day, pushups, abs, squats")
+      .gte("day", addDays(today, -(WINBACK_LOOKBACK_DAYS - 1)))
+      .lte("day", today),
+  ]);
+  if (players.error || entries.error) {
+    throw new Error("lecture Supabase échouée");
+  }
+
+  const rows = entries.data as Entry[];
+  // Fenêtre "récent" = 7 derniers jours, aujourd'hui inclus (sémantique active).
+  const silentCut = addDays(today, -(WINBACK_SILENT_DAYS - 1));
+  const activeRecent = new Set(
+    rows
+      .filter((e) => doneCount(e) > 0 && e.day >= silentCut)
+      .map((e) => e.player_id),
+  );
+  const activeWindow = new Set(
+    rows.filter((e) => doneCount(e) > 0).map((e) => e.player_id),
+  );
+
+  // Décroché récent : rien depuis 7 j, mais une coche dans les 21 j.
+  const targets = (players.data as PlayerRow[]).filter(
+    (p) => !activeRecent.has(p.id) && activeWindow.has(p.id),
+  );
+  if (targets.length === 0) return { notified: 0, sent: 0, reengaged: [] };
+
+  const ids = targets.map((t) => t.id);
+  const sent = await sendToPlayers(ids, {
+    title: "🌱 Nouvelle semaine, ardoise blanche",
+    body: "On t'a gardé ta place. Pas besoin de tout rattraper — un seul exo aujourd'hui et t'es reparti.",
+  });
+  return { notified: targets.length, sent, reengaged: ids };
 }

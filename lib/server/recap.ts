@@ -41,6 +41,9 @@ export async function sendWeeklyRecap(
   // Lignes duels par joueur (runWeeklyDuels), appendues au corps du push :
   // un seul envoi le lundi matin, le récap porte tout.
   duelLines?: Map<string, string[]>,
+  // Décrochés déjà relancés par le win-back : on ne leur redit pas « tu es
+  // tombé à la Xe place » par-dessus — ils reçoivent le win-back à la place.
+  exclude?: ReadonlySet<string>,
 ): Promise<{
   skipped?: string;
   notified: number;
@@ -100,7 +103,10 @@ export async function sendWeeklyRecap(
 
   const title = "📊 100 · 100 · 100";
   let sent = 0;
+  let notified = 0;
   for (const row of generalRows) {
+    if (exclude?.has(row.player_id)) continue; // relancé par le win-back
+    notified++;
     const line1 = winnerIds.has(row.player_id)
       ? `🏆 Tu as gagné la semaine avec ${winnerPts} pts !`
       : `📊 Semaine bouclée. ${rankLine(Number(row.rank), ranksBefore.get(row.player_id))}`;
@@ -122,5 +128,5 @@ export async function sendWeeklyRecap(
     });
   }
 
-  return { notified: generalRows.length, sent };
+  return { notified, sent };
 }
