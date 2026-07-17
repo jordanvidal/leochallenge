@@ -1,10 +1,11 @@
 "use client";
 
-// Annonce one-shot des duels : plein écran, une idée, un pouce — même
-// gabarit que la modale d'événement, sans la roue. Montrée une seule
-// fois par appareil (flag localStorage posé par l'appelant), en avant-
-// première avant le premier lundi puis en découverte après.
+// Annonce one-shot des duels, en deux cartes façon tuto : le pitch,
+// puis le rituel du lundi. Tape pour avancer, une idée par carte.
+// Montrée une seule fois par appareil (flag localStorage posé par
+// l'appelant), en avant-première avant le premier lundi.
 
+import { useState } from "react";
 import { frenchDayMonth, parisToday } from "@/lib/challenge";
 import { DUEL_POINTS, DUELS_FROM } from "@/lib/duels";
 import { Player } from "@/lib/types";
@@ -15,82 +16,119 @@ type Props = {
   onClose: () => void;
 };
 
+/** Une ligne de la mécanique : emoji + explication, comme le tuto. */
+function Row({ emoji, children }: { emoji: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="w-7 shrink-0 text-center text-xl" aria-hidden>
+        {emoji}
+      </span>
+      <p className="text-base text-muted">{children}</p>
+    </div>
+  );
+}
+
 export default function DuelAnnounceModal({ player, onClose }: Props) {
-  const accent = { "--pc": player.color } as React.CSSProperties;
   const glow = {
     filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
   };
   const before = parisToday() < DUELS_FROM;
 
-  const rules: { emoji: string; text: string }[] = [
-    {
-      emoji: "🤝",
-      text: "Chaque lundi à 10h, l'app te donne ton adversaire de la semaine : ton voisin direct au classement.",
-    },
-    {
-      emoji: "✅",
-      text: "Du lundi au dimanche, celui qui fait le plus de journées parfaites — les 3 exos cochés dans la journée — remporte le duel.",
-    },
-    {
-      emoji: "⚖️",
-      text: "Égalité en journées parfaites ? Le total d'exos cochés dans la semaine tranche. Toujours égalité : match nul, personne ne perd rien.",
-    },
-    {
-      emoji: "⚔️",
-      text: `Le gagnant prend ${DUEL_POINTS} pts au perdant. Et le lundi d'après, même rendez-vous : le verdict de ton duel, puis ton nouvel adversaire. Un duel par semaine, jusqu'à la fin.`,
-    },
+  const cards = [
+    // 1 — Le pitch, respirant : trois phrases, pas une de plus.
+    <div key="pitch">
+      <p className="text-7xl" aria-hidden style={glow}>
+        ⚔️
+      </p>
+      <h1 className="mt-6 text-3xl font-bold">Les duels</h1>
+      <p className="mt-2 text-lg font-medium" style={{ color: player.color }}>
+        {before
+          ? `Premier tirage lundi ${frenchDayMonth(DUELS_FROM)}, 10h.`
+          : "Ton adversaire de la semaine t'attend au Classement."}
+      </p>
+      <p className="mt-5 text-lg text-muted">
+        Chaque semaine, un face-à-face contre ton voisin de classement.
+      </p>
+      <p className="mt-3 text-lg text-muted">
+        Le plus de journées parfaites — les 3 exos cochés — l&apos;emporte, et
+        prend {DUEL_POINTS} pts à l&apos;autre.
+      </p>
+    </div>,
+
+    // 2 — Le rituel du lundi et les cas limites.
+    <div key="rituel">
+      <h1 className="text-2xl font-bold">Le rendez-vous du lundi</h1>
+      <div className="mt-6 space-y-5">
+        <Row emoji="🤝">
+          Chaque lundi à 10h : le verdict de ton duel, puis ton nouvel
+          adversaire. Un duel par semaine, jusqu&apos;à la fin.
+        </Row>
+        <Row emoji="⚖️">
+          Égalité en journées parfaites ? Le total d&apos;exos de la semaine
+          tranche. Toujours égalité : match nul, personne ne perd rien.
+        </Row>
+        <Row emoji="📍">
+          Ton duel vit en haut du Classement, score en direct. Nombre impair
+          de joueurs : un exempt, à tour de rôle.
+        </Row>
+      </div>
+    </div>,
   ];
+
+  const [i, setI] = useState(0);
+  const last = i === cards.length - 1;
+
+  function next() {
+    if (last) onClose();
+    else setI((v) => v + 1);
+  }
 
   return (
     <main
-      style={accent}
+      style={{ "--pc": player.color } as React.CSSProperties}
       className="fixed inset-0 z-[60] flex flex-col bg-bg pt-safe pb-safe"
     >
-      <div className="flex items-center justify-between px-6 py-3">
+      {/* En-tête : progression + passer, hors zone de tap. */}
+      <div className="flex items-center gap-3 px-6 py-3">
         <span className="text-xs font-bold tracking-wide text-faint uppercase">
           Nouveau
         </span>
+        <div className="flex flex-1 gap-1.5" aria-hidden>
+          {cards.map((_, n) => (
+            <span
+              key={n}
+              className="h-1 flex-1 rounded-full transition-colors"
+              style={{ background: n <= i ? player.color : "var(--color-line)" }}
+            />
+          ))}
+        </div>
         <button
           onClick={onClose}
-          aria-label="Fermer"
           className="min-h-11 px-2 text-sm font-medium text-faint"
         >
-          Fermer
+          Passer
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center px-8">
-        <p className="text-7xl" aria-hidden style={glow}>
-          ⚔️
-        </p>
-        <div className="rise-in">
-          <h1 className="mt-6 text-3xl font-bold">Les duels</h1>
-          <p className="mt-2 text-lg font-medium" style={{ color: player.color }}>
-            {before
-              ? `Premier tirage lundi ${frenchDayMonth(DUELS_FROM)}, 10h.`
-              : "Ton adversaire de la semaine t'attend au Classement."}
-          </p>
-
-          <ul className="mt-6 space-y-4">
-            {rules.map((r) => (
-              <li key={r.emoji} className="flex items-start gap-3">
-                <span className="text-xl" aria-hidden>
-                  {r.emoji}
-                </span>
-                <p className="text-base text-muted">{r.text}</p>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
-            Ton duel vit en haut de l&apos;onglet Classement, score en direct.
-            Verdict chaque lundi matin, dans le feed et sur ton téléphone.
-          </p>
+      {/* Tape n'importe où pour avancer. */}
+      <button
+        onClick={next}
+        aria-label={last ? "Fermer" : "Carte suivante"}
+        className="flex flex-1 flex-col justify-center px-8 text-left"
+      >
+        <div key={i} className="rise-in">
+          {cards[i]}
         </div>
-      </div>
+      </button>
 
       <div className="px-6 pb-3">
-        <BigButton onClick={onClose}>Qu&apos;ils viennent</BigButton>
+        {last ? (
+          <BigButton onClick={onClose}>Qu&apos;ils viennent</BigButton>
+        ) : (
+          <p className="py-3 text-center text-sm text-faint">
+            Tape pour continuer
+          </p>
+        )}
       </div>
     </main>
   );
