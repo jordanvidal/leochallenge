@@ -1,6 +1,7 @@
 // Envoi de notifications push, côté serveur uniquement (clé VAPID privée).
 // Les subscriptions mortes (410/404) sont purgées au passage.
 
+import { createECDH } from "node:crypto";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 
@@ -21,12 +22,63 @@ export function serverSupabase() {
   );
 }
 
+/** Base64url d'un buffer, sans dépendre de l'encodage natif. */
+function b64url(buf: Buffer): string {
+  return buf
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+let vapidReady = false;
+
+/**
+ * Configure et VALIDE la paire VAPID, une fois par instance.
+ *
+ * Pourquoi valider ici plutôt que laisser web-push échouer : une clé vide
+ * ou dépareillée casse 100 % des envois, mais ne se manifeste qu'au premier
+ * sendNotification — où l'erreur tombe dans le catch par subscription et
+ * disparaît. Résultat vécu du 14 au 17/07 : VAPID_PRIVATE_KEY valait ""
+ * en production, les crons plantaient chaque jour, et personne n'a rien vu
+ * pendant trois jours. On échoue donc tôt, fort, et en nommant la variable.
+ */
 function configureVapid() {
-  webpush.setVapidDetails(
-    "mailto:jordan.vidal3@gmail.com",
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!,
-  );
+  if (vapidReady) return;
+
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+  const priv = process.env.VAPID_PRIVATE_KEY ?? "";
+  if (!pub || !priv) {
+    const manquante = !pub ? "NEXT_PUBLIC_VAPID_PUBLIC_KEY" : "VAPID_PRIVATE_KEY";
+    throw new Error(
+      `VAPID : ${manquante} est vide. Aucune notification ne peut partir.`,
+    );
+  }
+
+  // La publique se dérive de la privée : si les deux ne se répondent pas,
+  // les services de push rejettent chaque envoi (403), silencieusement.
+  let derivee: string;
+  try {
+    const ecdh = createECDH("prime256v1");
+    ecdh.setPrivateKey(
+      Buffer.from(priv.replace(/-/g, "+").replace(/_/g, "/"), "base64"),
+    );
+    derivee = b64url(ecdh.getPublicKey());
+  } catch (err) {
+    throw new Error(
+      `VAPID_PRIVATE_KEY illisible (${(err as Error).message}). ` +
+        `Attendu : 43 caractères base64url.`,
+    );
+  }
+  if (derivee !== pub) {
+    throw new Error(
+      "VAPID : la clé privée ne correspond pas à la clé publique. " +
+        "Les souscriptions ont été créées avec la publique — tout sera rejeté (403).",
+    );
+  }
+
+  webpush.setVapidDetails("mailto:jordan.vidal3@gmail.com", pub, priv);
+  vapidReady = true;
 }
 
 /**
@@ -49,6 +101,7 @@ export async function sendToPlayers(
 
   let sent = 0;
   const dead: string[] = [];
+  const echecs: string[] = [];
   await Promise.all(
     (data as PushRow[]).map(async (sub) => {
       try {
@@ -62,10 +115,23 @@ export async function sendToPlayers(
         sent++;
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) dead.push(sub.id);
+        if (status === 404 || status === 410) {
+          dead.push(sub.id);
+        } else {
+          // Tout le reste (403 de clé, 413 payload trop gros, 5xx du
+          // service) : on le dit. Muet, un échec total ressemble à
+          // « personne n'est abonné » — et on ne cherche pas.
+          echecs.push(`${status ?? "?"} · ${(err as Error).message}`);
+        }
       }
     }),
   );
+  if (echecs.length > 0) {
+    console.error(
+      `[push] ${echecs.length}/${data.length} envois échoués :`,
+      echecs.slice(0, 3),
+    );
+  }
   if (dead.length > 0) {
     await supabase.from("push_subscriptions").delete().in("id", dead);
   }
