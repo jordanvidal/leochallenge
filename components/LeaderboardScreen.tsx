@@ -7,13 +7,15 @@
 import { useState } from "react";
 import { elapsedDays } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
-import { Player } from "@/lib/types";
+import { Entry, Player } from "@/lib/types";
+import DuelCard from "./DuelCard";
 import PlayerBreakdown from "./PlayerBreakdown";
 import { Avatar } from "./ui";
 
 type Props = {
   player: Player;
   players: Player[];
+  entries: Map<string, Entry>;
   gamification: Gamification | null;
 };
 
@@ -34,7 +36,7 @@ function Variation({ delta }: { delta: number | null }) {
   );
 }
 
-export default function LeaderboardScreen({ player, players, gamification }: Props) {
+export default function LeaderboardScreen({ player, players, entries, gamification }: Props) {
   const [view, setView] = useState<"total" | "week">("total");
   // Joueur dont on regarde le détail des points (overlay), null = fermé.
   const [detail, setDetail] = useState<LeaderboardRow | null>(null);
@@ -67,6 +69,13 @@ export default function LeaderboardScreen({ player, players, gamification }: Pro
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
       <h1 className="mt-4 text-2xl font-bold">Classement</h1>
+
+      <DuelCard
+        player={player}
+        players={players}
+        entries={entries}
+        gamification={gamification}
+      />
 
       {/* Général / Cette semaine */}
       <div className="mt-3 flex gap-1 rounded-xl bg-surface p-1" role="tablist">

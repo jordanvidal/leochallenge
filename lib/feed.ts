@@ -21,7 +21,9 @@ export type FeedKind =
   | "badge"
   | "record"
   | "milestone"
-  | "collectif";
+  | "collectif"
+  | "duel_start"
+  | "duel_result";
 
 export type FeedPayload = {
   day?: string;
@@ -33,6 +35,15 @@ export type FeedPayload = {
   badge?: string;
   streak?: number;
   co?: string[];
+  // duels
+  week_monday?: string;
+  opponent?: string;
+  opponent_id?: string;
+  score?: string; // "3–2", en jours parfaits
+  exosScore?: string; // "14–12", le départage
+  outcome?: "win" | "draw";
+  tiebreak?: boolean;
+  bye?: boolean; // exempt de la semaine
 };
 
 export type FeedEvent = {
@@ -128,6 +139,29 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
       return {
         emoji: "🤝",
         text: `ferme le jour parfait collectif : toute la bande à 3/3${pts}`,
+      };
+    }
+    case "duel_start":
+      return p.bye
+        ? {
+            emoji: "⚔️",
+            text: "est exempt de duel cette semaine — nombre impair, ça tournera",
+          }
+        : {
+            emoji: "⚔️",
+            text: `défie ${p.opponent} en duel : le plus de jours parfaits d'ici dimanche prend ${fmtPoints(Number(p.points ?? 3))} pts à l'autre`,
+          };
+    case "duel_result": {
+      if (p.outcome === "draw") {
+        return {
+          emoji: "🤝",
+          text: `fait match nul contre ${p.opponent} en duel (${p.score}) — aucun point ne bouge`,
+        };
+      }
+      const tb = p.tiebreak ? ` (départage aux exos ${p.exosScore})` : "";
+      return {
+        emoji: "⚔️",
+        text: `remporte son duel contre ${p.opponent} ${p.score}${tb} et lui prend ${fmtPoints(Number(p.points ?? 3))} pts`,
       };
     }
   }

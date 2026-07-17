@@ -331,6 +331,7 @@ export default function App() {
           <LeaderboardScreen
             player={player}
             players={data.players}
+            entries={data.entries}
             gamification={gamification}
           />
         )}
