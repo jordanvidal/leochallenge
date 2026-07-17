@@ -3,7 +3,9 @@
 //       toute la soirée pour la sauver. À 22h30 le message arrivait
 //       trop tard pour changer la décision.
 // 20h / 22h30 — "Marc et Léo ont fini. Pas toi." — c'est ça qui fait
-//       faire les pompes.
+//       faire les pompes. Réservé aux ACTIFS (≥ 1 coche sur 7 j) : les
+//       fantômes ne sont pas culpabilisés. Et passé 3 jours consécutifs à
+//       0/3, seul le 20h reste — plus de double salve pour qui a décroché.
 // 21h30 — dernier debout : le seul encore à 0/3 reçoit la phrase qui
 //       pique. Elle n'existe que quand elle est vraie.
 
@@ -23,6 +25,10 @@ type LbRow = { player_id: string; current_streak: number };
 
 // Seuil où le multiplicateur de série est actif : en dessous, rien à perdre.
 const STREAK_AT_RISK = 3;
+
+// Passé ce nombre de jours consécutifs à 0/3, on considère le joueur parti :
+// le 2e rappel du soir (22h30) se tait pour lui, on ne garde que le 20h.
+const DAYS_GONE = 3;
 
 /** Hors des dates du challenge, aucun rappel ne part. */
 function offSeason(today: string): boolean {
@@ -57,12 +63,27 @@ async function loadToday() {
   const activeIds = new Set(
     rows.filter((e) => doneCount(e) > 0).map((e) => e.player_id),
   );
+  const doneByKey = new Map(
+    rows.map((e) => [`${e.player_id}|${e.day}`, doneCount(e)] as const),
+  );
+  // Jours consécutifs à 0/3 en finissant aujourd'hui (inclus). Plafonné à la
+  // fenêtre 7 j chargée : au-delà de 6 le joueur n'est de toute façon plus
+  // `active`, donc déjà écarté des rappels.
+  const zeroStreak = (p: PlayerRow) => {
+    let n = 0;
+    for (let d = today; d >= addDays(today, -6); d = addDays(d, -1)) {
+      if ((doneByKey.get(`${p.id}|${d}`) ?? 0) > 0) break;
+      n++;
+    }
+    return n;
+  };
   return {
     supabase,
     today,
     players: players.data as PlayerRow[],
     count: (p: PlayerRow) => doneCount(byPlayer.get(p.id)),
     active: (p: PlayerRow) => activeIds.has(p.id),
+    zeroStreak,
   };
 }
 
@@ -71,11 +92,19 @@ export async function sendReminders(final: boolean): Promise<{
   notified: number;
   sent: number;
 }> {
-  const { today, players, count } = await loadToday();
+  const { today, players, count, active, zeroStreak } = await loadToday();
   if (offSeason(today)) return { notified: 0, sent: 0 };
 
-  // Cibles : rien coché aujourd'hui (0/3). Les 1/3 et 2/3 ont déjà ouvert l'app.
-  const slackers = players.filter((p) => count(p) === 0);
+  // Cibles : rien coché aujourd'hui (0/3) ET encore dans la bande (au moins
+  // une coche sur 7 j). Ce plancher d'activité épargne les inscrits fantômes
+  // et les partis de longue date, sur qui la culpabilisation ne convertit pas.
+  // Les 1/3 et 2/3 ont déjà ouvert l'app.
+  let slackers = players.filter((p) => count(p) === 0 && active(p));
+  // Décroissance : passé DAYS_GONE jours consécutifs à 0/3, le 22h30 se tait —
+  // on ne garde que le 20h, pour ne pas taper deux fois par soir sur qui décroche.
+  if (final) {
+    slackers = slackers.filter((p) => zeroStreak(p) < DAYS_GONE);
+  }
   const finishers = players.filter((p) => count(p) === 3);
   if (slackers.length === 0) return { notified: 0, sent: 0 };
 
