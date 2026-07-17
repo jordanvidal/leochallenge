@@ -20,9 +20,15 @@ type LbRow = { player_id: string; rank: number; points: number };
 type Snap = { player_id: string; rank: number };
 type BadgeRow = { player_id: string; badge: string };
 type StreakRow = { player_id: string; day: string; streak_pos: number };
+type EntryRow = {
+  player_id: string;
+  pushups: boolean;
+  abs: boolean;
+  squats: boolean;
+};
 type FeedInsert = {
   player_id: string;
-  kind: "lead" | "co_lead" | "badge" | "record" | "milestone";
+  kind: "collectif" | "lead" | "co_lead" | "badge" | "record" | "milestone";
   dedupe_key: string;
   payload: Record<string, unknown>;
 };
@@ -32,6 +38,7 @@ const MILESTONES = [7, 14, 21, 30];
 // Ordre d'importance quand un joueur décroche plusieurs nouveautés
 // d'un coup : la plus forte fait le titre, les autres passent en corps.
 const KIND_PRIORITY: FeedInsert["kind"][] = [
+  "collectif",
   "lead",
   "co_lead",
   "milestone",
@@ -55,6 +62,14 @@ function momentPhrase(
   payload: Record<string, unknown>,
 ): { emoji: string; text: string } {
   switch (kind) {
+    case "collectif": {
+      const pts =
+        payload.points !== undefined ? `, +${payload.points} pts chacun` : "";
+      return {
+        emoji: "🤝",
+        text: `ferme le jour parfait collectif : toute la bande à 3/3${pts}`,
+      };
+    }
     case "lead":
       return { emoji: "👑", text: "prend la tête du classement" };
     case "co_lead": {
@@ -134,17 +149,35 @@ export async function POST(request: Request) {
   }
 
   const supabase = serverSupabase();
-  const [lb, snaps, players, badges, streaks] = await Promise.all([
-    supabase.rpc("leaderboard"),
-    supabase.from("rank_snapshots").select("player_id, rank"),
-    supabase.from("players").select("id, name"),
-    supabase.from("player_badges").select("player_id, badge"),
-    supabase
-      .from("daily_points")
-      .select("player_id, day, streak_pos")
-      .gt("streak_pos", 0),
-  ]);
-  if (lb.error || snaps.error || players.error || badges.error || streaks.error) {
+  const today = parisToday();
+  const [lb, snaps, players, badges, streaks, todayEntries, collectifCat] =
+    await Promise.all([
+      supabase.rpc("leaderboard"),
+      supabase.from("rank_snapshots").select("player_id, rank"),
+      supabase.from("players").select("id, name"),
+      supabase.from("player_badges").select("player_id, badge"),
+      supabase
+        .from("daily_points")
+        .select("player_id, day, streak_pos")
+        .gt("streak_pos", 0),
+      supabase
+        .from("entries")
+        .select("player_id, pushups, abs, squats")
+        .eq("day", today),
+      supabase
+        .from("bonus_catalog")
+        .select("points")
+        .eq("key", "jour_parfait_collectif")
+        .maybeSingle(),
+    ]);
+  if (
+    lb.error ||
+    snaps.error ||
+    players.error ||
+    badges.error ||
+    streaks.error ||
+    todayEntries.error
+  ) {
     return NextResponse.json({ error: "lecture échouée" }, { status: 500 });
   }
 
@@ -193,8 +226,31 @@ export async function POST(request: Request) {
   }
 
   // ---- Événements du feed ----
-  const today = parisToday();
   const moments: FeedInsert[] = [];
+
+  // 🤝 Jour parfait collectif : la coche de l'acteur vient-elle de fermer
+  // la journée ? Une seule carte, portée par lui — dédup par jour, donc
+  // rejouable sans doublon même si plusieurs coches arrivent ensemble.
+  const doneToday = new Map(
+    (todayEntries.data as EntryRow[]).map((e) => [
+      e.player_id,
+      (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0),
+    ]),
+  );
+  const playerIds = (players.data as { id: string }[]).map((p) => p.id);
+  const allPerfect =
+    playerIds.length >= 2 && playerIds.every((id) => doneToday.get(id) === 3);
+  if (allPerfect) {
+    moments.push({
+      player_id: actorId,
+      kind: "collectif",
+      dedupe_key: today,
+      payload: {
+        day: today,
+        ...(collectifCat.data ? { points: Number(collectifCat.data.points) } : {}),
+      },
+    });
+  }
 
   // 👑 Tête du classement. rank() rend le même rang 1 à un ex-æquo :
   // deux joueurs à égalité en tête ne "prennent" pas la tête chacun de
@@ -263,7 +319,7 @@ export async function POST(request: Request) {
     for (const m of (inserted ?? []) as FeedInsert[]) {
       byPlayer.set(m.player_id, [...(byPlayer.get(m.player_id) ?? []), m]);
     }
-    const allIds = (players.data as { id: string }[]).map((p) => p.id);
+    const allIds = playerIds;
     for (const [pid, ms] of byPlayer) {
       ms.sort(
         (a, b) => KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind),

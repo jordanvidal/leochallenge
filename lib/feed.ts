@@ -20,7 +20,8 @@ export type FeedKind =
   | "co_lead"
   | "badge"
   | "record"
-  | "milestone";
+  | "milestone"
+  | "collectif";
 
 export type FeedPayload = {
   day?: string;
@@ -119,6 +120,16 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
       return { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
     case "milestone":
       return { emoji: "⚡", text: `aligne ${p.streak} jours parfaits d'affilée` };
+    case "collectif": {
+      const pts =
+        p.points !== undefined
+          ? `, +${fmtPoints(Number(p.points))} pts chacun`
+          : "";
+      return {
+        emoji: "🤝",
+        text: `ferme le jour parfait collectif : toute la bande à 3/3${pts}`,
+      };
+    }
   }
 }
 
