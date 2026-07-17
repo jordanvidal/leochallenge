@@ -1,0 +1,20 @@
+# Cron externe de la série en danger : 15:00 UTC = 17h00 Paris (CEST).
+# Assez tôt pour laisser toute la soirée — à 22h30 le message arrivait
+# trop tard pour changer la décision.
+
+name: Série en danger à 17h
+
+on:
+  schedule:
+    - cron: "0 15 * * *" # tous les jours 15:00 UTC
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+jobs:
+  warn:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler /api/cron/streak-risk
+        run: |
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://leochallenge.vercel.app/api/cron/streak-risk

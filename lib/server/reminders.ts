@@ -1,8 +1,13 @@
-// Logique partagée des deux rappels quotidiens (20h et 22h30 Paris).
-// "Marc et Léo ont fini. Pas toi." — c'est ça qui fait faire les pompes.
-// À 22h30, la série en cours prime : perdre son multiplicateur fait plus
-// mal que la pression sociale, alors on le dit à celui qui risque gros.
+// Les rappels quotidiens : la pression sociale à heure fixe.
+// 17h — série en danger : celui qui a une série et rien coché a encore
+//       toute la soirée pour la sauver. À 22h30 le message arrivait
+//       trop tard pour changer la décision.
+// 20h / 22h30 — "Marc et Léo ont fini. Pas toi." — c'est ça qui fait
+//       faire les pompes.
+// 21h30 — dernier debout : le seul encore à 0/3 reçoit la phrase qui
+//       pique. Elle n'existe que quand elle est vraie.
 
+import { CHALLENGE_END, CHALLENGE_START } from "@/lib/challenge";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
 type Entry = {
@@ -12,63 +17,58 @@ type Entry = {
   squats: boolean;
 };
 
+type PlayerRow = { id: string; name: string };
 type LbRow = { player_id: string; current_streak: number };
 
 // Seuil où le multiplicateur de série est actif : en dessous, rien à perdre.
 const STREAK_AT_RISK = 3;
 
-/** Message "série en danger" : personnalisé, court, il fait mal gentiment. */
-function streakBody(streak: number): string {
-  if (streak >= 7) {
-    return `${streak} jours parfaits d'affilée. Tu vas vraiment tout casser à 3 exos près ? Ton ×2 saute à minuit.`;
-  }
-  return `Ta série de ${streak} jours tombe à minuit. 3 exos et elle tient.`;
+/** Hors des dates du challenge, aucun rappel ne part. */
+function offSeason(today: string): boolean {
+  return today < CHALLENGE_START || today > CHALLENGE_END;
 }
 
-export async function sendReminders(final: boolean): Promise<{
-  notified: number;
-  sent: number;
-}> {
+function doneCount(e: Entry | undefined): number {
+  return e ? (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0) : 0;
+}
+
+/** Joueurs + coches du jour : le socle commun de tous les rappels. */
+async function loadToday() {
   const supabase = serverSupabase();
   const today = parisToday();
-
-  // La série vient du RPC leaderboard (current_streak reflète la série
-  // jusqu'à hier tant qu'aujourd'hui n'est pas parfait — exactement ce
-  // qui est en jeu à 22h30). Inutile au rappel de 20h.
-  const [players, entries, lb] = await Promise.all([
+  const [players, entries] = await Promise.all([
     supabase.from("players").select("id, name"),
     supabase
       .from("entries")
       .select("player_id, pushups, abs, squats")
       .eq("day", today),
-    final ? supabase.rpc("leaderboard") : Promise.resolve(null),
   ]);
   if (players.error || entries.error) {
     throw new Error("lecture Supabase échouée");
   }
+  const byPlayer = new Map(
+    (entries.data as Entry[]).map((e) => [e.player_id, e]),
+  );
+  return {
+    supabase,
+    today,
+    players: players.data as PlayerRow[],
+    count: (p: PlayerRow) => doneCount(byPlayer.get(p.id)),
+  };
+}
 
-  const rows = entries.data as Entry[];
-  const doneCount = (e: Entry | undefined) =>
-    e ? (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0) : 0;
-  const byPlayer = new Map(rows.map((e) => [e.player_id, e]));
+/** Rappels de 20h (social) et 22h30 (dernier appel), pour les 0/3. */
+export async function sendReminders(final: boolean): Promise<{
+  notified: number;
+  sent: number;
+}> {
+  const { today, players, count } = await loadToday();
+  if (offSeason(today)) return { notified: 0, sent: 0 };
 
   // Cibles : rien coché aujourd'hui (0/3). Les 1/3 et 2/3 ont déjà ouvert l'app.
-  const slackers = (players.data as { id: string; name: string }[]).filter(
-    (p) => doneCount(byPlayer.get(p.id)) === 0,
-  );
-  const finishers = (players.data as { id: string; name: string }[]).filter(
-    (p) => doneCount(byPlayer.get(p.id)) === 3,
-  );
-
+  const slackers = players.filter((p) => count(p) === 0);
+  const finishers = players.filter((p) => count(p) === 3);
   if (slackers.length === 0) return { notified: 0, sent: 0 };
-
-  // Série par joueur. RPC en échec → map vide, on retombe sur le générique.
-  const streaks = new Map(
-    ((lb?.data ?? []) as LbRow[]).map((r) => [
-      r.player_id,
-      Number(r.current_streak),
-    ]),
-  );
 
   const names = finishers.map((f) => f.name);
   let body: string;
@@ -84,22 +84,68 @@ export async function sendReminders(final: boolean): Promise<{
     body = `${names[0]}, ${names[1]} et ${names.length - 2} autre${names.length > 3 ? "s" : ""} ont fini. Pas toi.`;
   }
 
-  // À 22h30, la série en danger gagne sur le message social : envoi
-  // individuel pour eux (le message porte leur nombre de jours), envoi
-  // groupé inchangé pour les autres.
-  const title = "💪 100 · 100 · 100";
-  let sent = 0;
-  const generic: string[] = [];
-  for (const s of slackers) {
-    const streak = streaks.get(s.id) ?? 0;
-    if (final && streak >= STREAK_AT_RISK) {
-      sent += await sendToPlayers([s.id], { title, body: streakBody(streak) });
-    } else {
-      generic.push(s.id);
-    }
-  }
-  if (generic.length > 0) {
-    sent += await sendToPlayers(generic, { title, body });
-  }
+  const sent = await sendToPlayers(
+    slackers.map((s) => s.id),
+    { title: "💪 100 · 100 · 100", body },
+  );
   return { notified: slackers.length, sent };
+}
+
+/** Message "série en danger" : personnalisé, court, il fait mal gentiment. */
+function streakBody(streak: number): string {
+  if (streak >= 7) {
+    return `${streak} jours parfaits d'affilée et rien de coché aujourd'hui. Ton ×2 saute à minuit.`;
+  }
+  return `Ta série de ${streak} jours tombe à minuit. 3 exos ce soir et elle tient.`;
+}
+
+/** 17h — la série en danger. La série vient du RPC leaderboard
+    (current_streak reflète la série jusqu'à hier tant qu'aujourd'hui
+    n'est pas parfait — exactement ce qui est en jeu). */
+export async function sendStreakRisk(): Promise<{
+  notified: number;
+  sent: number;
+}> {
+  const { supabase, today, players, count } = await loadToday();
+  if (offSeason(today)) return { notified: 0, sent: 0 };
+
+  const lb = await supabase.rpc("leaderboard");
+  if (lb.error) throw new Error("lecture leaderboard échouée");
+  const streaks = new Map(
+    (lb.data as LbRow[]).map((r) => [r.player_id, Number(r.current_streak)]),
+  );
+
+  const atRisk = players.filter(
+    (p) => count(p) === 0 && (streaks.get(p.id) ?? 0) >= STREAK_AT_RISK,
+  );
+
+  // Envoi individuel : le message porte le nombre de jours de chacun.
+  let sent = 0;
+  for (const p of atRisk) {
+    sent += await sendToPlayers([p.id], {
+      title: "🔥 Ta série est en jeu",
+      body: streakBody(streaks.get(p.id) ?? 0),
+    });
+  }
+  return { notified: atRisk.length, sent };
+}
+
+/** 21h30 — le dernier debout. Un seul joueur à 0/3 pendant que tous
+    les autres ont avancé : lui seul reçoit le message. Deux retardataires
+    ou plus → silence, la phrase perdrait sa vérité. */
+export async function sendLastStanding(): Promise<{
+  notified: number;
+  sent: number;
+}> {
+  const { today, players, count } = await loadToday();
+  if (offSeason(today) || players.length < 2) return { notified: 0, sent: 0 };
+
+  const slackers = players.filter((p) => count(p) === 0);
+  if (slackers.length !== 1) return { notified: 0, sent: 0 };
+
+  const sent = await sendToPlayers([slackers[0].id], {
+    title: "🕯️ Dernier debout",
+    body: "Tout le monde a coché aujourd'hui. Sauf toi.",
+  });
+  return { notified: 1, sent };
 }
