@@ -1,14 +1,27 @@
-# Annonce des duels : one-shot, déclenchement MANUEL uniquement (pas de
-# cron). À lancer depuis l'onglet Actions la veille du premier tirage.
+# Annonce des duels : one-shot. Le cron vise dimanche 19/07 à 19h Paris
+# (17h UTC) et la garde de date fait des dimanches suivants des no-op —
+# supprimer ce fichier après l'envoi. Déclenchement manuel possible en
+# secours (la garde ne s'applique qu'au cron).
 name: annonce-duels
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: "0 17 * * 0"
 
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
+      - name: Garde de date (cron uniquement)
+        if: github.event_name == 'schedule'
+        run: |
+          [ "$(date -u +%F)" = "2026-07-19" ] || { echo "pas le 19/07, no-op"; exit 0; }
+          echo "SEND=1" >> "$GITHUB_ENV"
+      - name: Envoi manuel : toujours
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "SEND=1" >> "$GITHUB_ENV"
       - name: Envoyer l'annonce
+        if: env.SEND == '1'
         run: |
           curl --fail-with-body -s \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
