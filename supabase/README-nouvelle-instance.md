@@ -80,9 +80,12 @@ migration8-events.sql
 migration9-jour-en-cours.sql
 migration10-paliers-volume.sql
 migration11-bonus-retour.sql
+migration12-realtime.sql
+migration13-jour-parfait-collectif.sql
+migration14-duels.sql
 ```
 
-L'ordre n'est pas cosmétique : `daily_points` est redéfinie 5 fois et
+L'ordre n'est pas cosmétique : `daily_points` est redéfinie 7 fois et
 `get_daily_event()` 2 fois. La dernière version gagne.
 
 ### 3. Nouvelles clés

@@ -3,6 +3,7 @@
 // souscription push. Aucun calcul de points ici — une seule vérité.
 
 import { addDays, mondayOf, parisToday } from "./challenge";
+import { Duel } from "./duels";
 import { supabase } from "./supabase";
 
 export type LeaderboardRow = {
@@ -20,6 +21,7 @@ export type Gamification = {
   week: LeaderboardRow[];
   lastWeekRanks: Map<string, number>; // rang au dimanche précédent
   badges: Map<string, string[]>; // player_id → badges débloqués
+  duels: Duel[]; // tous les appariements (table minuscule)
 };
 
 export const BADGES: { key: string; emoji: string; label: string; hint: string }[] = [
@@ -50,13 +52,16 @@ export async function fetchGamification(): Promise<Gamification | null> {
   const monday = mondayOf(today);
   const lastSunday = addDays(monday, -1);
 
-  const [total, week, lastWeek, badges] = await Promise.all([
+  const [total, week, lastWeek, badges, duels] = await Promise.all([
     supabase.rpc("leaderboard"),
     supabase.rpc("leaderboard", { p_from: monday }),
     supabase.rpc("leaderboard", { p_until: lastSunday }),
     supabase.from("player_badges").select("player_id, badge"),
+    supabase.from("duels").select("week_monday, player_a, player_b"),
   ]);
   if (total.error || week.error || lastWeek.error || badges.error) return null;
+  // duels tolère l'erreur (table absente tant que la migration 14 n'est
+  // pas jouée) : le classement vaut mieux qu'un écran vide.
 
   // Semaine 1 : personne n'avait de points dimanche dernier, la variation
   // n'a pas de sens — on ne l'affiche pas plutôt que d'afficher du faux.
@@ -76,6 +81,7 @@ export async function fetchGamification(): Promise<Gamification | null> {
     week: (week.data as LeaderboardRow[]).map(numify),
     lastWeekRanks,
     badges: badgeMap,
+    duels: duels.error ? [] : (duels.data as Duel[]),
   };
 }
 

@@ -37,7 +37,11 @@ function rankLine(rank: number, before: number | undefined): string {
   return `Tu restes ${place} — tu tiens ta place.`;
 }
 
-export async function sendWeeklyRecap(): Promise<{
+export async function sendWeeklyRecap(
+  // Lignes duels par joueur (runWeeklyDuels), appendues au corps du push :
+  // un seul envoi le lundi matin, le récap porte tout.
+  duelLines?: Map<string, string[]>,
+): Promise<{
   skipped?: string;
   notified: number;
   sent: number;
@@ -111,6 +115,7 @@ export async function sendWeeklyRecap(): Promise<{
     } else {
       lines.push("Nouveau classement hebdo — ça repart, à toi de jouer.");
     }
+    lines.push(...(duelLines?.get(row.player_id) ?? []));
     sent += await sendToPlayers([row.player_id], {
       title,
       body: lines.join("\n"),
