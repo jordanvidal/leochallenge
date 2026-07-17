@@ -15,7 +15,7 @@ import {
   challengeIsOver,
   parisToday,
 } from "@/lib/challenge";
-import { notifyMoments } from "@/lib/gamification";
+import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
   shareInvite,
@@ -100,6 +100,13 @@ export default function App() {
     data.showToast,
     onBonusScored,
   );
+
+  // Souscription push re-synchronisée à chaque ouverture, en silence. Un
+  // endpoint périmé (PWA réinstallée) redevient vivant tout seul ; sans
+  // ça il ne se répare jamais, le bandeau d'opt-in ne revenant pas.
+  useEffect(() => {
+    if (playerId) resyncPush(playerId);
+  }, [playerId]);
 
   // Un événement a été tiré aujourd'hui et on ne l'a pas encore vu : on
   // ouvre la modale. Le flag est daté, donc elle revient chaque matin.
