@@ -278,13 +278,16 @@ export async function insertComment(
   return error ? error.message : null;
 }
 
-/** Signale au serveur qu'il y a de l'activité sur l'événement de
-    quelqu'un d'autre (push groupé, throttle 15 min côté serveur). */
-export function notifyFeedActivity(eventId: string): void {
+/** Signale au serveur qu'il y a de l'activité sur un événement (push
+    groupé, throttle 15 min côté serveur). `actorId` est l'auteur de
+    l'activité : le serveur l'exclut des destinataires et s'en sert pour
+    formuler la notif. Sur un commentaire, sont notifiés l'auteur du
+    moment ET les autres participants au fil. */
+export function notifyFeedActivity(eventId: string, actorId: string): void {
   fetch("/api/feed-notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ eventId }),
+    body: JSON.stringify({ eventId, actorId }),
   }).catch(() => {
     // silencieux : la notif est un bonus, pas un contrat
   });
