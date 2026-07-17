@@ -4,6 +4,7 @@
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAppBadge } from "@/hooks/useAppBadge";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useFeed } from "@/hooks/useFeed";
@@ -107,6 +108,9 @@ export default function App() {
   useEffect(() => {
     if (playerId) resyncPush(playerId);
   }, [playerId]);
+
+  // Badge d'icône : les exos restants du jour, effacé au 3/3.
+  useAppBadge(playerId, data.entries);
 
   // Un événement a été tiré aujourd'hui et on ne l'a pas encore vu : on
   // ouvre la modale. Le flag est daté, donc elle revient chaque matin.

@@ -95,7 +95,9 @@ export async function sendReminders(final: boolean): Promise<{
 
   const sent = await sendToPlayers(
     slackers.map((s) => s.id),
-    { title: "💪 100 · 100 · 100", body },
+    // badge 3 : les cibles sont à 0/3, le service worker pose le badge
+    // d'icône même si l'app n'est pas ouverte.
+    { title: "💪 100 · 100 · 100", body, badge: 3 },
   );
   return { notified: slackers.length, sent };
 }
@@ -134,6 +136,7 @@ export async function sendStreakRisk(): Promise<{
     sent += await sendToPlayers([p.id], {
       title: "🔥 Ta série est en jeu",
       body: streakBody(streaks.get(p.id) ?? 0),
+      badge: 3, // cibles à 0/3
     });
   }
   return { notified: atRisk.length, sent };
@@ -159,6 +162,7 @@ export async function sendLastStanding(): Promise<{
   const sent = await sendToPlayers([slackers[0].id], {
     title: "🕯️ Dernier debout",
     body: "Tout le monde a coché aujourd'hui. Sauf toi.",
+    badge: 3, // cible à 0/3
   });
   return { notified: 1, sent };
 }
