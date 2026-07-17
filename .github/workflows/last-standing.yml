@@ -1,0 +1,20 @@
+# Cron externe du dernier debout : 19:30 UTC = 21h30 Paris (CEST).
+# La route ne dit quelque chose que si UN SEUL joueur est encore à 0/3 —
+# le message n'existe que quand il est vrai.
+
+name: Dernier debout à 21h30
+
+on:
+  schedule:
+    - cron: "30 19 * * *" # tous les jours 19:30 UTC
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler /api/cron/last-standing
+        run: |
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://leochallenge.vercel.app/api/cron/last-standing
