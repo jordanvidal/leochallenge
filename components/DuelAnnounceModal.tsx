@@ -90,7 +90,14 @@ export default function DuelAnnounceModal({ player, onClose }: Props) {
     >
       {/* En-tête : progression + passer, hors zone de tap. */}
       <div className="flex items-center gap-3 px-6 py-3">
-        <span className="text-xs font-bold tracking-wide text-faint uppercase">
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase"
+          style={{
+            background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+            color: player.color,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 55%, transparent)`,
+          }}
+        >
           Nouveau
         </span>
         <div className="flex flex-1 gap-1.5" aria-hidden>
