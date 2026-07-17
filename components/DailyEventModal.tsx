@@ -2,8 +2,10 @@
 
 // Modale « événement du jour » : montrée une fois par jour, le matin,
 // quand un événement a été tiré (pas les jours « rien »). Met en valeur
-// l'événement du groupe — emoji géant, ce qu'il faut faire, le gain.
-// Style calqué sur TutorialScreen : plein écran, une idée, un pouce.
+// l'événement du groupe — roue qui tire l'emoji, ce qu'il faut faire, le
+// gain. Style calqué sur TutorialScreen : plein écran, une idée, un pouce.
+
+import { useMemo, useState } from "react";
 
 import { BonusCatalogItem } from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
@@ -13,8 +15,13 @@ import { BigButton } from "./ui";
 type Props = {
   player: Player;
   event: BonusCatalogItem; // jamais « rien » : l'appelant garantit un événement
+  catalog: BonusCatalogItem[]; // sert de vivier de leurres pour la roue
   onClose: () => void;
 };
+
+/** Nombre de leurres qui défilent avant le bon. Assez pour qu'on n'ait pas
+    le temps de lire, pas assez pour qu'on s'ennuie. */
+const DECOYS = 12;
 
 /** Copie soignée par événement : ce qu'il faut faire, aujourd'hui. Le
     montant, lui, reste lu au catalogue (source de vérité). */
@@ -42,9 +49,37 @@ const COPY: Record<string, { howto: string }> = {
   },
 };
 
-export default function DailyEventModal({ player, event, onClose }: Props) {
+/** Mélange une copie du tableau (Fisher-Yates). Sans ça, les leurres
+    défilent toujours dans l'ordre du catalogue et la boucle se voit. */
+function shuffled<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+export default function DailyEventModal({
+  player,
+  event,
+  catalog,
+  onClose,
+}: Props) {
+  // Roue coupée d'entrée si le système demande moins d'animation : on
+  // affiche le résultat, point. Le CSS ne peut pas s'en charger seul —
+  // une animation neutralisée laisserait la roue bloquée sur un leurre.
+  const [spinning, setSpinning] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
   const accent = { "--pc": player.color } as React.CSSProperties;
   const howto = COPY[event.key]?.howto ?? event.label;
+  const glow = {
+    filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
+  };
   // Multiplicateurs : « pompes double » double les pompes, « quitte ou
   // double » double tout le jour. Le badge dit ×2 plutôt qu'un montant.
   const badge =
@@ -53,6 +88,22 @@ export default function DailyEventModal({ player, event, onClose }: Props) {
       : event.points > 0
         ? `+${fmtPoints(event.points)}`
         : null;
+
+  // La bande : des leurres puisés dans les autres événements tirables,
+  // puis le bon en dernière position — c'est là que la roue s'arrête.
+  const strip = useMemo(() => {
+    const pool = shuffled(
+      catalog
+        .filter((c) => c.kind === "event" && c.key !== event.key)
+        .map((c) => c.emoji),
+    );
+    if (pool.length === 0) return [event.emoji];
+    const decoys = Array.from(
+      { length: DECOYS },
+      (_, i) => pool[i % pool.length],
+    );
+    return [...decoys, event.emoji];
+  }, [catalog, event.key, event.emoji]);
 
   return (
     <main
@@ -73,19 +124,32 @@ export default function DailyEventModal({ player, event, onClose }: Props) {
         </button>
       </div>
 
-      {/* Cœur : emoji géant, nom mis en valeur, ce qu'il faut faire. */}
-      <div className="flex flex-1 flex-col justify-center px-8">
-        <div className="rise-in">
-          <p
-            className="text-[5.5rem] leading-none"
-            aria-hidden
-            style={{
-              filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
-            }}
-          >
+      {/* Cœur : la roue s'arrête sur l'emoji, le reste suit. */}
+      <div className="reel flex flex-1 flex-col justify-center px-8">
+        {spinning ? (
+          // La fenêtre rogne la bande ; le halo attendra l'arrêt.
+          <div className="reel-window" aria-hidden>
+            <div
+              className="reel-strip"
+              style={{ "--reel-steps": strip.length - 1 } as React.CSSProperties}
+              onAnimationEnd={() => setSpinning(false)}
+            >
+              {strip.map((emoji, i) => (
+                <span key={i} className="reel-item">
+                  {emoji}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="reel-item reel-land" aria-hidden style={glow}>
             {event.emoji}
           </p>
+        )}
 
+        {/* Monté dès le départ mais masqué : sans ça, son arrivée
+            recentrerait le bloc et ferait sauter l'emoji. */}
+        <div className={spinning ? "invisible" : "rise-in"}>
           <div className="mt-6 flex items-center gap-3">
             <h1 className="text-3xl font-bold">{event.label.split(" : ")[0]}</h1>
             {badge && (

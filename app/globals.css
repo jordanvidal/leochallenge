@@ -107,6 +107,54 @@ button {
   animation: rise-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Tirage du jour : la roue défile vite, décélère, se fige sur l'événement.
+   La hauteur d'un cran est partagée par la fenêtre, les items et le calcul
+   de fin de course — d'où la variable, à ne pas désynchroniser. */
+.reel {
+  --reel-step: 6.5rem;
+}
+.reel-window {
+  height: var(--reel-step);
+  overflow: hidden;
+}
+.reel-item {
+  display: flex;
+  height: var(--reel-step);
+  align-items: center;
+  font-size: 5.5rem;
+  line-height: 1;
+}
+@keyframes reel-spin {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(var(--reel-steps) * var(--reel-step) * -1));
+  }
+}
+/* La courbe fait tout le travail : départ de l'arrêt, milieu en flou
+   (un emoji toutes les ~45ms), 150 dernières ms à se caler. Une ease-out
+   classique arriverait à destination en 100ms puis ramperait — testé. */
+.reel-strip {
+  animation: reel-spin 1100ms cubic-bezier(0.35, 0.1, 0.2, 1) both;
+}
+/* Le choc d'arrivée. Part de 1 et pas de 0 : la roue s'arrête, elle
+   ne réapparaît pas. */
+@keyframes reel-land {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.reel-land {
+  animation: reel-land 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Mot de passe raté */
 @keyframes shake {
   10%,
@@ -163,7 +211,11 @@ button {
   .check-pop,
   .rise-in,
   .toast-in,
+  .reel-land,
   .shake {
     animation: none;
   }
+  /* .reel-strip est absent volontairement : neutraliser son animation
+     la laisserait bloquée sur un leurre. C'est la modale qui coupe la
+     roue en amont (matchMedia), on n'arrive jamais ici avec une bande. */
 }

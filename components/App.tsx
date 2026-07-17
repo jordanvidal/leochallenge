@@ -278,6 +278,7 @@ export default function App() {
         <DailyEventModal
           player={player}
           event={bonus.event}
+          catalog={bonus.catalog}
           onClose={dismissEventModal}
         />
       )}
