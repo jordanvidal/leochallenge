@@ -155,6 +155,47 @@ button {
   animation: reel-land 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Le beat du 3/3 : un flash net de la couleur du joueur, court, puis
+   plus rien. La frappe, pas le feu d'artifice. */
+@keyframes perfect-flash {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.perfect-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 100% at 50% 60%,
+    color-mix(in oklch, var(--pc) 32%, transparent),
+    transparent 72%
+  );
+  animation: perfect-flash 380ms ease-out both;
+}
+
+/* Un pote vient de cocher : sa pastille pulse une fois, à sa couleur.
+   --lc : la couleur du joueur qui vient d'agir, posée inline. */
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--lc) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px color-mix(in oklch, var(--lc) 0%, transparent);
+  }
+}
+.live-pulse {
+  border-radius: 9999px;
+  animation: live-pulse 900ms ease-out 2 both;
+}
+
 /* Mot de passe raté */
 @keyframes shake {
   10%,
@@ -212,8 +253,13 @@ button {
   .rise-in,
   .toast-in,
   .reel-land,
+  .live-pulse,
   .shake {
     animation: none;
+  }
+  /* Le flash resterait un voile opaque figé sans animation : on le coupe. */
+  .perfect-flash {
+    display: none;
   }
   /* .reel-strip est absent volontairement : neutraliser son animation
      la laisserait bloquée sur un leurre. C'est la modale qui coupe la

@@ -3,6 +3,7 @@
 // L'écran par défaut, celui qui doit être parfait : trois grosses cartes,
 // un tap = validé, retap = annulé. Ouvrir → cocher → fermer en 10 secondes.
 
+import { useEffect, useState } from "react";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
 import {
   CHALLENGE_END,
@@ -28,6 +29,7 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  liveChecks: Map<string, number>; // joueur → dernière coche reçue en direct (ms)
   gamification: Gamification | null;
   bonus: BonusState | null;
   onToggle: (day: string, exo: Exercise) => void;
@@ -44,6 +46,7 @@ export default function TodayScreen({
   player,
   players,
   entries,
+  liveChecks,
   gamification,
   bonus,
   onToggle,
@@ -62,6 +65,29 @@ export default function TodayScreen({
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);
 
+  // Le beat du 3/3 : déclenché par le tap qui complète le jour (optimiste,
+  // comme la coche elle-même), jamais par un simple rechargement des données.
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(0), 500);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  // « à l'instant » vieillit : re-rendu léger toutes les 30 s tant qu'une
+  // coche récente est affichée, pour que le libellé disparaisse tout seul.
+  const LIVE_WINDOW_MS = 3 * 60 * 1000;
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    if (liveChecks.size === 0) return;
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [liveChecks]);
+  const liveAt = (playerId: string): number | null => {
+    const at = liveChecks.get(playerId);
+    return at && Date.now() - at < LIVE_WINDOW_MS ? at : null;
+  };
+
   // Emojis des bonus déclarés aujourd'hui par un joueur (anti-triche :
   // ce qu'on déclare, tout le monde le voit).
   const emojiByKey = new Map(
@@ -77,6 +103,7 @@ export default function TodayScreen({
     <div
       className={`flex flex-1 flex-col px-5 pt-safe ${perfect ? "celebrate-bg" : ""}`}
     >
+      {flash > 0 && <div key={flash} className="perfect-flash" aria-hidden />}
       {/* Date + compte à rebours */}
       <header className="mt-4 flex items-end justify-between">
         <div>
@@ -126,7 +153,15 @@ export default function TodayScreen({
                 key={key}
                 aria-pressed={done}
                 onClick={() => {
-                  navigator.vibrate?.(done ? 8 : 18);
+                  // La 3e coche du jour est plus grande que les deux autres :
+                  // vibration double + flash de la couleur du joueur.
+                  const completes = !done && entryCount(mine) === 2;
+                  if (completes) {
+                    navigator.vibrate?.([18, 70, 40]);
+                    setFlash(Date.now());
+                  } else {
+                    navigator.vibrate?.(done ? 8 : 18);
+                  }
                   onToggle(today, key);
                 }}
                 className="exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left"
@@ -210,29 +245,47 @@ export default function TodayScreen({
               Les potes aujourd&apos;hui
             </h2>
             <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1">
-              {others.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex shrink-0 flex-col items-center gap-1.5"
-                >
-                  <Avatar name={p.name} color={p.color} size={46} />
-                  <span className="max-w-16 truncate text-xs font-medium text-muted">
-                    {p.name}
-                  </span>
-                  <ExoDots
-                    entry={entries.get(entryKey(p.id, today))}
-                    color={p.color}
-                  />
-                  {claimedEmojis(p.id) && (
-                    <span
-                      className="text-[11px] leading-none"
-                      title="Bonus déclarés aujourd'hui"
+              {others.map((p) => {
+                const live = liveAt(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className="flex shrink-0 flex-col items-center gap-1.5"
+                  >
+                    <div
+                      key={live ?? undefined}
+                      className={live ? "live-pulse" : undefined}
+                      style={{ "--lc": p.color } as React.CSSProperties}
                     >
-                      {claimedEmojis(p.id)}
+                      <Avatar name={p.name} color={p.color} size={46} />
+                    </div>
+                    <span className="max-w-16 truncate text-xs font-medium text-muted">
+                      {p.name}
                     </span>
-                  )}
-                </div>
-              ))}
+                    <ExoDots
+                      entry={entries.get(entryKey(p.id, today))}
+                      color={p.color}
+                    />
+                    {live ? (
+                      <span
+                        className="text-[10px] font-bold leading-none"
+                        style={{ color: p.color }}
+                      >
+                        à l&apos;instant
+                      </span>
+                    ) : (
+                      claimedEmojis(p.id) && (
+                        <span
+                          className="text-[11px] leading-none"
+                          title="Bonus déclarés aujourd'hui"
+                        >
+                          {claimedEmojis(p.id)}
+                        </span>
+                      )
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : (

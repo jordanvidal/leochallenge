@@ -293,6 +293,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            liveChecks={data.liveChecks}
             gamification={gamification}
             bonus={bonus}
             onToggle={toggleAndScore}

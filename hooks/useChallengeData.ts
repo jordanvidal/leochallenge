@@ -4,10 +4,10 @@
 // L'écran change instantanément, Supabase suit derrière, rollback si échec.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CHALLENGE_END, CHALLENGE_START } from "@/lib/challenge";
+import { CHALLENGE_END, CHALLENGE_START, parisToday } from "@/lib/challenge";
 import { nextColor, normalizeName } from "@/lib/palette";
 import { supabase } from "@/lib/supabase";
-import { Entry, entryKey, Exercise, Player } from "@/lib/types";
+import { Entry, entryCount, entryKey, Exercise, Player } from "@/lib/types";
 
 /** Traduit une erreur Postgres (message des triggers) en phrase humaine. */
 function humanError(message: string): string {
@@ -27,9 +27,18 @@ export type CreateResult =
 export function useChallengeData() {
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [entries, setEntries] = useState<Map<string, Entry>>(new Map());
+  // Horodatage (ms) de la dernière coche MONTANTE de chaque joueur,
+  // reçue en temps réel — c'est ce qui fait pulser la ligne des potes.
+  const [liveChecks, setLiveChecks] = useState<Map<string, number>>(new Map());
   const [offline, setOffline] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Miroir de `entries` pour comparer avant/après dans le handler realtime
+  // sans effet de bord dans un updater React.
+  const entriesRef = useRef(entries);
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -70,6 +79,40 @@ export function useChallengeData() {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refresh]);
+
+  // Temps réel : la coche d'un pote arrive toute seule, sans re-fetch.
+  // À 23h tout le monde est dans la même fenêtre — voir que l'autre vient
+  // de finir pendant qu'on hésite, c'est la mécanique du produit en direct.
+  useEffect(() => {
+    const channel = supabase
+      .channel("entries-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "entries" },
+        (payload) => {
+          const row = payload.new as Entry | undefined;
+          if (!row?.player_id || !row.day) return; // DELETE : new est vide
+          const key = entryKey(row.player_id, row.day);
+          const before = entriesRef.current.get(key);
+          const next: Entry = {
+            player_id: row.player_id,
+            day: row.day,
+            pushups: row.pushups,
+            abs: row.abs,
+            squats: row.squats,
+          };
+          setEntries((prev) => new Map(prev).set(key, next));
+          // Seules les hausses du jour font pulser : cocher, pas corriger.
+          if (row.day === parisToday() && entryCount(next) > entryCount(before)) {
+            setLiveChecks((prev) => new Map(prev).set(row.player_id, Date.now()));
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   /** Bascule un exo. Optimiste : état local d'abord, rollback si la base dit non. */
   const toggleExercise = useCallback(
@@ -241,6 +284,7 @@ export function useChallengeData() {
   return {
     players,
     entries,
+    liveChecks,
     offline,
     toast,
     showToast,
