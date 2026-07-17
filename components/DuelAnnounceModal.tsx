@@ -59,6 +59,12 @@ export default function DuelAnnounceModal({ player, onClose }: Props) {
     <div key="rituel">
       <h1 className="text-2xl font-bold">Le rendez-vous du lundi</h1>
       <div className="mt-6 space-y-5">
+        <Row emoji="🏆">
+          Le plus de journées parfaites de la semaine gagne le duel :{" "}
+          <span className="font-semibold text-ink">+{DUEL_POINTS} pts</span>, et{" "}
+          <span className="font-semibold text-ink">−{DUEL_POINTS}</span> pour
+          l&apos;autre.
+        </Row>
         <Row emoji="🤝">
           Chaque lundi à 10h : le verdict de ton duel, puis ton nouvel
           adversaire. Un duel par semaine, jusqu&apos;à la fin.
