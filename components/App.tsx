@@ -26,6 +26,7 @@ import { Exercise, Player, entryKey } from "@/lib/types";
 import BackfillScreen from "./BackfillScreen";
 import BilanScreen from "./BilanScreen";
 import DailyEventModal from "./DailyEventModal";
+import DuelAnnounceModal from "./DuelAnnounceModal";
 import FeedScreen from "./feed/FeedScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
@@ -67,6 +68,7 @@ export default function App() {
   // Modale « événement du jour » : montrée une fois par jour si un
   // événement a été tiré (pas les jours « rien »).
   const [showEventModal, setShowEventModal] = useState(false);
+  const [showDuelAnnounce, setShowDuelAnnounce] = useState(false);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -121,6 +123,21 @@ export default function App() {
   function dismissEventModal() {
     localStorage.setItem("lc100.eventSeenDay", parisToday());
     setShowEventModal(false);
+  }
+
+  // Annonce des duels, une seule fois par appareil. L'événement du jour
+  // garde la priorité : l'annonce attend qu'il soit fermé.
+  useEffect(() => {
+    if (!player || showEventModal) return;
+    if (localStorage.getItem("lc100.duelsAnnounceSeen") !== "1") {
+      setShowDuelAnnounce(true);
+    }
+  }, [player, showEventModal]);
+
+  /** Annonce des duels fermée : on ne la remontre jamais. */
+  function dismissDuelAnnounce() {
+    localStorage.setItem("lc100.duelsAnnounceSeen", "1");
+    setShowDuelAnnounce(false);
   }
 
   /** Coche + recalcul du classement + détection des moments. */
@@ -288,6 +305,9 @@ export default function App() {
           catalog={bonus.catalog}
           onClose={dismissEventModal}
         />
+      )}
+      {showDuelAnnounce && !showEventModal && (
+        <DuelAnnounceModal player={player} onClose={dismissDuelAnnounce} />
       )}
       {data.offline && (
         <p className="bg-raised py-1.5 text-center text-xs font-medium text-muted">

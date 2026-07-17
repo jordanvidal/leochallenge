@@ -1,0 +1,15 @@
+# Annonce des duels : one-shot, déclenchement MANUEL uniquement (pas de
+# cron). À lancer depuis l'onglet Actions la veille du premier tirage.
+name: annonce-duels
+on:
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Envoyer l'annonce
+        run: |
+          curl --fail-with-body -s \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://leochallenge.vercel.app/api/cron/announce-duels"
