@@ -7,11 +7,12 @@
 // 21h30 — dernier debout : le seul encore à 0/3 reçoit la phrase qui
 //       pique. Elle n'existe que quand elle est vraie.
 
-import { CHALLENGE_END, CHALLENGE_START } from "@/lib/challenge";
+import { addDays, CHALLENGE_END, CHALLENGE_START } from "@/lib/challenge";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
 type Entry = {
   player_id: string;
+  day: string;
   pushups: boolean;
   abs: boolean;
   squats: boolean;
@@ -32,7 +33,9 @@ function doneCount(e: Entry | undefined): number {
   return e ? (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0) : 0;
 }
 
-/** Joueurs + coches du jour : le socle commun de tous les rappels. */
+/** Joueurs + coches sur 7 jours glissants : le socle de tous les rappels.
+    `count` = exos cochés aujourd'hui ; `active` = au moins une coche sur
+    la fenêtre (les inscrits fantômes ne comptent pas dans la bande). */
 async function loadToday() {
   const supabase = serverSupabase();
   const today = parisToday();
@@ -40,20 +43,26 @@ async function loadToday() {
     supabase.from("players").select("id, name"),
     supabase
       .from("entries")
-      .select("player_id, pushups, abs, squats")
-      .eq("day", today),
+      .select("player_id, day, pushups, abs, squats")
+      .gte("day", addDays(today, -6))
+      .lte("day", today),
   ]);
   if (players.error || entries.error) {
     throw new Error("lecture Supabase échouée");
   }
+  const rows = entries.data as Entry[];
   const byPlayer = new Map(
-    (entries.data as Entry[]).map((e) => [e.player_id, e]),
+    rows.filter((e) => e.day === today).map((e) => [e.player_id, e]),
+  );
+  const activeIds = new Set(
+    rows.filter((e) => doneCount(e) > 0).map((e) => e.player_id),
   );
   return {
     supabase,
     today,
     players: players.data as PlayerRow[],
     count: (p: PlayerRow) => doneCount(byPlayer.get(p.id)),
+    active: (p: PlayerRow) => activeIds.has(p.id),
   };
 }
 
@@ -130,17 +139,21 @@ export async function sendStreakRisk(): Promise<{
   return { notified: atRisk.length, sent };
 }
 
-/** 21h30 — le dernier debout. Un seul joueur à 0/3 pendant que tous
-    les autres ont avancé : lui seul reçoit le message. Deux retardataires
-    ou plus → silence, la phrase perdrait sa vérité. */
+/** 21h30 — le dernier debout. Un seul joueur ACTIF à 0/3 pendant que
+    tous les autres ont avancé : lui seul reçoit le message. Deux
+    retardataires ou plus → silence, la phrase perdrait sa vérité. Les
+    inscrits fantômes (aucune coche sur 7 jours) ne comptent pas — sinon
+    la notif ne partirait jamais. */
 export async function sendLastStanding(): Promise<{
   notified: number;
   sent: number;
 }> {
-  const { today, players, count } = await loadToday();
-  if (offSeason(today) || players.length < 2) return { notified: 0, sent: 0 };
+  const { today, players, count, active } = await loadToday();
+  if (offSeason(today)) return { notified: 0, sent: 0 };
 
-  const slackers = players.filter((p) => count(p) === 0);
+  const band = players.filter(active);
+  if (band.length < 2) return { notified: 0, sent: 0 };
+  const slackers = band.filter((p) => count(p) === 0);
   if (slackers.length !== 1) return { notified: 0, sent: 0 };
 
   const sent = await sendToPlayers([slackers[0].id], {

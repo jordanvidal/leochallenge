@@ -8,9 +8,10 @@
 --
 -- Calculé par la vue, pas déclaré : si quelqu'un décoche, le bonus
 -- disparaît tout seul. Une seule vérité, comme les autres bonus
--- d'exécution. La « bande du jour » = les joueurs déjà inscrits ce
--- jour-là (à l'heure de Paris) : un nouveau venu en août n'efface pas
--- les jours collectifs de juillet.
+-- d'exécution. La « bande du jour » = les joueurs ACTIFS sur 7 jours
+-- glissants (au moins une coche) : un inscrit fantôme ne bloque pas le
+-- bonus des autres, et celui qui recoche réintègre la bande — à 3/3
+-- comme tout le monde.
 --
 -- Le feed gagne un kind 'collectif' (une seule carte, portée par celui
 -- qui ferme la journée — pas sept cartes identiques). On en profite
@@ -76,19 +77,21 @@ comeback as (
         and hist.day < cur.day - 1
     )
 ),
--- 🤝 jour parfait collectif : chaque joueur inscrit ce jour-là a une
--- entrée 3/3. Un joueur sans entrée fait échouer le bool_and via le
--- count. Seul, pas de collectif : il faut être au moins deux.
+-- 🤝 jour parfait collectif : la « bande du jour » = les joueurs actifs
+-- sur 7 jours glissants (au moins une coche). Tous à 3/3 ce jour-là, et
+-- au moins deux. Perfect ⇒ actif, donc le bonus va exactement aux 3/3.
+active as (
+  select distinct d.day, a.player_id
+  from (select distinct day from e) d
+  join e a on a.exos > 0 and a.day between d.day - 6 and d.day
+),
 collective_days as (
-  select e.day
-  from e
-  group by e.day
-  having bool_and(e.perfect)
-     and count(*) >= 2
-     and count(*) = (
-       select count(*) from public.players p
-       where (p.created_at at time zone 'Europe/Paris')::date <= e.day
-     )
+  select act.day
+  from active act
+  left join e cur on cur.player_id = act.player_id and cur.day = act.day
+  group by act.day
+  having count(*) >= 2
+     and bool_and(coalesce(cur.perfect, false))
 ),
 spine as (
   select player_id, day from e
@@ -289,16 +292,18 @@ as $$
           and hist.day < cur.day - 1
       )
   ),
+  active as (
+    select distinct d.day, a.player_id
+    from (select distinct day from e) d
+    join e a on a.exos > 0 and a.day between d.day - 6 and d.day
+  ),
   collective_days as (
-    select e.day
-    from e
-    group by e.day
-    having bool_and(e.perfect)
-       and count(*) >= 2
-       and count(*) = (
-         select count(*) from public.players p
-         where (p.created_at at time zone 'Europe/Paris')::date <= e.day
-       )
+    select act.day
+    from active act
+    left join e cur on cur.player_id = act.player_id and cur.day = act.day
+    group by act.day
+    having count(*) >= 2
+       and bool_and(coalesce(cur.perfect, false))
   ),
   spine as (
     select player_id, day from e

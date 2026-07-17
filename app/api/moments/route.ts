@@ -22,6 +22,7 @@ type BadgeRow = { player_id: string; badge: string };
 type StreakRow = { player_id: string; day: string; streak_pos: number };
 type EntryRow = {
   player_id: string;
+  day: string;
   pushups: boolean;
   abs: boolean;
   squats: boolean;
@@ -162,8 +163,9 @@ export async function POST(request: Request) {
         .gt("streak_pos", 0),
       supabase
         .from("entries")
-        .select("player_id, pushups, abs, squats")
-        .eq("day", today),
+        .select("player_id, day, pushups, abs, squats")
+        .gte("day", addDays(today, -6))
+        .lte("day", today),
       supabase
         .from("bonus_catalog")
         .select("points")
@@ -229,17 +231,23 @@ export async function POST(request: Request) {
   const moments: FeedInsert[] = [];
 
   // 🤝 Jour parfait collectif : la coche de l'acteur vient-elle de fermer
-  // la journée ? Une seule carte, portée par lui — dédup par jour, donc
+  // la journée ? La « bande » = joueurs actifs sur 7 jours glissants —
+  // même règle que la vue daily_points, un inscrit fantôme ne compte pas.
+  // Une seule carte, portée par l'acteur — dédup par jour, donc
   // rejouable sans doublon même si plusieurs coches arrivent ensemble.
+  const weekRows = todayEntries.data as EntryRow[];
+  const nDone = (e: EntryRow) =>
+    (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0);
   const doneToday = new Map(
-    (todayEntries.data as EntryRow[]).map((e) => [
-      e.player_id,
-      (e.pushups ? 1 : 0) + (e.abs ? 1 : 0) + (e.squats ? 1 : 0),
-    ]),
+    weekRows.filter((e) => e.day === today).map((e) => [e.player_id, nDone(e)]),
+  );
+  const activeIds = new Set(
+    weekRows.filter((e) => nDone(e) > 0).map((e) => e.player_id),
   );
   const playerIds = (players.data as { id: string }[]).map((p) => p.id);
   const allPerfect =
-    playerIds.length >= 2 && playerIds.every((id) => doneToday.get(id) === 3);
+    activeIds.size >= 2 &&
+    [...activeIds].every((id) => doneToday.get(id) === 3);
   if (allPerfect) {
     moments.push({
       player_id: actorId,
