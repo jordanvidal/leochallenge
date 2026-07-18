@@ -111,6 +111,16 @@ export default function App() {
     if (playerId) resyncPush(playerId);
   }, [playerId]);
 
+  // Ménage ponctuel : le badge d'icône a existé une soirée (feature/badge-pwa,
+  // revertée depuis). Le revert a emporté le code qui l'effaçait, donc le
+  // chiffre posé sur l'écran d'accueil y reste gravé pour toujours. On l'efface
+  // une fois par appareil. À supprimer quand tout le monde aura rouvert l'app.
+  useEffect(() => {
+    if (localStorage.getItem("lc100.badgeCleared")) return;
+    navigator.clearAppBadge?.().catch(() => {});
+    localStorage.setItem("lc100.badgeCleared", "1");
+  }, []);
+
   // Un événement a été tiré aujourd'hui et on ne l'a pas encore vu : on
   // ouvre la modale. Le flag est daté, donc elle revient chaque matin.
   useEffect(() => {
