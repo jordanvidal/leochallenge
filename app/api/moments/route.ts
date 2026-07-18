@@ -12,7 +12,12 @@
 import { NextResponse } from "next/server";
 import { addDays } from "@/lib/challenge";
 import { BADGES } from "@/lib/gamification";
-import { parisToday, sendToPlayers, serverSupabase } from "@/lib/server/push";
+import {
+  isAuthorizedApp,
+  parisToday,
+  sendToPlayers,
+  serverSupabase,
+} from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
 
@@ -142,6 +147,9 @@ function streakMoments(rows: StreakRow[], today: string): FeedInsert[] {
 }
 
 export async function POST(request: Request) {
+  if (!isAuthorizedApp(request)) {
+    return NextResponse.json({ error: "non autorisé" }, { status: 401 });
+  }
   const { actorId } = (await request.json().catch(() => ({}))) as {
     actorId?: string;
   };

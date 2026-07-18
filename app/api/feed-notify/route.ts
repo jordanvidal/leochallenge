@@ -11,13 +11,20 @@
 //    exclu — on ne se notifie pas soi-même.
 
 import { NextResponse } from "next/server";
-import { sendToPlayers, serverSupabase } from "@/lib/server/push";
+import {
+  isAuthorizedApp,
+  sendToPlayers,
+  serverSupabase,
+} from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
 
 const QUARTER_HOUR_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
+  if (!isAuthorizedApp(request)) {
+    return NextResponse.json({ error: "non autorisé" }, { status: 401 });
+  }
   const { eventId, actorId } = (await request.json().catch(() => ({}))) as {
     eventId?: string;
     actorId?: string;

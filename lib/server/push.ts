@@ -154,3 +154,12 @@ export function isAuthorizedCron(request: Request): boolean {
   if (!secret) return false;
   return request.headers.get("authorization") === `Bearer ${secret}`;
 }
+
+/** Garde des routes POST appelées par l'app : le client envoie le mot de
+    passe du groupe en header. Même niveau que PasswordGate — bloque le
+    passant qui a trouvé l'URL, pas le NSA. Fail-closed si non configuré. */
+export function isAuthorizedApp(request: Request): boolean {
+  const pass = process.env.NEXT_PUBLIC_GROUP_PASSWORD;
+  if (!pass) return false;
+  return request.headers.get("x-group-pass") === pass;
+}

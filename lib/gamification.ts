@@ -104,7 +104,10 @@ function numify(r: LeaderboardRow): LeaderboardRow {
 export function notifyMoments(actorId: string): Promise<void> {
   return fetch("/api/moments", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+    },
     body: JSON.stringify({ actorId }),
   })
     .then(() => undefined)

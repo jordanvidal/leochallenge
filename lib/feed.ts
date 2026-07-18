@@ -286,7 +286,10 @@ export async function insertComment(
 export function notifyFeedActivity(eventId: string, actorId: string): void {
   fetch("/api/feed-notify", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+    },
     body: JSON.stringify({ eventId, actorId }),
   }).catch(() => {
     // silencieux : la notif est un bonus, pas un contrat
