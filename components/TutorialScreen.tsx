@@ -91,8 +91,8 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
-        Garde-fou : 25 points de bonus max sur 7 jours glissants. Pas de
-        triche par accumulation.
+        Garde-fou : un seul palier par exo et par jour. +50 pompes OU +100
+        pompes, jamais les deux.
       </p>
     </div>,
 
