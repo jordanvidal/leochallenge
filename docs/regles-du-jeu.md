@@ -58,11 +58,11 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 
 | Bonus | Points | Condition |
 |---|---|---|
-| 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée) |
-| 🔥 Avant 8h | +3 | 3/3 bouclé avant 8h du matin |
+| 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée). Depuis le 20/07, le trophée tourne : si tu as été premier hier, le +3 du jour va au premier des autres |
+| 🔥 Avant 8h | +3 | 3/3 bouclé avant 8h du matin. Depuis le 20/07, ne se cumule plus avec « premier du jour » le même jour |
 | 🌙 Après 22h | +2 | 3/3 bouclé après 22h |
 | ⚡ Séance éclair | +2 | Séance guidée (chrono de l'appli) bouclée en moins de 20 min. (+5 en S1, ramené à +2 le 20/07 — c'était devenu un salaire quotidien) |
-| 🥇 Séance la plus rapide | +5 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain) |
+| 🥇 Séance la plus rapide | +2 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain). (+5 en S1, ramené à +2 le 20/07 — le trio matinal s'empilait sur le même joueur) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
 | 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
 
@@ -101,8 +101,8 @@ Oui, 40 % des jours il ne se passe rien. Un événement quotidien n'est plus un 
 
 Deux courses en parallèle :
 
-- **Le général** : le cumul depuis le 13 juillet. C'est LE classement, celui qui désigne le vainqueur du challenge.
-- **La semaine** : le compteur repart de zéro chaque lundi à minuit. Même en étant largué au général, tu peux gagner ta semaine.
+- **La semaine** : la course courte, celle qu'on vit. Le compteur repart de zéro chaque dimanche à minuit, et c'est la vue par défaut de l'appli. Même largué au général, tu peux gagner ta semaine — chaque lundi, tout le monde repart à égalité.
+- **Le général** : la course longue, le cumul depuis le 13 juillet. C'est lui qui désigne le vainqueur du challenge le 31 août.
 
 **Gagner sa semaine paie** : le vainqueur de la semaine prend **+3 au général**, posés sur le dimanche de sa semaine (à partir de la S2, lundi 20/07 — la S1 s'est jouée sans). Égalité au sommet = tous primés.
 
@@ -206,6 +206,8 @@ Oui, dans la limite de **12 joueurs**. Et un joueur qui a coché ne serait-ce qu
 
 **Le « premier du jour », c'est attribué quand ?**
 Une fois la journée finie, pour éviter que le gagnant change à chaque coche et décoche. Pareil pour la séance la plus rapide.
+
+Et depuis le 20/07, le trophée tourne : si tu as été premier à finir hier, le +3 du jour va au premier des autres. L'exclusion ne dure qu'un jour — tu peux le reprendre dès le lendemain. Cas limite : si le tenant est le seul à finir, le trophée n'est pas attribué ce jour-là.
 
 **Qui décide qu'un bonus est vrai ?**
 Personne. C'est sur l'honneur — mais toutes les déclarations sont visibles par tout le monde, en direct. La pression sociale fait le reste.
