@@ -109,7 +109,10 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
         </span>
       </div>
 
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+      {/* Deux rangées qui scrollent ensemble : 17 puces sur une seule ligne,
+          c'était 4 écrans de pouce. Le flux en colonnes garde les paliers
+          d'une même échelle empilés (+50 au-dessus de +100). */}
+      <div className="-mx-5 grid grid-flow-col grid-rows-2 gap-2 overflow-x-auto px-5 pb-1">
         {items.map((item) => {
           const claimed = mineToday.some((c) => c.bonus_key === item.key);
           const off = !claimed && blocked(item);
@@ -123,7 +126,7 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
                 if (claimed) onUnclaim(item);
                 else onClaim(item);
               }}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
+              className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
               style={
                 claimed
                   ? {
