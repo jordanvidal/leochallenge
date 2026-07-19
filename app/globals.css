@@ -243,6 +243,14 @@ button {
   padding-top: max(env(safe-area-inset-top), 0.75rem);
 }
 
+/* Rangée défilante sans ascenseur (puces de l'historique hebdo) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced motion : tout devient instantané, rien ne casse */
 @media (prefers-reduced-motion: reduce) {
   .exo-card,

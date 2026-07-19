@@ -233,3 +233,35 @@ export function weekdayIndex(day: string): number {
 export function mondayOf(day: string): string {
   return addDays(day, -weekdayIndex(day));
 }
+
+// ---- Semaines du challenge ----
+// La compétition hebdo repart de zéro chaque lundi 00h (Paris). Ce découpage
+// lundi→dimanche, borné aux dates du challenge, sert l'historique du
+// classement : une semaine passée = un appel leaderboard(from, until).
+
+export type ChallengeWeek = {
+  index: number; // 1 = première semaine
+  from: string; // max(lundi, CHALLENGE_START)
+  until: string; // min(dimanche, CHALLENGE_END)
+  current: boolean;
+};
+
+/** Les semaines écoulées ou en cours, de S1 à aujourd'hui. Vide avant le début. */
+export function challengeWeeks(): ChallengeWeek[] {
+  const today = parisToday();
+  const last = today > CHALLENGE_END ? CHALLENGE_END : today;
+  if (last < CHALLENGE_START) return [];
+  const currentMonday = mondayOf(last);
+  const weeks: ChallengeWeek[] = [];
+  let monday = mondayOf(CHALLENGE_START);
+  for (let i = 1; monday <= currentMonday; i++, monday = addDays(monday, 7)) {
+    const sunday = addDays(monday, 6);
+    weeks.push({
+      index: i,
+      from: monday < CHALLENGE_START ? CHALLENGE_START : monday,
+      until: sunday > CHALLENGE_END ? CHALLENGE_END : sunday,
+      current: monday === currentMonday,
+    });
+  }
+  return weeks;
+}

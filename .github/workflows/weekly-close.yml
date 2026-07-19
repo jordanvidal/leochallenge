@@ -1,0 +1,21 @@
+# Clôture hebdo du dimanche soir : le plan Vercel Hobby plafonne à 2 crons,
+# déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
+# 19:00 UTC = 21h00 Paris pendant le challenge (13/07 → 31/08, CEST).
+# La route se protège elle-même : hors challenge ou hors dimanche, no-op.
+
+name: Clôture hebdo du dimanche
+
+on:
+  schedule:
+    - cron: "0 19 * * 0" # dimanche 19:00 UTC
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler /api/cron/weekly-close
+        run: |
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://leochallenge.vercel.app/api/cron/weekly-close

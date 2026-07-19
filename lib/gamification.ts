@@ -85,6 +85,21 @@ export async function fetchGamification(): Promise<Gamification | null> {
   };
 }
 
+/** Classement d'une semaine passée (fenêtre close). Même RPC que le reste :
+    aucun score stocké, tout est recalculé depuis les entries — l'historique
+    hebdo est donc exact même si un bonus a été corrigé après coup. */
+export async function fetchWeekLeaderboard(
+  from: string,
+  until: string,
+): Promise<LeaderboardRow[] | null> {
+  const { data, error } = await supabase.rpc("leaderboard", {
+    p_from: from,
+    p_until: until,
+  });
+  if (error || !data) return null;
+  return (data as LeaderboardRow[]).map(numify);
+}
+
 /** Postgres renvoie les numeric en string : on renormalise. */
 function numify(r: LeaderboardRow): LeaderboardRow {
   return {

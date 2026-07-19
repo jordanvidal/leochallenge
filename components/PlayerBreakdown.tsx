@@ -6,7 +6,7 @@
 // player_breakdown — aucun calcul ici.
 
 import { useEffect, useState } from "react";
-import { frenchDateShort, mondayOf, parisToday } from "@/lib/challenge";
+import { frenchDateShort } from "@/lib/challenge";
 import {
   Breakdown,
   BreakdownRow,
@@ -21,7 +21,12 @@ import { Avatar } from "./ui";
 type Props = {
   player: Player;
   row: LeaderboardRow; // rang + total déjà connus du classement
-  view: "total" | "week";
+  // Fenêtre du classement affiché (null = pas de borne) et son libellé,
+  // fournis par LeaderboardScreen : général, semaine en cours ou semaine
+  // passée de l'historique.
+  from: string | null;
+  until: string | null;
+  label: string;
   onClose: () => void;
 };
 
@@ -66,21 +71,19 @@ function SourceRow({ r, color }: { r: BreakdownRow; color: string }) {
   );
 }
 
-export default function PlayerBreakdown({ player, row, view, onClose }: Props) {
+export default function PlayerBreakdown({ player, row, from, until, label, onClose }: Props) {
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
   const [showDays, setShowDays] = useState(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    // Fenêtre alignée sur la vue : « Cette semaine » = depuis lundi.
-    const from = view === "week" ? mondayOf(parisToday()) : null;
-    fetchBreakdown(player.id, from, null).then((b) => {
+    fetchBreakdown(player.id, from, until).then((b) => {
       if (b) setData(b);
       else setFailed(true);
     });
-    fetchDays(player.id, from, null).then(setDays);
-  }, [player.id, view]);
+    fetchDays(player.id, from, until).then(setDays);
+  }, [player.id, from, until]);
 
   const total = row.points;
   const basePct =
@@ -98,7 +101,7 @@ export default function PlayerBreakdown({ player, row, view, onClose }: Props) {
           ←
         </button>
         <span className="flex-1 text-sm font-medium text-faint">
-          {view === "week" ? "Cette semaine" : "Depuis le début"}
+          {label}
         </span>
       </div>
 
