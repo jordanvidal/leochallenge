@@ -101,9 +101,11 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
           Bonus
         </h2>
         <span className="text-[11px] font-medium text-faint">
-          {/* cap jour >= 99 = limite levée (S2) : on n'affiche plus le compteur */}
+          {/* cap jour >= 99, cap semaine >= 999 = limites levées (S2) :
+              on garde le total déclaré comme repère, sans plafond affiché */}
           {capDay < 99 && `${mineCount}/${capDay} aujourd'hui · `}
-          {fmtPoints(weekUsed)}/{fmtPoints(capWeek)} pts / 7 j
+          {fmtPoints(weekUsed)}
+          {capWeek < 999 && `/${fmtPoints(capWeek)}`} pts / 7 j
         </span>
       </div>
 

@@ -48,7 +48,8 @@ Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une co
 **Les garde-fous :**
 
 - **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, jamais les deux (sinon les 50 premières seraient payées deux fois).
-- **25 points de bonus déclarés max sur 7 jours glissants.** Le compteur est visible dans l'appli. (La limite de 3 déclarations par jour a été levée le 20/07 — elle punissait les grosses séances légitimes alors que le plafond de points contient déjà l'inflation.)
+
+Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 
 Une erreur de pouce ? Tu retapes sur le bonus le jour même et la déclaration s'annule.
 
