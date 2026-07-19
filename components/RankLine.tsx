@@ -1,8 +1,12 @@
 "use client";
 
-// La phrase qui fait faire les pompes : "3e — 47 pts — 6 pts derrière Marc".
-// En haut de l'écran du jour, tappable vers le classement.
+// La ligne de statut : une seule phrase sous le header, tappable vers le
+// classement. Rang et série cohabitent — et le soir, quand la série est
+// en jeu, elle prend toute la place : c'est la peur de la casser qui fait
+// cocher, pas l'écart de points. Le détail (écarts, paliers) vit au
+// Classement, un tap plus loin.
 
+import { daysLeft } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 
@@ -10,13 +14,26 @@ type Props = {
   player: Player;
   players: Player[];
   gamification: Gamification | null;
+  perfect: boolean; // le 3/3 du jour est-il déjà fait ?
   onGoLeaderboard: () => void;
 };
+
+/** ×1 avant 3 jours parfaits consécutifs, ×1,5 dès 3, ×2 dès 7.
+    Même barème que la vue daily_points — copie assumée, 3 lignes. */
+function multFor(pos: number): number {
+  return pos >= 7 ? 2 : pos >= 3 ? 1.5 : 1;
+}
+
+/** "×1,5" / "×2" */
+function fmtMult(m: number): string {
+  return `×${String(m).replace(".", ",")}`;
+}
 
 export default function RankLine({
   player,
   players,
   gamification,
+  perfect,
   onGoLeaderboard,
 }: Props) {
   if (!gamification || players.length < 2) return null;
@@ -24,24 +41,39 @@ export default function RankLine({
   const mine = rows.find((r) => r.player_id === player.id);
   if (!mine) return null;
 
-  const names = new Map(players.map((p) => [p.id, p.name]));
-  let phrase = `${frenchRank(mine.rank)} — ${fmtPoints(mine.points)} pts`;
+  // current_streak inclut le jour même s'il est à 3/3, et reste vivant si
+  // le dernier jour parfait est hier (la série ne casse qu'à minuit).
+  const streak = mine.current_streak;
 
-  if (mine.rank === 1) {
-    const runnerUp = rows.find((r) => r.player_id !== player.id);
-    if (runnerUp) {
-      const gap = mine.points - runnerUp.points;
-      phrase +=
-        gap > 0
-          ? ` — ${fmtPoints(gap)} pts d'avance sur ${names.get(runnerUp.player_id)}`
-          : ` — à égalité avec ${names.get(runnerUp.player_id)}`;
+  let emoji: string;
+  let phrase: string;
+
+  if (!perfect && streak > 0) {
+    // La série est en jeu : la phrase du soir, celle qui fait cocher.
+    emoji = "🔥";
+    const posIfDone = streak + 1;
+    const multIfDone = multFor(posIfDone);
+    if (multIfDone > 1) {
+      phrase = `Série : ${streak} j en jeu — ton 3/3 vaut ${fmtMult(multIfDone)}`;
+    } else if (daysLeft() - 1 >= 3 - posIfDone) {
+      // posIfDone < 3 ⇒ le ×1,5 tombe dans (3 - posIfDone) jours
+      const k = 3 - posIfDone;
+      phrase = `Série : ${streak} j en jeu — ×1,5 ${k === 1 ? "demain" : `dans ${k} j`}`;
+    } else {
+      phrase = `Série : ${streak} j en jeu`;
     }
   } else {
-    // le joueur juste devant : le prochain à faire tomber
-    const ahead = [...rows].reverse().find((r) => r.rank < mine.rank);
-    if (ahead) {
-      const gap = ahead.points - mine.points;
-      phrase += ` — ${fmtPoints(gap)} pts derrière ${names.get(ahead.player_id)}`;
+    emoji = "🏆";
+    phrase = `${frenchRank(mine.rank)} · ${fmtPoints(mine.points)} pts`;
+    if (streak > 0) {
+      const mult = multFor(streak);
+      phrase += ` · 🔥 ${streak} j${mult > 1 ? ` ${fmtMult(mult)}` : ""}`;
+      // Le prochain palier n'est annoncé que s'il tombe demain (le hook le
+      // plus fort) et avant la fin du challenge — pas de promesse en l'air.
+      const next = streak < 3 ? 3 : streak < 7 ? 7 : null;
+      if (next && next - streak === 1 && daysLeft() > 1) {
+        phrase += ` — ${fmtMult(multFor(next))} demain`;
+      }
     }
   }
 
@@ -54,7 +86,7 @@ export default function RankLine({
         color: player.color,
       }}
     >
-      🏆 {phrase}
+      <span aria-hidden>{emoji}</span> {phrase}
     </button>
   );
 }

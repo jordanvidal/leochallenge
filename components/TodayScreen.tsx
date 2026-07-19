@@ -23,7 +23,6 @@ import {
 import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
-import StreakLine from "./StreakLine";
 import { Avatar, ExoDots } from "./ui";
 
 type Props = {
@@ -134,19 +133,16 @@ export default function TodayScreen({
         )}
       </header>
 
-      {/* Le rang du joueur : c'est cette phrase qui fait faire les pompes */}
+      {/* La ligne de statut : rang + série, et la série seule quand elle
+          est en jeu. C'est cette phrase qui fait faire les pompes. */}
       {!over && (
         <RankLine
           player={player}
           players={players}
           gamification={gamification}
+          perfect={perfect}
           onGoLeaderboard={onGoLeaderboard}
         />
-      )}
-
-      {/* La série et ce que vaut le 3/3 du jour : ce qu'on sauve en cochant */}
-      {!over && (
-        <StreakLine player={player} gamification={gamification} perfect={perfect} />
       )}
 
       {/* Les trois cartes. Physiques, presque tactiles. */}
@@ -309,12 +305,17 @@ export default function TodayScreen({
 
       <NotifBanner player={player} onDone={showToast} />
 
-      <button
-        onClick={onShareWeek}
-        className="mb-3 min-h-12 w-full rounded-2xl bg-surface text-sm font-bold text-ink"
-      >
-        Partager ma semaine 💬
-      </button>
+      {/* Le partage n'apparaît qu'une fois le jour gagné : personne ne
+          partage sa semaine avant d'avoir coché — un bloc de moins dans le
+          chemin critique, une petite récompense après la 3e coche. */}
+      {(perfect || over) && (
+        <button
+          onClick={onShareWeek}
+          className="mb-3 min-h-12 w-full rounded-2xl bg-surface text-sm font-bold text-ink"
+        >
+          Partager ma semaine 💬
+        </button>
+      )}
     </div>
   );
 }
