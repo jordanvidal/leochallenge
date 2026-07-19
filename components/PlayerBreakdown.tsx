@@ -232,6 +232,10 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                 <dt className="w-14 shrink-0 font-bold text-ink">⚔️ ±3</dt>
                 <dd>duel hebdo : chaque lundi, duel contre ton voisin de classement — le plus de jours parfaits d&apos;ici dimanche prend 3 pts à l&apos;autre</dd>
               </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-14 shrink-0 font-bold text-ink">🏆 +3</dt>
+                <dd>gagner la semaine : le vainqueur du classement hebdo prend 3 pts au général (posés le dimanche, depuis le 20/07)</dd>
+              </div>
             </dl>
 
             {/* Les événements du jour : tirés au hasard, expliqués une bonne fois */}

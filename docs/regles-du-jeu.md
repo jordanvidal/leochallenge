@@ -104,6 +104,8 @@ Deux courses en parallèle :
 - **Le général** : le cumul depuis le 13 juillet. C'est LE classement, celui qui désigne le vainqueur du challenge.
 - **La semaine** : le compteur repart de zéro chaque lundi à minuit. Même en étant largué au général, tu peux gagner ta semaine.
 
+**Gagner sa semaine paie** : le vainqueur de la semaine prend **+3 au général**, posés sur le dimanche de sa semaine (à partir de la S2, lundi 20/07 — la S1 s'est jouée sans). Égalité au sommet = tous primés.
+
 L'historique des semaines passées reste consultable, et le classement affiche pour chacun le total, la part de bonus, les jours parfaits et la série en cours.
 
 ---
