@@ -40,7 +40,7 @@ export type FeedPayload = {
   opponent?: string;
   opponent_id?: string;
   score?: string; // "3–2", en jours parfaits
-  exosScore?: string; // "14–12", le départage
+  pointsScore?: string; // "23,5–19", le départage aux points de la semaine
   outcome?: "win" | "draw";
   tiebreak?: boolean;
   bye?: boolean; // exempt de la semaine
@@ -158,7 +158,7 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
           text: `fait match nul contre ${p.opponent} en duel (${p.score}) — aucun point ne bouge`,
         };
       }
-      const tb = p.tiebreak ? ` (départage aux exos ${p.exosScore})` : "";
+      const tb = p.tiebreak ? ` (départage aux points ${p.pointsScore})` : "";
       return {
         emoji: "⚔️",
         text: `remporte son duel contre ${p.opponent} ${p.score}${tb} et lui prend ${fmtPoints(Number(p.points ?? 3))} pts`,

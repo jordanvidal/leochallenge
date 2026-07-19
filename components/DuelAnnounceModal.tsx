@@ -70,8 +70,9 @@ export default function DuelAnnounceModal({ player, onClose }: Props) {
           adversaire. Un duel par semaine, jusqu&apos;à la fin.
         </Row>
         <Row emoji="⚖️">
-          Égalité en journées parfaites ? Le total d&apos;exos de la semaine
-          tranche. Toujours égalité : match nul, personne ne perd rien.
+          Égalité en journées parfaites ? Tes points de la semaine tranchent
+          — bonus compris. Toujours égalité : match nul, personne ne perd
+          rien.
         </Row>
         <Row emoji="📍">
           Ton duel vit en haut du Classement, score en direct. Nombre impair
