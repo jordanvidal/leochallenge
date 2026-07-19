@@ -46,8 +46,7 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 **Les garde-fous :**
 
 - **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, jamais les deux (sinon les 50 premières seraient payées deux fois).
-- **3 bonus déclarés max par jour.**
-- **25 points de bonus déclarés max sur 7 jours glissants.** Le compteur est visible dans l'appli.
+- **25 points de bonus déclarés max sur 7 jours glissants.** Le compteur est visible dans l'appli. (La limite de 3 déclarations par jour a été levée le 20/07 — elle punissait les grosses séances légitimes alors que le plafond de points contient déjà l'inflation.)
 
 Une erreur de pouce ? Tu retapes sur le bonus le jour même et la déclaration s'annule.
 

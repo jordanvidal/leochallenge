@@ -91,8 +91,8 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
-        Garde-fous : 2 bonus max par jour, 20 points de bonus max sur 7 jours
-        glissants. Pas de triche par accumulation.
+        Garde-fou : 25 points de bonus max sur 7 jours glissants. Pas de
+        triche par accumulation.
       </p>
     </div>,
 
