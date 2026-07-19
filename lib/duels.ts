@@ -1,9 +1,11 @@
 // Duels 1v1 hebdo : chaque lundi, les actifs sont appariés par rangs
 // voisins ; le plus de jours parfaits d'ici dimanche prend 3 pts à
-// l'autre (départage au total d'exos, sinon nul). La vérité des points
-// est SQL (vue duel_results → daily_points) ; ce module duplique la
-// règle pour l'affichage live — même précédent assumé que le CTE
-// `active` recopié dans reminders.ts.
+// l'autre (départage aux points de la semaine, sinon nul). Les jours
+// parfaits sont plafonnés à 7 : entre assidus, ce sont les points —
+// déplafonnés par les déclarations et les tirages — qui tranchent.
+// La vérité est SQL (vue duel_results → daily_points) ; ce module
+// duplique la règle pour l'affichage live — même précédent assumé
+// que le CTE `active` recopié dans reminders.ts.
 
 import { addDays, CHALLENGE_START, mondayOf } from "./challenge";
 import { Entry, entryCount, entryKey } from "./types";
@@ -31,8 +33,6 @@ export type Duel = {
 export type DuelTally = {
   perfectA: number;
   perfectB: number;
-  exosA: number;
-  exosB: number;
 };
 
 /** Le duel (ou l'exemption) d'un joueur pour un lundi donné. */
@@ -50,7 +50,7 @@ export function duelOf(
   );
 }
 
-/** Jours parfaits + exos de chaque camp sur [from, to], bornes incluses.
+/** Jours parfaits de chaque camp sur [from, to], bornes incluses.
     Se calcule depuis la Map entries déjà en mémoire (et en realtime) —
     aucun aller-retour serveur. */
 export function tallyDuel(
@@ -59,23 +59,26 @@ export function tallyDuel(
   from: string,
   to: string,
 ): DuelTally {
-  const t: DuelTally = { perfectA: 0, perfectB: 0, exosA: 0, exosB: 0 };
+  const t: DuelTally = { perfectA: 0, perfectB: 0 };
   for (let day = from; day <= to; day = addDays(day, 1)) {
     const a = entryCount(entries.get(entryKey(duel.player_a, day)));
-    t.exosA += a;
     if (a === 3) t.perfectA++;
     if (duel.player_b) {
       const b = entryCount(entries.get(entryKey(duel.player_b, day)));
-      t.exosB += b;
       if (b === 3) t.perfectB++;
     }
   }
   return t;
 }
 
-/** Même règle que la vue duel_results : jours parfaits, puis exos, sinon nul. */
-export function duelWinner(t: DuelTally): "a" | "b" | null {
+/** Même règle que la vue duel_results : jours parfaits, puis points de
+    la semaine (le classement hebdo, hors transferts), sinon nul. */
+export function duelWinner(
+  t: DuelTally,
+  pointsA: number,
+  pointsB: number,
+): "a" | "b" | null {
   if (t.perfectA !== t.perfectB) return t.perfectA > t.perfectB ? "a" : "b";
-  if (t.exosA !== t.exosB) return t.exosA > t.exosB ? "a" : "b";
+  if (pointsA !== pointsB) return pointsA > pointsB ? "a" : "b";
   return null;
 }

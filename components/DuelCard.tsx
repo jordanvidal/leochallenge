@@ -7,7 +7,7 @@
 
 import { addDays, mondayOf, parisToday } from "@/lib/challenge";
 import { DUEL_POINTS, DUELS_FROM, duelOf, tallyDuel } from "@/lib/duels";
-import { Gamification } from "@/lib/gamification";
+import { fmtPoints, Gamification } from "@/lib/gamification";
 import { Entry, Player } from "@/lib/types";
 import { Avatar } from "./ui";
 
@@ -43,8 +43,10 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
   const t = tallyDuel(entries, duel, monday, today < sunday ? today : sunday);
   const mine = iAmA ? t.perfectA : t.perfectB;
   const theirs = iAmA ? t.perfectB : t.perfectA;
-  const myExos = iAmA ? t.exosA : t.exosB;
-  const theirExos = iAmA ? t.exosB : t.exosA;
+  // Le départage : les points de la semaine, ceux du classement hebdo.
+  // Rafraîchis au fetch (pas en realtime) — indicatif, la vérité est SQL.
+  const myPts = gamification.week.find((r) => r.player_id === player.id)?.points ?? 0;
+  const theirPts = gamification.week.find((r) => r.player_id === oppId)?.points ?? 0;
 
   return (
     <div
@@ -75,7 +77,8 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
       </div>
       {mine === theirs && (
         <p className="mt-1.5 text-center text-xs text-muted">
-          Égalité — le départage se joue aux exos : {myExos} à {theirExos}
+          Égalité — le départage se joue aux points de la semaine :{" "}
+          {fmtPoints(myPts)} à {fmtPoints(theirPts)}
         </p>
       )}
     </div>

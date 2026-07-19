@@ -119,7 +119,7 @@ L'historique des semaines passées reste consultable, et le classement affiche p
 - **Le lundi matin**, les joueurs actifs (au moins une coche sur les 7 derniers jours) sont appariés par rangs voisins au général : 1er contre 2e, 3e contre 4e, etc.
 - Nombre impair ? Un joueur est **exempt** — et l'exemption tourne, jamais deux fois de suite le même.
 - **Le duel se joue sur les jours parfaits** de lundi à dimanche. Celui qui en a le plus gagne.
-- Égalité de jours parfaits ? Départage au **total d'exos cochés**. Encore égalité ? **Match nul**, aucun point ne bouge.
+- Égalité de jours parfaits ? Départage aux **points de la semaine** (ceux du classement hebdo : base, bonus et jour miroir — le transfert de duel et la prime hebdo ne comptent pas, ils tombent après). Les jours parfaits sont plafonnés, pas les points : entre deux sans-faute, c'est l'engagement qui tranche. Encore égalité ? **Match nul**, aucun point ne bouge.
 - Le gagnant **prend 3 points au perdant**. C'est un transfert : +3 pour l'un, −3 pour l'autre. Le seul moyen du jeu de perdre des points.
 
 Résultat et nouvel appariement tombent dans le récap du lundi matin.

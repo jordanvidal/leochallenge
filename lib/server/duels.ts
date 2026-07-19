@@ -21,8 +21,8 @@ type ResultRow = {
   player_b: string;
   perfect_a: number;
   perfect_b: number;
-  exos_a: number;
-  exos_b: number;
+  points_a: number; // numeric Postgres : renvoyé en string, Number() au lu
+  points_b: number;
   winner: string | null;
   loser: string | null;
   tiebreak_used: boolean;
@@ -41,10 +41,15 @@ function pushLine(lines: DuelLines, playerId: string, line: string): void {
   lines.set(playerId, [...(lines.get(playerId) ?? []), line]);
 }
 
-/** "3 jours parfaits à 2" ou "2–2, départage aux exos 14–12". */
-function scoreLabel(myP: number, theirP: number, myE: number, theirE: number): string {
+/** Points sans décimale inutile (23 plutôt que 23.0). */
+function fmt(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/** "3 jours parfaits à 2" ou "2–2, départage aux points 23,5–19". */
+function scoreLabel(myP: number, theirP: number, myPts: number, theirPts: number): string {
   if (myP !== theirP) return `${myP} jours parfaits à ${theirP}`;
-  return `${myP}–${theirP}, départage aux exos ${myE}–${theirE}`;
+  return `${myP}–${theirP}, départage aux points ${fmt(myPts)}–${fmt(theirPts)}`;
 }
 
 export async function runWeeklyDuels(): Promise<{
@@ -78,19 +83,20 @@ export async function runWeeklyDuels(): Promise<{
     const res = await supabase
       .from("duel_results")
       .select(
-        "week_monday, player_a, player_b, perfect_a, perfect_b, exos_a, exos_b, winner, loser, tiebreak_used",
+        "week_monday, player_a, player_b, perfect_a, perfect_b, points_a, points_b, winner, loser, tiebreak_used",
       )
       .eq("week_monday", playedMonday);
     if (res.error) throw new Error("lecture duel_results échouée");
 
-    for (const r of res.data as ResultRow[]) {
+    for (const raw of res.data as ResultRow[]) {
+      const r = { ...raw, points_a: Number(raw.points_a), points_b: Number(raw.points_b) };
       resolved++;
       if (r.winner && r.loser) {
         const wIsA = r.winner === r.player_a;
         const wP = wIsA ? r.perfect_a : r.perfect_b;
         const lP = wIsA ? r.perfect_b : r.perfect_a;
-        const wE = wIsA ? r.exos_a : r.exos_b;
-        const lE = wIsA ? r.exos_b : r.exos_a;
+        const wPts = wIsA ? r.points_a : r.points_b;
+        const lPts = wIsA ? r.points_b : r.points_a;
         events.push({
           player_id: r.winner,
           kind: "duel_result",
@@ -100,7 +106,7 @@ export async function runWeeklyDuels(): Promise<{
             opponent: name(r.loser),
             opponent_id: r.loser,
             score: `${wP}–${lP}`,
-            exosScore: `${wE}–${lE}`,
+            pointsScore: `${fmt(wPts)}–${fmt(lPts)}`,
             outcome: "win",
             tiebreak: r.tiebreak_used,
             points: DUEL_POINTS,
@@ -109,12 +115,12 @@ export async function runWeeklyDuels(): Promise<{
         pushLine(
           lines,
           r.winner,
-          `⚔️ Duel gagné contre ${name(r.loser)} (${scoreLabel(wP, lP, wE, lE)}) : +${DUEL_POINTS} pts pris dans sa poche.`,
+          `⚔️ Duel gagné contre ${name(r.loser)} (${scoreLabel(wP, lP, wPts, lPts)}) : +${DUEL_POINTS} pts pris dans sa poche.`,
         );
         pushLine(
           lines,
           r.loser,
-          `⚔️ Duel perdu contre ${name(r.winner)} (${scoreLabel(lP, wP, lE, wE)}) : il te prend ${DUEL_POINTS} pts. Vengeance ?`,
+          `⚔️ Duel perdu contre ${name(r.winner)} (${scoreLabel(lP, wP, lPts, wPts)}) : il te prend ${DUEL_POINTS} pts. Vengeance ?`,
         );
       } else {
         events.push({
@@ -126,7 +132,7 @@ export async function runWeeklyDuels(): Promise<{
             opponent: name(r.player_b),
             opponent_id: r.player_b,
             score: `${r.perfect_a}–${r.perfect_b}`,
-            exosScore: `${r.exos_a}–${r.exos_b}`,
+            pointsScore: `${fmt(r.points_a)}–${fmt(r.points_b)}`,
             outcome: "draw",
           },
         });
