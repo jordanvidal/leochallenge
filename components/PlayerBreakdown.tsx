@@ -255,9 +255,9 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>🎰</dt>
                 <dd>
-                  quitte ou double : si tu boucles ton 3/3, <b>tous</b> tes
-                  points du jour comptent double. Si tu rates, rien ne change
-                  (aucune perte).
+                  quitte ou double : si tu boucles ton 3/3, tes points de{" "}
+                  <b>base</b> du jour comptent double. Si tu rates, rien ne
+                  change (aucune perte).
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">

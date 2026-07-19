@@ -37,7 +37,7 @@ const COPY: Record<string, { howto: string }> = {
   },
   quitte_ou_double: {
     howto:
-      "Boucle ton 3/3 aujourd'hui et TOUS tes points du jour comptent double. Si tu rates, rien ne change — aucune perte.",
+      "Boucle ton 3/3 aujourd'hui et tes points de BASE du jour comptent double. Si tu rates, rien ne change — aucune perte.",
   },
   jour_miroir: {
     howto:

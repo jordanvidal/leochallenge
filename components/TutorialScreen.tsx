@@ -107,7 +107,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <EventRow emoji="🍻">happy hour : séance finie entre 18h et 20h → +5</EventRow>
         <EventRow emoji="🌄">lève-tôt : séance finie avant 7h → +6</EventRow>
         <EventRow emoji="🎰">
-          quitte ou double : ton 3/3 fait double tout ton jour. Raté, rien ne
+          quitte ou double : ton 3/3 double ta base du jour. Raté, rien ne
           bouge.
         </EventRow>
         <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>

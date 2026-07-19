@@ -62,7 +62,7 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée) |
 | 🔥 Avant 8h | +3 | 3/3 bouclé avant 8h du matin |
 | 🌙 Après 22h | +2 | 3/3 bouclé après 22h |
-| ⚡ Séance éclair | +5 | Séance guidée (chrono de l'appli) bouclée en moins de 20 min |
+| ⚡ Séance éclair | +2 | Séance guidée (chrono de l'appli) bouclée en moins de 20 min. (+5 en S1, ramené à +2 le 20/07 — c'était devenu un salaire quotidien) |
 | 🥇 Séance la plus rapide | +5 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
 | 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
@@ -84,7 +84,7 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 | 🎲 Pompes doublées | Ta coche pompes vaut le double aujourd'hui (+1 pt) |
 | 🍻 Happy hour | +5 si tu finis ton 3/3 entre 18h et 20h |
 | 🌄 Lève-tôt | +6 si tu finis avant 7h (cumulable avec le +3 « avant 8h ») |
-| 🎰 Quitte ou double | Si tu fais 3/3, TOUS tes points du jour sont doublés (base, bonus, tout). Pas de 3/3 = rien ne double, aucune pénalité |
+| 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8, qu'il ait joué ou non |
 | 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
 
