@@ -42,12 +42,21 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🧱 3 min de gainage | +3 |
 | 🪢 10 min de corde à sauter | +5 |
 | 🪜 500 marches | +5 |
+| 💥 30 burpees | +4 |
+| 💥 60 burpees | +7 |
+| 🧎 100 fentes | +4 |
+| 🧎 200 fentes | +7 |
+| 💺 50 dips sur chaise | +4 |
+| 🪑 3 min de chaise murale | +3 |
+| 🚶 10 000 pas | +4 |
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 
+Les sept derniers sont arrivés le 20/07 (S2) : que du sans-matériel, pour les jours de vacances ou de déplacement. Les burpees et les fentes marchent par paliers comme les pompes — le palier haut inclut le bas (60 burpees = tu déclares le 60, pas les deux). Les 10 000 pas se lisent sur le téléphone, la chaise murale et le gainage se cumulent dans la journée mais chacun ne se déclare qu'une fois.
+
 **Les garde-fous :**
 
-- **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, jamais les deux (sinon les 50 premières seraient payées deux fois).
+- **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, 30 burpees OU 60 burpees, jamais les deux (sinon la première moitié serait payée deux fois).
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 
