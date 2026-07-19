@@ -23,6 +23,7 @@ import {
 import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
+import StreakLine from "./StreakLine";
 import { Avatar, ExoDots } from "./ui";
 
 type Props = {
@@ -141,6 +142,11 @@ export default function TodayScreen({
           gamification={gamification}
           onGoLeaderboard={onGoLeaderboard}
         />
+      )}
+
+      {/* La série et ce que vaut le 3/3 du jour : ce qu'on sauve en cochant */}
+      {!over && (
+        <StreakLine player={player} gamification={gamification} perfect={perfect} />
       )}
 
       {/* Les trois cartes. Physiques, presque tactiles. */}

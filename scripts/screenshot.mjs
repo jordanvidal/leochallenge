@@ -145,10 +145,12 @@ async function shotApp(browser, pid) {
   });
   const page = await ctx.newPage();
   await page.addInitScript(seedScript, { pid, skipTutorial: true });
-  // On mémorise l'événement du jour comme déjà vu pour ne pas ouvrir la modale.
+  // On mémorise l'événement du jour et l'annonce des duels comme déjà vus
+  // pour ne pas ouvrir leurs modales par-dessus l'onglet visé.
   await page.addInitScript(() => {
     const d = new Date().toISOString().slice(0, 10);
     localStorage.setItem("lc100.eventSeenDay", d);
+    localStorage.setItem("lc100.duelsAnnounceSeen.v2", "1");
   });
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForTimeout(1000);
