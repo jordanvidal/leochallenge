@@ -89,6 +89,33 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
   return state.catalog.filter((c) => c.kind === "exercise");
 }
 
+/**
+ * L'événement du jour peut-il encore changer quelque chose pour ce joueur ?
+ * Le bandeau n'affiche que ce qui est encore jouable : happy hour à 21h ou
+ * pompes doublées une fois la coche posée, c'est de l'info morte à l'écran.
+ * Les fenêtres horaires sont celles des triggers SQL (migration 8).
+ */
+export function eventIsLive(
+  eventKey: string,
+  opts: { perfect: boolean; pushupsDone: boolean; hour: number },
+): boolean {
+  switch (eventKey) {
+    case "pompes_double":
+      return !opts.pushupsDone; // encaissé dès que la coche pompes est posée
+    case "happy_hour":
+      // Mort après 20h ; un 3/3 déjà posé a raté ou encaissé le créneau.
+      return !opts.perfect && opts.hour < 20;
+    case "leve_tot":
+      return !opts.perfect && opts.hour < 7; // le +6 exige de finir avant 7h
+    case "quitte_ou_double":
+      return !opts.perfect; // encaissé au 3/3, le flash et les points le disent
+    case "jour_miroir": // pure info, elle vaut toute la journée
+    case "boss_dimanche": // déclarable jusqu'à minuit, il porte son propre état
+    default:
+      return true;
+  }
+}
+
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
 export function weekBonusPoints(state: BonusState, playerId: string): number {
   const exerciseKeys = new Set(

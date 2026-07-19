@@ -87,6 +87,18 @@ export function parisToday(): string {
   return simulatedToday() ?? parisDayFmt.format(new Date());
 }
 
+// Formateur d'heure figé sur Europe/Paris (h23 : minuit = 0, pas 24).
+const parisHourFmt = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Paris",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Heure actuelle à Paris (0-23), quel que soit le fuseau du téléphone. */
+export function parisHour(): number {
+  return Number(parisHourFmt.format(new Date()));
+}
+
 /** Ajoute n jours à un jour 'YYYY-MM-DD'. Midi UTC pour ignorer les DST. */
 export function addDays(day: string, n: number): string {
   const d = new Date(`${day}T12:00:00Z`);

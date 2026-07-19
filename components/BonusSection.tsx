@@ -7,18 +7,33 @@
 // ouvrir, et ce qui est déjà déclaré reste visible sur le rang.
 
 import { useEffect, useState } from "react";
-import { BonusCatalogItem, BonusState, claimables, weekBonusPoints } from "@/lib/bonus";
+import {
+  BonusCatalogItem,
+  BonusState,
+  claimables,
+  eventIsLive,
+  weekBonusPoints,
+} from "@/lib/bonus";
+import { parisHour } from "@/lib/challenge";
 import { fmtPoints } from "@/lib/gamification";
-import { Player } from "@/lib/types";
+import { Entry, entryCount, Player } from "@/lib/types";
 
 type Props = {
   player: Player;
+  entry: Entry | undefined; // la journée du joueur : elle décide de la
+  // pertinence du bandeau (pompes cochées, 3/3 posé)
   bonus: BonusState | null;
   onClaim: (item: BonusCatalogItem) => void;
   onUnclaim: (item: BonusCatalogItem) => void;
 };
 
-export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Props) {
+export default function BonusSection({
+  player,
+  entry,
+  bonus,
+  onClaim,
+  onUnclaim,
+}: Props) {
   const [open, setOpen] = useState(false);
   if (!bonus) return null;
 
@@ -27,6 +42,16 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
   const emojiByKey = new Map(bonus.catalog.map((c) => [c.key, c.emoji]));
   const weekUsed = weekBonusPoints(bonus, player.id);
 
+  // Le bandeau ne s'affiche que tant que l'événement peut encore changer
+  // quelque chose : happy hour à 21h, c'est de l'info morte.
+  const eventLive =
+    !!bonus.event &&
+    eventIsLive(bonus.event.key, {
+      perfect: entryCount(entry) === 3,
+      pushupsDone: !!entry?.pushups,
+      hour: parisHour(),
+    });
+
   // Le boss du dimanche se déclare directement dans son bandeau.
   const boss = bonus.event?.key === "boss_dimanche" ? bonus.event : null;
   const bossClaimed = !!boss && mineToday.some((c) => c.bonus_key === boss.key);
@@ -34,7 +59,7 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
   return (
     <section className="mt-5">
       {/* Bandeau événement du jour : global, donc neutre, pas couleur joueur */}
-      {bonus.event && (
+      {bonus.event && eventLive && (
         <div className="mb-3 flex items-center gap-3 rounded-2xl bg-raised px-4 py-3">
           <span className="text-2xl" aria-hidden>
             {bonus.event.emoji}
@@ -123,7 +148,7 @@ function BonusSheet({
   onClaim,
   onUnclaim,
   onClose,
-}: Props & { bonus: BonusState; onClose: () => void }) {
+}: Omit<Props, "entry"> & { bonus: BonusState; onClose: () => void }) {
   // Échap pour fermer (desktop / clavier)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

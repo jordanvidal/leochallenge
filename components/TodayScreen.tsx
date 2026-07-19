@@ -233,6 +233,7 @@ export default function TodayScreen({
       {!over && (
         <BonusSection
           player={player}
+          entry={mine}
           bonus={bonus}
           onClaim={onClaimBonus}
           onUnclaim={onUnclaimBonus}
