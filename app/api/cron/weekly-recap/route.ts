@@ -1,18 +1,17 @@
 // Récap hebdo du lundi 10h (Paris) : la semaine écoulée, le gagnant,
-// la course qui repart. Pas de cron Vercel disponible (plan Hobby :
-// 2 max, déjà pris par les rappels) — déclenché par un cron externe
-// avec le même Bearer CRON_SECRET.
+// la course qui repart. Cron Vercel (vercel.json), doublé d'un filet
+// GitHub deux heures plus tard — c'est le seul de nos jobs planifiés
+// qui écrit de l'état, il ne doit pas passer à la trappe.
 //
 // Les duels vivent dans le même rendez-vous : résolution de la semaine
 // jouée + nouvel appariement, et leurs lignes s'embarquent dans le push
 // du récap. Si les duels échouent, le récap part quand même.
 //
-// Rejouable, push compris. Le cron GitHub arrive avec 1 à 3 heures de
-// retard et il est parfois avalé (le 20/07 il n'est jamais parti) : le
-// workflow tire donc deux fois le lundi. Le second appel voit que les
-// événements du feed existent déjà et se tait — sinon tout le monde
-// recevrait le récap en double, ce qui est arrivé le 20/07 sur le
-// tirage du jour, qui lui n'a pas cette garde.
+// Rejouable, push compris. Deux déclencheurs tirent le lundi : le second
+// voit que les événements du feed existent déjà et sort sans notifier.
+// Sans cette garde, le groupe recevrait le récap en double — c'est
+// arrivé le 20/07, quand le cron en retard s'est réveillé après un
+// rattrapage manuel. Elle rend aussi les rattrapages sûrs.
 
 import { NextResponse } from "next/server";
 import { runWeeklyDuels } from "@/lib/server/duels";

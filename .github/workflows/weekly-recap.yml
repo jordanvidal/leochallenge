@@ -1,23 +1,25 @@
-# Cron externe du récap hebdo : le plan Vercel Hobby plafonne à 2 crons,
-# déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
-# 08:00 UTC = 10h00 Paris pendant le challenge (13/07 → 31/08, CEST).
-# La route elle-même ne fait rien hors challenge ou le tout premier lundi.
+# Filet du récap hebdo. Le tir nominal est un cron Vercel (vercel.json,
+# lundi 08:00 UTC, précision ±59 min sur le plan Hobby). Ce workflow ne
+# fait que rattraper : il passe deux heures plus tard et ne trouve
+# normalement rien à faire.
 #
-# Deux tirs, parce qu'un seul ne suffit pas. Les crons GitHub sont
-# best-effort : mesurés sur ce repo, ils arrivent avec 50 min à 3h17 de
-# retard, et le 20/07 celui-ci n'est jamais parti — les duels de la S2
-# ont dû être lancés à la main. Le second tir rattrape ce trou.
+# Pourquoi un filet sur une autre plateforme. Le 20/07 ce job était le
+# déclencheur nominal, sur GitHub : il est parti avec 2h57 de retard, et
+# les duels de la S2 ont dû être lancés à la main. Mesurés sur ce repo,
+# les crons GitHub arrivent avec 50 min à 3h17 de retard. Deux tirs sur
+# GitHub tomberaient ensemble le jour où GitHub va mal — Vercel d'abord,
+# GitHub en secours, les deux ne se ratent pas en même temps.
 #
 # Le doublon ne coûte rien : la route détecte que les événements du feed
-# existent déjà et sort sans notifier personne. C'est ce qui rend ce
-# second tir possible — sans cette garde il enverrait un récap en double.
+# existent déjà et sort sans notifier personne. Sans cette garde, ce
+# filet enverrait un récap en double — c'est exactement ce qui est arrivé
+# le 20/07, deux fois dans la même matinée.
 
-name: Récap hebdo du lundi
+name: Récap hebdo du lundi (filet)
 
 on:
   schedule:
-    - cron: "0 8 * * 1" # lundi 08:00 UTC — le tir nominal
-    - cron: "30 10 * * 1" # lundi 10:30 UTC — le filet, no-op si le 1er a réussi
+    - cron: "30 10 * * 1" # lundi 10:30 UTC — 2h après le tir Vercel
   workflow_dispatch: {} # déclenchement manuel pour tester
 
 jobs:

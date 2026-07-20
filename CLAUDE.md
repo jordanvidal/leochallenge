@@ -19,7 +19,7 @@ PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jou
 ## Zones interdites sans accord explicite de Jordan
 
 - **`supabase/*.sql`** : ces migrations sont déjà appliquées en prod. On ne modifie jamais une migration existante. Une nouvelle migration, c'est possible, mais seulement après validation de Jordan — le schéma en prod contient les données réelles du groupe.
-- **`vercel.json` et `app/api/cron/`** : Vercel est limité à 2 crons, les autres tournent via GitHub Actions. Ne pas ajouter ni déplacer de cron.
+- **`vercel.json` et `app/api/cron/`** : ne pas ajouter ni déplacer de cron sans accord. Le plan Vercel Hobby autorise 100 crons par projet (pas 2, comme l'ont longtemps affirmé les commentaires de ce repo) ; ses vraies contraintes sont un déclenchement par jour maximum et une heure garantie à ±59 min près. La règle tient quand même : un cron de plus, c'est une notification de plus envoyée à six personnes, et ça se décide avec Jordan.
 - **L'auth des routes API** : les POST `/api/moments` et `/api/feed-notify` exigent le header `x-group-pass`. Ne jamais retirer ou contourner cette vérification.
 - **Secrets** : jamais de clé, mot de passe ou `.env*` dans un commit. Les variables d'env sont déjà configurées côté Vercel, tu n'en as pas besoin.
 
