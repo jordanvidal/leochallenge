@@ -38,8 +38,6 @@ export type BonusState = {
 export function humanBonusError(message: string): string {
   // Pas de chiffre en dur : les plafonds sont des lignes de catalogue et
   // s'affichent déjà en toutes lettres au-dessus de la rangée de puces.
-  if (message.includes("CAP_PALIER"))
-    return "Un seul palier par exo et par jour 🔒";
   if (message.includes("CAP_JOUR")) return "Plafond de bonus du jour atteint 🔒";
   if (message.includes("CAP_SEMAINE"))
     return "Plafond de bonus sur 7 jours atteint 🔒";
