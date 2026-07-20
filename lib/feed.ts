@@ -23,7 +23,8 @@ export type FeedKind =
   | "milestone"
   | "collectif"
   | "duel_start"
-  | "duel_result";
+  | "duel_result"
+  | "joker";
 
 export type FeedPayload = {
   day?: string;
@@ -127,6 +128,13 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
         ? { emoji: b.emoji, text: `décroche « ${b.label} » (${b.hint.toLowerCase()})` }
         : { emoji: "🏅", text: "décroche un badge" };
     }
+    case "joker":
+      // Le chiffre est celui d'AVANT la journée ratée : c'est ce qui
+      // était en jeu, donc ce qui a été sauvé. Il ne bouge plus ensuite.
+      return {
+        emoji: "🛟",
+        text: `a brûlé son joker — sa série de ${p.streak} jours tient`,
+      };
     case "record":
       return { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
     case "milestone":

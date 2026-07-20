@@ -25,6 +25,7 @@ type LbRow = { player_id: string; rank: number; points: number };
 type Snap = { player_id: string; rank: number };
 type BadgeRow = { player_id: string; badge: string };
 type StreakRow = { player_id: string; day: string; streak_pos: number };
+type JokerRow = { player_id: string; day: string };
 type EntryRow = {
   player_id: string;
   day: string;
@@ -34,7 +35,14 @@ type EntryRow = {
 };
 type FeedInsert = {
   player_id: string;
-  kind: "collectif" | "lead" | "co_lead" | "badge" | "record" | "milestone";
+  kind:
+    | "collectif"
+    | "lead"
+    | "co_lead"
+    | "badge"
+    | "record"
+    | "milestone"
+    | "joker";
   dedupe_key: string;
   payload: Record<string, unknown>;
 };
@@ -47,6 +55,9 @@ const KIND_PRIORITY: FeedInsert["kind"][] = [
   "collectif",
   "lead",
   "co_lead",
+  // Le joker passe devant milestone et record : il n'arrive qu'une fois
+  // par joueur sur tout le challenge, et c'est lui l'histoire du soir.
+  "joker",
   "milestone",
   "record",
   "badge",
@@ -88,6 +99,11 @@ function momentPhrase(
         ? { emoji: b.emoji, text: `décroche « ${b.label} »` }
         : { emoji: "🏅", text: "décroche un badge" };
     }
+    case "joker":
+      return {
+        emoji: "🛟",
+        text: `a brûlé son joker — sa série de ${payload.streak} jours tient`,
+      };
     case "record":
       return { emoji: "📈", text: `bat sa meilleure série : ${payload.streak} jours` };
     case "milestone":
@@ -102,7 +118,11 @@ const OVERTAKE_WINDOW_MS = 4 * 60 * 60 * 1000;
 /** 📈 records et ⚡ milestones, dérivés des streak_pos de daily_points.
     Un seul record par série (dedupe = jour de départ de la série) :
     battre son record de 1 chaque matin ne spamme pas le fil. */
-function streakMoments(rows: StreakRow[], today: string): FeedInsert[] {
+function streakMoments(
+  rows: StreakRow[],
+  jokerDays: Map<string, string>,
+  today: string,
+): FeedInsert[] {
   const byPlayer = new Map<string, StreakRow[]>();
   for (const r of rows) {
     byPlayer.set(r.player_id, [...(byPlayer.get(r.player_id) ?? []), r]);
@@ -112,12 +132,37 @@ function streakMoments(rows: StreakRow[], today: string): FeedInsert[] {
   for (const [playerId, days] of byPlayer) {
     days.sort((a, b) => (a.day < b.day ? -1 : 1));
     const last = days[days.length - 1];
+
+    // 🛟 Le joker brûlé : annoncé une fois, dès qu'il existe. Le chiffre
+    // gelé dans le payload est la série de la VEILLE du trou — ce qui
+    // était en jeu. Dédup par jour du joker : un seul par challenge.
+    const jokerDay = jokerDays.get(playerId);
+    if (jokerDay) {
+      const before = days.find((d) => d.day === addDays(jokerDay, -1));
+      if (before) {
+        out.push({
+          player_id: playerId,
+          kind: "joker",
+          dedupe_key: jokerDay,
+          payload: { streak: Number(before.streak_pos), day: jokerDay },
+        });
+      }
+    }
+
     // Série en cours seulement : dernier jour parfait = aujourd'hui ou hier
     // (même convention que current_streak dans leaderboard()).
     if (last.day < addDays(today, -1)) continue;
 
     const streak = Number(last.streak_pos);
-    const islandStart = addDays(last.day, -(streak - 1));
+    // Le jour joker occupe une case du calendrier sans compter dans
+    // streak_pos : l'île commence donc un jour plus tôt que la longueur
+    // de la série ne le laisse croire. Sans ce rattrapage, le dedupe_key
+    // des records glisse d'un jour le soir où le joker est brûlé, et le
+    // fil réannonce le même record sous une nouvelle clé.
+    let islandStart = addDays(last.day, -(streak - 1));
+    if (jokerDay && jokerDay < last.day && jokerDay >= addDays(islandStart, -1)) {
+      islandStart = addDays(islandStart, -1);
+    }
     // Meilleure série AVANT celle en cours (0 si première série).
     const best = days
       .filter((d) => d.day < islandStart)
@@ -159,8 +204,16 @@ export async function POST(request: Request) {
 
   const supabase = serverSupabase();
   const today = parisToday();
-  const [lb, snaps, players, badges, streaks, todayEntries, collectifCat] =
-    await Promise.all([
+  const [
+    lb,
+    snaps,
+    players,
+    badges,
+    streaks,
+    jokers,
+    todayEntries,
+    collectifCat,
+  ] = await Promise.all([
       supabase.rpc("leaderboard"),
       supabase.from("rank_snapshots").select("player_id, rank"),
       supabase.from("players").select("id, name"),
@@ -169,6 +222,10 @@ export async function POST(request: Request) {
         .from("daily_points")
         .select("player_id, day, streak_pos")
         .gt("streak_pos", 0),
+      supabase
+        .from("daily_points")
+        .select("player_id, day")
+        .eq("jokered", true),
       supabase
         .from("entries")
         .select("player_id, day, pushups, abs, squats")
@@ -187,6 +244,10 @@ export async function POST(request: Request) {
     badges.error ||
     streaks.error ||
     todayEntries.error
+    // jokers.error volontairement absent : cette route porte aussi les
+    // records, les milestones, le jour parfait collectif et les push de
+    // dépassement. Perdre l'annonce d'un joker vaut infiniment mieux que
+    // faire tomber tout le reste en 500. On dégrade, on ne casse pas.
   ) {
     return NextResponse.json({ error: "lecture échouée" }, { status: 500 });
   }
@@ -315,7 +376,15 @@ export async function POST(request: Request) {
   }
 
   // 📈⚡ Records et milestones de série.
-  moments.push(...streakMoments(streaks.data as StreakRow[], today));
+  // Les jours joker ont un streak_pos nul : ils sont hors de la requête
+  // `streaks` ci-dessus, d'où cette lecture séparée. Au plus une ligne
+  // par joueur — un seul joker pour tout le challenge.
+  const jokerDays = new Map(
+    ((jokers.data ?? []) as JokerRow[]).map((j) => [j.player_id, j.day]),
+  );
+  moments.push(
+    ...streakMoments(streaks.data as StreakRow[], jokerDays, today),
+  );
 
   // 🗞️ L'upsert en ignoreDuplicates ne rend que les lignes vraiment
   // insérées : la dédup en base garantit qu'un moment ne part qu'une
