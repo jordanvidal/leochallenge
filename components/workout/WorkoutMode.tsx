@@ -26,7 +26,9 @@ type Props = {
   todayEntry: Entry | undefined;
   /** Écrit les exos validés par le chemin existant. Résout après l'upsert. */
   onValidate: (exos: Exercise[]) => Promise<boolean>;
-  onShare: () => void;
+  /** Série serveur du joueur. Monte quand rescore() a rechargé le classement,
+      c'est ce changement qui déclenche l'animation sur l'écran de fin. */
+  streak: number;
   onClose: () => void;
   showToast: (msg: string) => void;
 };
@@ -35,7 +37,7 @@ export default function WorkoutMode({
   player,
   todayEntry,
   onValidate,
-  onShare,
+  streak,
   onClose,
   showToast,
 }: Props) {
@@ -93,8 +95,11 @@ export default function WorkoutMode({
         durationSeconds={w.displayDuration}
         official={w.serverDuration !== null}
         exosDone={entryCount(todayEntry)}
+        missing={EXERCISES.filter(({ key }) => !todayEntry?.[key]).map(
+          (e) => e.key,
+        )}
+        streak={streak}
         breakdown={breakdown}
-        onShare={onShare}
         onClose={() => {
           w.reset();
           onClose();
