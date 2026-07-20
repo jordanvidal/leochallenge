@@ -2,7 +2,10 @@
 
 // "Rattrape ton historique" — une seule fois, juste après l'inscription.
 // Quelques jours à cocher, un raccourci "tout parfait", puis verrouillage.
-// Si l'utilisateur ferme sans valider, l'écran revient (48h max).
+//
+// ÉCRAN DORMANT : backfillDays() renvoie [] depuis la migration 9, donc
+// App.tsx ne monte jamais ce composant. Conservé tel quel au cas où le
+// rattrapage rouvrirait — à supprimer si la décision se confirme.
 
 import { useState } from "react";
 import { backfillDays, frenchDateShort } from "@/lib/challenge";
@@ -76,7 +79,7 @@ export default function BackfillScreen({
           {locking ? "…" : "C'est bon, je verrouille"}
         </BigButton>
         <p className="mt-2 text-center text-xs text-faint">
-          Définitif. Ensuite, fenêtre d&apos;édition de 48h.
+          Définitif. Ensuite, on ne coche plus que le jour même.
         </p>
       </div>
     </main>

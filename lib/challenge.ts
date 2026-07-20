@@ -104,7 +104,8 @@ export function editableFrom(): string {
   return addDays(parisToday(), -EDIT_WINDOW_DAYS);
 }
 
-/** Un jour est-il éditable en régime normal ? (fenêtre 48h, pas de futur) */
+/** Un jour est-il éditable ? Avec EDIT_WINDOW_DAYS = 0 : le jour même, et
+    rien d'autre — ni la veille, ni le futur, ni après la fin du challenge. */
 export function isEditable(day: string): boolean {
   const today = parisToday();
   return day >= editableFrom() && day <= today && day <= CHALLENGE_END;
@@ -160,11 +161,12 @@ export function bilanProvisoire(): boolean {
   return isEditable(CHALLENGE_END);
 }
 
-/** Heures restantes avant le verrouillage définitif (fin de la fenêtre 48h sur
-    le 31/08), pour le bandeau provisoire. Basé sur l'horloge réelle ; en
-    simulation de date, part de minuit du jour simulé. */
+/** Heures restantes avant le verrouillage définitif du dernier jour, pour le
+    bandeau provisoire. Basé sur l'horloge réelle ; en simulation de date,
+    part de minuit du jour simulé. */
 export function hoursUntilFinalLock(): number {
-  // Le 31/08 sort de la fenêtre 48h à minuit (Paris) le 3 septembre.
+  // Avec EDIT_WINDOW_DAYS = 0, le dernier jour se verrouille à minuit (Paris)
+  // le lendemain. La formule suit la constante si elle rouvre un jour.
   const lockDay = addDays(CHALLENGE_END, EDIT_WINDOW_DAYS + 1);
   // +02:00 = CEST. Vrai pour un challenge qui finit entre avril et octobre.
   // Une bande qui jouerait l'hiver verrait ce compteur décalé d'une heure —
@@ -175,7 +177,9 @@ export function hoursUntilFinalLock(): number {
   return Math.max(0, Math.ceil((deadline - now) / 3_600_000));
 }
 
-/** Le rattrapage initial d'un joueur est-il encore ouvert ? (48h max) */
+/** Le rattrapage initial d'un joueur est-il encore ouvert ? (48h après
+    l'inscription). Dormant : backfillDays() renvoyant [], App.tsx referme
+    l'onboarding aussitôt. Gardé pour le jour où le rattrapage rouvrirait. */
 export function backfillOpen(p: {
   created_at: string;
   backfill_closed_at: string | null;

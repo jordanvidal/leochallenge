@@ -1,7 +1,7 @@
 "use client";
 
 // Feuille d'édition d'un jour depuis l'historique : les 3 exos, rien d'autre.
-// Uniquement sa propre colonne, uniquement dans la fenêtre des 48h.
+// Uniquement sa propre colonne, uniquement le jour en cours.
 
 import { useEffect } from "react";
 import { frenchDate } from "@/lib/challenge";

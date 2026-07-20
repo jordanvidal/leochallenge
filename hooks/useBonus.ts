@@ -2,7 +2,9 @@
 
 // État bonus : catalogue, événement du jour, déclarations.
 // Écritures optimistes comme les coches : l'écran d'abord,
-// rollback + toast si la base dit non (plafonds, fenêtre 48h).
+// rollback + toast si la base dit non (bonus inconnu, boss inactif,
+// doublon). On ne déclare que parisToday() : les gardes de date du
+// trigger ne se déclenchent jamais depuis l'appli.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
