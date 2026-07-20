@@ -120,6 +120,10 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
                     events={block.events}
                     me={player}
                     byId={byId}
+                    reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
+                    comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
+                    onToggleReaction={feed.toggleReaction}
+                    onAddComment={feed.addComment}
                     onGoLeaderboard={onGoLeaderboard}
                   />
                 ) : (

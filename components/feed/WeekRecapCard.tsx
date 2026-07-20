@@ -16,14 +16,19 @@
 import { useEffect, useState } from "react";
 import { addDays, challengeWeeks, mondayOf } from "@/lib/challenge";
 import { fetchWeekLeaderboard, fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
-import { FeedEvent } from "@/lib/feed";
+import { FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
+import Interactions from "./Interactions";
 
 type Props = {
   events: FeedEvent[]; // les duel_start / duel_result d'un même lundi
   me: Player;
   byId: Map<string, Player>;
+  reactions: FeedReaction[];
+  comments: FeedComment[];
+  onToggleReaction: (event: FeedEvent, emoji: string) => void;
+  onAddComment: (event: FeedEvent, body: string) => void;
   onGoLeaderboard: () => void;
 };
 
@@ -48,7 +53,16 @@ function Name({ p, me }: { p: Player; me: Player }) {
   );
 }
 
-export default function WeekRecapCard({ events, me, byId, onGoLeaderboard }: Props) {
+export default function WeekRecapCard({
+  events,
+  me,
+  byId,
+  reactions,
+  comments,
+  onToggleReaction,
+  onAddComment,
+  onGoLeaderboard,
+}: Props) {
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
 
@@ -128,7 +142,7 @@ export default function WeekRecapCard({ events, me, byId, onGoLeaderboard }: Pro
 
   return (
     <li
-      className="rounded-2xl px-4 py-4"
+      className="flex flex-col rounded-2xl px-4 py-4"
       style={{ background: "var(--color-raised)" }}
       aria-label="Bilan de la semaine"
     >
@@ -213,11 +227,30 @@ export default function WeekRecapCard({ events, me, byId, onGoLeaderboard }: Pro
 
       <button
         onClick={onGoLeaderboard}
-        className="mt-3 min-h-11 text-sm font-bold"
+        className="mt-3 min-h-11 self-start text-sm font-bold"
         style={{ color: "var(--pc)" }}
       >
         Voir les scores en direct →
       </button>
+
+      {/* Le bilan fait parler : on réagit et on commente dessus comme sur
+          n'importe quel moment. Le filet le sépare du contenu figé —
+          au-dessus ce qui s'est passé, en dessous ce qu'on en dit. */}
+      <div
+        className="mt-2 border-t pt-1"
+        style={{ borderColor: "color-mix(in oklch, var(--color-faint) 25%, transparent)" }}
+      >
+        <Interactions
+          events={events}
+          me={me}
+          byId={byId}
+          reactions={reactions}
+          comments={comments}
+          onToggleReaction={onToggleReaction}
+          onAddComment={onAddComment}
+          pillBg="var(--color-surface)"
+        />
+      </div>
     </li>
   );
 }
