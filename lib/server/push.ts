@@ -82,6 +82,31 @@ function configureVapid() {
 }
 
 /**
+ * Une preview Vercel partage TOUT avec la prod : même Supabase, mêmes
+ * clés VAPID, mêmes souscriptions. Tester un bonus sur une URL de
+ * preview réveillait donc six personnes pour de vrai. Une carte de fil
+ * fausse se supprime, une notification partie à 23h ne se rattrape pas.
+ *
+ * On n'autorise l'envoi que depuis la production. Deux garde-fous, dans
+ * cet ordre volontaire :
+ *
+ *  1. VERCEL_ENV vaut « preview » ou « development » → muet. C'est le
+ *     cas qui pose problème aujourd'hui.
+ *  2. VERCEL_ENV absent (hors Vercel : machine locale, test) → muet
+ *     sauf si NODE_ENV vaut « production ».
+ *
+ * Écrit comme ça, la prod ne peut pas devenir muette par accident : elle
+ * a NODE_ENV=production même si les variables système de Vercel n'étaient
+ * pas exposées. Le pire cas est un envoi de trop depuis un build de prod,
+ * jamais un silence total — l'inverse serait invisible pendant des jours.
+ */
+function pushAutorise(): boolean {
+  const vercel = process.env.VERCEL_ENV;
+  if (vercel) return vercel === "production";
+  return process.env.NODE_ENV === "production";
+}
+
+/**
  * Envoie une notification aux joueurs donnés (toutes leurs subscriptions).
  * Retourne le nombre d'envois réussis.
  */
@@ -90,6 +115,16 @@ export async function sendToPlayers(
   payload: { title: string; body: string },
 ): Promise<number> {
   if (playerIds.length === 0) return 0;
+  if (!pushAutorise()) {
+    // Bruyant exprès : sur une preview on veut LIRE ce qui serait parti,
+    // c'est tout l'intérêt du test. Muet, on croirait que rien ne marche.
+    console.warn(
+      `[push] env=${process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "?"} ` +
+        `— envoi bloqué hors production. ${playerIds.length} destinataire(s) ` +
+        `auraient reçu : « ${payload.title} — ${payload.body} »`,
+    );
+    return 0;
+  }
   configureVapid();
   const supabase = serverSupabase();
 
