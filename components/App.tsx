@@ -294,6 +294,12 @@ export default function App() {
     );
   }
 
+  // Série serveur du joueur : la même valeur que celle de la ligne de
+  // statut, pour que l'écran de fin de séance ne raconte pas autre chose.
+  const myStreak =
+    gamification?.total.find((r) => r.player_id === player.id)
+      ?.current_streak ?? 0;
+
   // Mode séance guidée : plein écran, par-dessus tabs et contenu.
   if (workoutOpen) {
     return (
@@ -302,7 +308,7 @@ export default function App() {
           player={player}
           todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
           onValidate={validateWorkout}
-          onShare={shareWeek}
+          streak={myStreak}
           onClose={() => setWorkoutOpen(false)}
           showToast={data.showToast}
         />
