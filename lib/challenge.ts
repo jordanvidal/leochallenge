@@ -136,12 +136,6 @@ export function elapsedDays(): string[] {
   return days;
 }
 
-/** Rattrapage désactivé : on ne déclare ses exos que le jour en cours.
-    Renvoyer une liste vide referme automatiquement l'onboarding (App.tsx). */
-export function backfillDays(): string[] {
-  return [];
-}
-
 /** Tous les jours du challenge, du début à la fin, dans l'ordre chronologique. */
 export function allChallengeDays(): string[] {
   const days: string[] = [];
@@ -175,18 +169,6 @@ export function hoursUntilFinalLock(): number {
   const sim = simulatedToday();
   const now = sim ? new Date(`${sim}T00:00:00+02:00`).getTime() : Date.now();
   return Math.max(0, Math.ceil((deadline - now) / 3_600_000));
-}
-
-/** Le rattrapage initial d'un joueur est-il encore ouvert ? (48h après
-    l'inscription). Dormant : backfillDays() renvoyant [], App.tsx referme
-    l'onboarding aussitôt. Gardé pour le jour où le rattrapage rouvrirait. */
-export function backfillOpen(p: {
-  created_at: string;
-  backfill_closed_at: string | null;
-}): boolean {
-  if (p.backfill_closed_at !== null) return false;
-  const deadline = new Date(p.created_at).getTime() + 48 * 3600 * 1000;
-  return Date.now() < deadline;
 }
 
 // ---- Libellés français ----

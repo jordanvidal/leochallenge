@@ -30,7 +30,8 @@ type Props = {
 const GOLD = "oklch(0.82 0.15 85)"; // la couleur du groupe : ni un joueur, ni neutre
 const frNum = (n: number) => n.toLocaleString("fr-FR");
 
-/** Bandeau provisoire (1-2 sept.) ou définitif (dès le 3). */
+/** Bandeau provisoire le dernier jour, définitif dès le lendemain : seul le
+    jour en cours reste éditable (EDIT_WINDOW_DAYS = 0). */
 function Banner({ onGoHistory }: { onGoHistory: () => void }) {
   if (!bilanProvisoire()) {
     return (
@@ -47,7 +48,8 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
         Scores provisoires
       </p>
       <p className="mt-1 text-muted">
-        Il reste {h} h pour rattraper les 30 et 31 août.
+        Il reste {h} h pour compléter le {frenchDayMonth(CHALLENGE_END)}. Les
+        jours d&apos;avant sont verrouillés.
       </p>
       <button
         onClick={onGoHistory}

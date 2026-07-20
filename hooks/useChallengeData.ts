@@ -182,33 +182,6 @@ export function useChallengeData() {
     [entries, showToast],
   );
 
-  /** Upsert en masse pour le raccourci "tout parfait" du rattrapage. */
-  const markAllPerfect = useCallback(
-    async (playerId: string, days: string[]) => {
-      const rows: Entry[] = days.map((day) => ({
-        player_id: playerId,
-        day,
-        pushups: true,
-        abs: true,
-        squats: true,
-      }));
-      const beforeMap = entries;
-      setEntries((prev) => {
-        const map = new Map(prev);
-        for (const row of rows) map.set(entryKey(playerId, row.day), row);
-        return map;
-      });
-      const { error } = await supabase
-        .from("entries")
-        .upsert(rows, { onConflict: "player_id,day" });
-      if (error) {
-        setEntries(beforeMap);
-        showToast(humanError(error.message));
-      }
-    },
-    [entries, showToast],
-  );
-
   /** Création d'un joueur, doublons gérés (cache vidé, retour au bercail). */
   const createPlayer = useCallback(
     async (rawName: string): Promise<CreateResult> => {
@@ -259,28 +232,6 @@ export function useChallengeData() {
     [showToast],
   );
 
-  /** Verrouille le rattrapage initial. Irréversible (trigger en base). */
-  const closeBackfill = useCallback(
-    async (playerId: string) => {
-      const closedAt = new Date().toISOString();
-      const { error } = await supabase
-        .from("players")
-        .update({ backfill_closed_at: closedAt })
-        .eq("id", playerId);
-      if (error) {
-        showToast(humanError(error.message));
-        return false;
-      }
-      setPlayers((prev) =>
-        (prev ?? []).map((p) =>
-          p.id === playerId ? { ...p, backfill_closed_at: closedAt } : p,
-        ),
-      );
-      return true;
-    },
-    [showToast],
-  );
-
   return {
     players,
     entries,
@@ -291,10 +242,8 @@ export function useChallengeData() {
     refresh,
     toggleExercise,
     setExercisesDone,
-    markAllPerfect,
     createPlayer,
     deletePlayer,
-    closeBackfill,
   };
 }
 
