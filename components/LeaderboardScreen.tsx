@@ -12,6 +12,7 @@ import {
   challengeWeeks,
   diffDays,
   elapsedDays,
+  frenchDayMonth,
   parisToday,
 } from "@/lib/challenge";
 import {
@@ -271,6 +272,22 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
                         {!isPastWeek && r.current_streak > 0
                           ? `🔥 ${r.current_streak} · `
                           : ""}
+                        {/* Le joker : visible d'avance, sinon la règle passe
+                            pour de la triche le jour où elle sauve quelqu'un.
+                            Muet tant que la migration 24 n'est pas en prod
+                            (joker_day absent ⇒ undefined ⇒ rien). */}
+                        {!isPastWeek && r.joker_day !== undefined && (
+                          <span
+                            className={r.joker_day ? "opacity-35" : undefined}
+                            title={
+                              r.joker_day
+                                ? `Joker brûlé le ${frenchDayMonth(r.joker_day)}`
+                                : "Joker de série disponible"
+                            }
+                          >
+                            🛡️{" · "}
+                          </span>
+                        )}
                         {completion}% de complétion
                         {r.bonus_points > 0
                           ? ` · dont ${fmtPoints(r.bonus_points)} pts bonus`

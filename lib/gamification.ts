@@ -14,6 +14,10 @@ export type LeaderboardRow = {
   exos_done: number;
   current_streak: number;
   bonus_points: number; // "dont X pts bonus", déjà inclus dans points
+  /** Jour où le joker de série a été brûlé, null s'il est encore intact.
+      Optionnel tant que la migration 24 n'est pas appliquée en prod : la
+      RPC ne renvoie pas encore la colonne, le marqueur reste muet. */
+  joker_day?: string | null;
 };
 
 export type Gamification = {
