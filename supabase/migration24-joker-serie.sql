@@ -360,13 +360,17 @@ select
   pm.exos,
   pm.perfect,
   pm.streak_pos,
-  pm.jokered,
   pm.multiplier,
   pm.base_pts + pm.execution_bonus + pm.event_bonus + pm.claim_bonus + pm.quitte_bonus
     + coalesce(x.pts, 0) as points,
   pm.base_pts as base_points,
   pm.execution_bonus + pm.event_bonus + pm.claim_bonus + pm.quitte_bonus
-    + coalesce(x.pts, 0) as bonus_points
+    + coalesce(x.pts, 0) as bonus_points,
+  -- jokered EN DERNIER, obligatoirement : « create or replace view » sait
+  -- ajouter une colonne en fin de liste, jamais en insérer une au milieu
+  -- (42P16). L'insérer entre streak_pos et multiplier reviendrait à
+  -- renommer les colonnes suivantes, et Postgres refuse.
+  pm.jokered
 from premirror pm
 left join extras_by_day x on x.player_id = pm.player_id and x.day = pm.day
 union all
@@ -378,11 +382,11 @@ select
   0 as exos,
   false as perfect,
   0 as streak_pos,
-  false as jokered,
   1.0 as multiplier,
   x.pts as points,
   0 as base_points,
-  x.pts as bonus_points
+  x.pts as bonus_points,
+  false as jokered
 from extras_by_day x
 where not exists (
   select 1 from premirror pm
@@ -468,3 +472,9 @@ as $$
   left join last_kept lk on lk.player_id = p.id
   left join joker_used ju on ju.player_id = p.id
 $$;
+
+-- Le drop ci-dessus emporte les droits de l'ancienne fonction. Postgres
+-- redonne EXECUTE à PUBLIC par défaut, donc l'app remarcherait de toute
+-- façon — mais on ne fait pas dépendre six comptes d'un défaut implicite.
+grant execute on function public.leaderboard(date, date)
+  to anon, authenticated, service_role;
