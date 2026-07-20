@@ -25,7 +25,6 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
   const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
   const minePtsToday = mineToday.reduce((sum, c) => sum + c.points, 0);
   const emojiByKey = new Map(bonus.catalog.map((c) => [c.key, c.emoji]));
-  const weekUsed = weekBonusPoints(bonus, player.id);
 
   // Le boss du dimanche se déclare directement dans son bandeau.
   const boss = bonus.event?.key === "boss_dimanche" ? bonus.event : null;
@@ -85,7 +84,7 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
         className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-surface px-4 text-left"
       >
         <span className="text-[15px] font-bold">＋ Déclarer un bonus</span>
-        {mineToday.length > 0 ? (
+        {mineToday.length > 0 && (
           <span className="shrink-0 text-sm font-medium">
             <span aria-hidden>
               {mineToday.map((c) => emojiByKey.get(c.bonus_key) ?? "").join(" ")}
@@ -93,10 +92,6 @@ export default function BonusSection({ player, bonus, onClaim, onUnclaim }: Prop
             <span style={{ color: player.color }}>
               +{fmtPoints(minePtsToday)}
             </span>
-          </span>
-        ) : (
-          <span className="shrink-0 text-sm text-faint">
-            {fmtPoints(weekUsed)} pts / 7 j
           </span>
         )}
       </button>
@@ -172,13 +167,18 @@ function BonusSheet({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" aria-hidden />
         <div className="mb-3 flex items-baseline justify-between">
           <p className="text-lg font-bold">Déclarer un bonus</p>
-          <span className="text-[11px] font-medium text-faint">
-            {/* cap jour >= 99, cap semaine >= 999 = limites levées (S2) :
-                on garde le total déclaré comme repère, sans plafond affiché */}
-            {capDay < 99 && `${mineCount}/${capDay} aujourd'hui · `}
-            {fmtPoints(weekUsed)}
-            {capWeek < 999 && `/${fmtPoints(capWeek)}`} pts / 7 j
-          </span>
+          {/* Les plafonds sont levés en S2 (cap jour >= 99, cap semaine >= 999) :
+              plus rien à afficher. Un total sans plafond ne guide aucune
+              décision — il se lisait comme une jauge et semait le doute. Le
+              compteur ne revient que si un plafond revient. */}
+          {(capDay < 99 || capWeek < 999) && (
+            <span className="text-[11px] font-medium text-faint">
+              {capDay < 99 && `${mineCount}/${capDay} aujourd'hui`}
+              {capDay < 99 && capWeek < 999 && " · "}
+              {capWeek < 999 &&
+                `${fmtPoints(weekUsed)}/${fmtPoints(capWeek)} pts / 7 j`}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap content-start gap-2 overflow-y-auto pb-1">
