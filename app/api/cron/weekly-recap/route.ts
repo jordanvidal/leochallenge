@@ -6,6 +6,13 @@
 // Les duels vivent dans le même rendez-vous : résolution de la semaine
 // jouée + nouvel appariement, et leurs lignes s'embarquent dans le push
 // du récap. Si les duels échouent, le récap part quand même.
+//
+// Rejouable, push compris. Le cron GitHub arrive avec 1 à 3 heures de
+// retard et il est parfois avalé (le 20/07 il n'est jamais parti) : le
+// workflow tire donc deux fois le lundi. Le second appel voit que les
+// événements du feed existent déjà et se tait — sinon tout le monde
+// recevrait le récap en double, ce qui est arrivé le 20/07 sur le
+// tirage du jour, qui lui n'a pas cette garde.
 
 import { NextResponse } from "next/server";
 import { runWeeklyDuels } from "@/lib/server/duels";
@@ -26,6 +33,19 @@ export async function GET(request: Request) {
     duels = await runWeeklyDuels();
   } catch (e) {
     duelsError = (e as Error).message;
+  }
+
+  // Rejeu détecté : la base a déjà tout, il ne reste qu'à ne réveiller
+  // personne. On sort avant les deux envois (récap et win-back).
+  if (duels?.alreadyRan) {
+    return NextResponse.json({
+      replayed: true,
+      duels: {
+        resolved: duels.resolved,
+        created: duels.created,
+        feedInserted: duels.feedInserted,
+      },
+    });
   }
 
   // Win-back des décrochés, isolé comme les duels : s'il échoue, le récap

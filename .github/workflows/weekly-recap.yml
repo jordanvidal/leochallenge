@@ -2,12 +2,22 @@
 # déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
 # 08:00 UTC = 10h00 Paris pendant le challenge (13/07 → 31/08, CEST).
 # La route elle-même ne fait rien hors challenge ou le tout premier lundi.
+#
+# Deux tirs, parce qu'un seul ne suffit pas. Les crons GitHub sont
+# best-effort : mesurés sur ce repo, ils arrivent avec 50 min à 3h17 de
+# retard, et le 20/07 celui-ci n'est jamais parti — les duels de la S2
+# ont dû être lancés à la main. Le second tir rattrape ce trou.
+#
+# Le doublon ne coûte rien : la route détecte que les événements du feed
+# existent déjà et sort sans notifier personne. C'est ce qui rend ce
+# second tir possible — sans cette garde il enverrait un récap en double.
 
 name: Récap hebdo du lundi
 
 on:
   schedule:
-    - cron: "0 8 * * 1" # lundi 08:00 UTC
+    - cron: "0 8 * * 1" # lundi 08:00 UTC — le tir nominal
+    - cron: "30 10 * * 1" # lundi 10:30 UTC — le filet, no-op si le 1er a réussi
   workflow_dispatch: {} # déclenchement manuel pour tester
 
 jobs:
