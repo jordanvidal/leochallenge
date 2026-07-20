@@ -137,18 +137,11 @@ function BonusSheet({
   const weekUsed = weekBonusPoints(bonus, player.id);
   const items = claimables(bonus);
 
-  // Échelles déjà entamées aujourd'hui : avoir coché « +50 pompes » ferme
-  // « +100 pompes », sinon les 50 premières seraient payées deux fois.
-  const myLadders = new Set(
-    mineToday
-      .map((c) => bonus.catalog.find((i) => i.key === c.bonus_key)?.ladder)
-      .filter((l): l is string => !!l),
-  );
-
-  /** Une puce est déclarable si l'échelle est libre et les plafonds le permettent. */
+  /** Une puce est déclarable tant que les plafonds le permettent. Les
+      paliers d'une même échelle se cumulent depuis la migration 22 :
+      +50 pompes et +100 pompes cochés, c'est 150 pompes déclarées. */
   function blocked(item: BonusCatalogItem): boolean {
     if (item.kind !== "exercise") return false; // le boss échappe aux plafonds
-    if (item.ladder && myLadders.has(item.ladder)) return true;
     return mineCount >= capDay || weekUsed + item.points > capWeek;
   }
 
