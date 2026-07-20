@@ -1,5 +1,7 @@
-# Clôture hebdo du dimanche soir : le plan Vercel Hobby plafonne à 2 crons,
-# déjà pris par les rappels 20h/22h30. GitHub Actions joue le déclencheur.
+# Clôture hebdo du dimanche soir, déclenché par GitHub Actions. Pourrait
+# passer en cron Vercel (le plafond Hobby est de 100 crons, pas 2 comme on
+# l'a longtemps cru ici), mais ce job n'écrit aucun état : s'il saute,
+# rien ne casse. Attention s'il migre : la route ne déduplique pas ses push.
 # 19:00 UTC = 21h00 Paris pendant le challenge (13/07 → 31/08, CEST).
 # La route se protège elle-même : hors challenge ou hors dimanche, no-op.
 

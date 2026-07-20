@@ -1,6 +1,8 @@
 // Tirage + annonce de 9h (Paris) : le serveur tire l'événement du jour et
 // prévient tout le monde s'il y en a un. Déclenché par GitHub Actions
-// (07:00 UTC l'été ; le plan Vercel Hobby ne laisse que 2 crons, déjà pris).
+// (07:00 UTC l'été). Pourrait passer en cron Vercel — le plafond Hobby
+// est de 100 crons, pas 2 comme on l'a longtemps cru ici — mais ce job
+// n'écrit aucun état : en retard il est dégradé, jamais cassé.
 
 import { NextResponse } from "next/server";
 import { notifyDailyEvent } from "@/lib/server/daily-event";

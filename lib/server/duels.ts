@@ -57,10 +57,20 @@ export async function runWeeklyDuels(): Promise<{
   resolved: number;
   created: number;
   feedInserted: number;
+  /** Le job avait déjà tourné ce lundi : tous les événements du feed
+      existaient déjà. Sert de garde anti-doublon au push du récap —
+      voir le commentaire sur le calcul, plus bas. */
+  alreadyRan: boolean;
   lines: DuelLines;
 }> {
   const today = parisToday();
-  const none = { resolved: 0, created: 0, feedInserted: 0, lines: new Map() };
+  const none = {
+    resolved: 0,
+    created: 0,
+    feedInserted: 0,
+    alreadyRan: false,
+    lines: new Map(),
+  };
   if (today > CHALLENGE_END) return { skipped: "challenge terminé", ...none };
   // Le workflow a un déclencheur manuel : hors lundi, on ne touche à rien.
   if (weekdayIndex(today) !== 0) return { skipped: "pas lundi", ...none };
@@ -209,7 +219,18 @@ export async function runWeeklyDuels(): Promise<{
     feedInserted = data?.length ?? 0;
   }
 
-  return { resolved, created, feedInserted, lines };
+  // La contrainte (player_id, kind, dedupe_key) fait office de registre :
+  // si on avait des événements à écrire et que la base n'en a accepté
+  // aucun, c'est que le job a déjà tourné ce lundi. Aucune table, aucune
+  // colonne en plus — la déduplication qui existait déjà nous le dit.
+  //
+  // Zone d'ombre assumée : sans aucun événement à écrire (moins de deux
+  // actifs, ou dernier lundi du challenge sans résultat à résoudre) le
+  // signal est muet et on retombe sur l'ancien comportement — le récap
+  // repart. Le cas ne se produit pas tant que le groupe joue.
+  const alreadyRan = events.length > 0 && feedInserted === 0;
+
+  return { resolved, created, feedInserted, alreadyRan, lines };
 }
 
 /** Apparie la semaine `monday` : rangs voisins parmi les actifs, exempt

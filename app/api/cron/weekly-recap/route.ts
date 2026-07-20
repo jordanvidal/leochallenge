@@ -1,11 +1,17 @@
 // Récap hebdo du lundi 10h (Paris) : la semaine écoulée, le gagnant,
-// la course qui repart. Pas de cron Vercel disponible (plan Hobby :
-// 2 max, déjà pris par les rappels) — déclenché par un cron externe
-// avec le même Bearer CRON_SECRET.
+// la course qui repart. Cron Vercel (vercel.json), doublé d'un filet
+// GitHub deux heures plus tard — c'est le seul de nos jobs planifiés
+// qui écrit de l'état, il ne doit pas passer à la trappe.
 //
 // Les duels vivent dans le même rendez-vous : résolution de la semaine
 // jouée + nouvel appariement, et leurs lignes s'embarquent dans le push
 // du récap. Si les duels échouent, le récap part quand même.
+//
+// Rejouable, push compris. Deux déclencheurs tirent le lundi : le second
+// voit que les événements du feed existent déjà et sort sans notifier.
+// Sans cette garde, le groupe recevrait le récap en double — c'est
+// arrivé le 20/07, quand le cron en retard s'est réveillé après un
+// rattrapage manuel. Elle rend aussi les rattrapages sûrs.
 
 import { NextResponse } from "next/server";
 import { runWeeklyDuels } from "@/lib/server/duels";
@@ -26,6 +32,19 @@ export async function GET(request: Request) {
     duels = await runWeeklyDuels();
   } catch (e) {
     duelsError = (e as Error).message;
+  }
+
+  // Rejeu détecté : la base a déjà tout, il ne reste qu'à ne réveiller
+  // personne. On sort avant les deux envois (récap et win-back).
+  if (duels?.alreadyRan) {
+    return NextResponse.json({
+      replayed: true,
+      duels: {
+        resolved: duels.resolved,
+        created: duels.created,
+        feedInserted: duels.feedInserted,
+      },
+    });
   }
 
   // Win-back des décrochés, isolé comme les duels : s'il échoue, le récap
