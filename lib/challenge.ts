@@ -104,7 +104,8 @@ export function editableFrom(): string {
   return addDays(parisToday(), -EDIT_WINDOW_DAYS);
 }
 
-/** Un jour est-il éditable en régime normal ? (fenêtre 48h, pas de futur) */
+/** Un jour est-il éditable ? Avec EDIT_WINDOW_DAYS = 0 : le jour même, et
+    rien d'autre — ni la veille, ni le futur, ni après la fin du challenge. */
 export function isEditable(day: string): boolean {
   const today = parisToday();
   return day >= editableFrom() && day <= today && day <= CHALLENGE_END;
@@ -135,12 +136,6 @@ export function elapsedDays(): string[] {
   return days;
 }
 
-/** Rattrapage désactivé : on ne déclare ses exos que le jour en cours.
-    Renvoyer une liste vide referme automatiquement l'onboarding (App.tsx). */
-export function backfillDays(): string[] {
-  return [];
-}
-
 /** Tous les jours du challenge, du début à la fin, dans l'ordre chronologique. */
 export function allChallengeDays(): string[] {
   const days: string[] = [];
@@ -160,11 +155,12 @@ export function bilanProvisoire(): boolean {
   return isEditable(CHALLENGE_END);
 }
 
-/** Heures restantes avant le verrouillage définitif (fin de la fenêtre 48h sur
-    le 31/08), pour le bandeau provisoire. Basé sur l'horloge réelle ; en
-    simulation de date, part de minuit du jour simulé. */
+/** Heures restantes avant le verrouillage définitif du dernier jour, pour le
+    bandeau provisoire. Basé sur l'horloge réelle ; en simulation de date,
+    part de minuit du jour simulé. */
 export function hoursUntilFinalLock(): number {
-  // Le 31/08 sort de la fenêtre 48h à minuit (Paris) le 3 septembre.
+  // Avec EDIT_WINDOW_DAYS = 0, le dernier jour se verrouille à minuit (Paris)
+  // le lendemain. La formule suit la constante si elle rouvre un jour.
   const lockDay = addDays(CHALLENGE_END, EDIT_WINDOW_DAYS + 1);
   // +02:00 = CEST. Vrai pour un challenge qui finit entre avril et octobre.
   // Une bande qui jouerait l'hiver verrait ce compteur décalé d'une heure —
@@ -173,16 +169,6 @@ export function hoursUntilFinalLock(): number {
   const sim = simulatedToday();
   const now = sim ? new Date(`${sim}T00:00:00+02:00`).getTime() : Date.now();
   return Math.max(0, Math.ceil((deadline - now) / 3_600_000));
-}
-
-/** Le rattrapage initial d'un joueur est-il encore ouvert ? (48h max) */
-export function backfillOpen(p: {
-  created_at: string;
-  backfill_closed_at: string | null;
-}): boolean {
-  if (p.backfill_closed_at !== null) return false;
-  const deadline = new Date(p.created_at).getTime() + 48 * 3600 * 1000;
-  return Date.now() < deadline;
 }
 
 // ---- Libellés français ----

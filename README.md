@@ -20,7 +20,7 @@ Challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, du 1
    migration7-breakdown.sql
    ```
 
-   L'ordre n'est pas cosmétique : `daily_points` et `get_daily_event()` sont redéfinies plusieurs fois, la dernière version gagne. La première migration crée les tables, l'index unique sur les prénoms, la RLS et les triggers qui font respecter les règles (fenêtre d'édition 48h, cap 12 joueurs, suppression bloquée). Aucun seed : la liste des joueurs démarre vide. Pour monter une instance à d'autres dates (nouvelle bande), suis `supabase/README-nouvelle-instance.md`.
+   L'ordre n'est pas cosmétique : `daily_points` et `get_daily_event()` sont redéfinies plusieurs fois, la dernière version gagne. La première migration crée les tables, l'index unique sur les prénoms, la RLS et les triggers qui font respecter les règles (fenêtre d'édition, cap 12 joueurs, suppression bloquée) — la fenêtre est resserrée au seul jour en cours par `migration9-jour-en-cours.sql`. Aucun seed : la liste des joueurs démarre vide. Pour monter une instance à d'autres dates (nouvelle bande), suis `supabase/README-nouvelle-instance.md`.
 3. Récupère l'URL du projet et la clé `anon` dans **Settings → API**.
 
 ### 2. Variables d'environnement
@@ -44,7 +44,7 @@ npm run dev
 npx vercel
 ```
 
-Ajoute les 3 variables d'environnement dans le dashboard Vercel (ou `npx vercel env add`), puis `npx vercel --prod`. Envoie l'URL au groupe WhatsApp. Chacun s'ajoute lui-même à l'arrivée et rattrape son historique (fenêtre de 48h après inscription).
+Ajoute les 3 variables d'environnement dans le dashboard Vercel (ou `npx vercel env add`), puis `npx vercel --prod`. Envoie l'URL au groupe WhatsApp. Chacun s'ajoute lui-même à l'arrivée et démarre au jour en cours : le rattrapage d'historique a été retiré (`migration9-jour-en-cours.sql`).
 
 ## Phase 2 — gamification
 
@@ -63,7 +63,7 @@ Toute la gamification est déjà comprise dans les migrations jouées à l'étap
 ## Ce qu'il faut savoir
 
 - **Pas de comptes.** Un mot de passe partagé, un prénom, c'est tout. L'identité vit en localStorage — d'où l'écran qui insiste pour installer la PWA (Safari purge le localStorage des sites peu visités).
-- **Les règles vivent en base.** Fenêtre d'édition de 48h (heure de Paris), pas de jour futur, pas d'entrée hors challenge : triggers Postgres, pas seulement du React. Les devtools ne servent à rien.
+- **Les règles vivent en base.** Seul le jour en cours est déclarable (heure de Paris), pas de jour futur, pas d'entrée hors challenge : triggers Postgres, pas seulement du React. Les devtools ne servent à rien. Ce qui n'est pas coché avant minuit est perdu — c'est voulu.
 - **Icônes** : régénérables avec `node scripts/make-icons.mjs` (aucune dépendance).
 
 ## Captures d'écran (Playwright)

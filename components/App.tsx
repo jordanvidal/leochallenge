@@ -1,6 +1,6 @@
 "use client";
 
-// L'orchestrateur : porte → joueur → rattrapage → installation → l'app.
+// L'orchestrateur : porte → joueur → installation → l'app.
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,12 +9,7 @@ import { useChallengeData } from "@/hooks/useChallengeData";
 import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
-import {
-  backfillDays,
-  backfillOpen,
-  challengeIsOver,
-  parisToday,
-} from "@/lib/challenge";
+import { challengeIsOver, parisToday } from "@/lib/challenge";
 import { DUELS_ANNOUNCE_FROM } from "@/lib/duels";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
@@ -24,7 +19,6 @@ import {
   shareWeekFlow,
 } from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
-import BackfillScreen from "./BackfillScreen";
 import BilanScreen from "./BilanScreen";
 import DailyEventModal from "./DailyEventModal";
 import DuelAnnounceModal from "./DuelAnnounceModal";
@@ -173,15 +167,6 @@ export default function App() {
     return ok;
   }
 
-  // Rattrapage sans aucun jour à rattraper (inscrit le jour 1) : on ferme direct.
-  const needsBackfill = !!player && backfillOpen(player);
-  useEffect(() => {
-    if (needsBackfill && backfillDays().length === 0 && player) {
-      data.closeBackfill(player.id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [needsBackfill, player?.id]);
-
   async function shareWeek() {
     if (!player) return;
     const channel = await shareWeekFlow(
@@ -248,21 +233,6 @@ export default function App() {
 
   // À partir d'ici, la couleur du joueur teinte toute l'app (--pc).
   const accent = { "--pc": player.color } as React.CSSProperties;
-
-  if (needsBackfill && backfillDays().length > 0) {
-    return (
-      <div style={accent}>
-        <BackfillScreen
-          player={player}
-          entries={data.entries}
-          onToggle={(day, exo) => data.toggleExercise(player.id, day, exo)}
-          onAllPerfect={(days) => data.markAllPerfect(player.id, days)}
-          onLock={() => data.closeBackfill(player.id)}
-        />
-        <Toast message={data.toast} />
-      </div>
-    );
-  }
 
   // Tuto de première connexion : une fois après le choix du joueur, ou
   // rouvert à la demande. Passe avant l'install : on apprend le jeu, puis

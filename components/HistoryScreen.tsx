@@ -2,7 +2,7 @@
 
 // Historique : joueurs en colonnes, jours en lignes, du plus récent au 13/07.
 // Façon graphe de contributions GitHub, en plus lisible sur mobile.
-// Sa colonne + fenêtre 48h = éditable. Le reste : lecture seule, toujours.
+// Sa colonne + le jour en cours = éditable. Le reste : lecture seule, toujours.
 
 import { useState } from "react";
 import { elapsedDays, isEditable } from "@/lib/challenge";

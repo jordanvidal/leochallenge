@@ -5,7 +5,9 @@ export type Player = {
   name: string;
   color: string; // couleur d'accent oklch(), auto-assignée à la création
   created_at: string;
-  backfill_closed_at: string | null; // null = rattrapage initial encore ouvert
+  // La colonne players.backfill_closed_at existe toujours en base (vestige du
+  // rattrapage initial, retiré par migration9-jour-en-cours.sql). Plus rien ne
+  // la lit ni ne l'écrit : elle n'est pas typée ici exprès.
 };
 
 export type Exercise = "pushups" | "abs" | "squats";

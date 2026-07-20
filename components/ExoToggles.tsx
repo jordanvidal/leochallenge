@@ -1,7 +1,7 @@
 "use client";
 
-// Rangée compacte des 3 toggles d'exos. Sert au rattrapage et à
-// l'édition d'un jour depuis l'historique. Même vocabulaire partout.
+// Rangée compacte des 3 toggles d'exos. Sert à l'édition du jour en cours
+// depuis l'historique. Même vocabulaire partout.
 
 import { Entry, Exercise, EXERCISES } from "@/lib/types";
 
