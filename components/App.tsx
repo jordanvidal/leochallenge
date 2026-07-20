@@ -360,7 +360,12 @@ export default function App() {
           />
         )}
         {effTab === "feed" && (
-          <FeedScreen player={player} players={data.players} feed={feed} />
+          <FeedScreen
+            player={player}
+            players={data.players}
+            feed={feed}
+            onGoLeaderboard={() => setTab("leaderboard")}
+          />
         )}
         {effTab === "leaderboard" && (
           <LeaderboardScreen
