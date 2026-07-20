@@ -8,12 +8,20 @@ import { Feed } from "@/hooks/useFeed";
 import { dayLabel, FeedEvent, parisDayOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import FeedItem from "./FeedItem";
+import WeekRecapCard from "./WeekRecapCard";
 
 type Props = {
   player: Player;
   players: Player[];
   feed: Feed;
+  onGoLeaderboard: () => void;
 };
+
+/** Les lignes écrites par le job du lundi matin. Elles sortent du flux
+    normal : groupées, elles forment le bilan de la semaine. */
+function isDuel(e: FeedEvent): boolean {
+  return e.kind === "duel_start" || e.kind === "duel_result";
+}
 
 /** Groupe les événements par jour civil Paris, ordre du fil conservé. */
 function groupByDay(events: FeedEvent[]): { day: string; items: FeedEvent[] }[] {
@@ -54,7 +62,27 @@ function groupBursts(events: FeedEvent[]): FeedEvent[][] {
   return bursts;
 }
 
-export default function FeedScreen({ player, players, feed }: Props) {
+/** Le contenu d'une journée, prêt à rendre : les moments habituels et,
+    le lundi, le bilan. Tout est reclassé antéchronologiquement — le bilan
+    se pose donc à l'heure où le job a tourné, pas en tête arbitrairement. */
+type Block =
+  | { kind: "burst"; at: string; events: FeedEvent[] }
+  | { kind: "recap"; at: string; events: FeedEvent[] };
+
+function blocksOf(items: FeedEvent[]): Block[] {
+  const duels = items.filter(isDuel);
+  const blocks: Block[] = groupBursts(items.filter((e) => !isDuel(e))).map(
+    (events) => ({ kind: "burst", at: events[0].created_at, events }),
+  );
+  if (duels.length > 0) {
+    // Le job insère tout d'un bloc : le plus récent donne l'heure du bilan.
+    const at = duels.reduce((m, e) => (e.created_at > m ? e.created_at : m), duels[0].created_at);
+    blocks.push({ kind: "recap", at, events: duels });
+  }
+  return blocks.sort((a, b) => (a.at > b.at ? -1 : 1));
+}
+
+export default function FeedScreen({ player, players, feed, onGoLeaderboard }: Props) {
   const byId = new Map(players.map((p) => [p.id, p]));
 
   // L'onglet est ouvert : tout est vu, la pastille s'éteint.
@@ -85,20 +113,34 @@ export default function FeedScreen({ player, players, feed }: Props) {
               {dayLabel(day)}
             </h2>
             <ul className="flex flex-col gap-2">
-              {groupBursts(items).map((burst) => (
-                <FeedItem
-                  key={burst[0].id}
-                  events={burst}
-                  me={player}
-                  byId={byId}
-                  // Réactions et commentaires de tout le groupe : chacun
-                  // porte son event_id, donc rien ne se perd au passage.
-                  reactions={burst.flatMap((e) => feed.reactions.get(e.id) ?? [])}
-                  comments={burst.flatMap((e) => feed.comments.get(e.id) ?? [])}
-                  onToggleReaction={feed.toggleReaction}
-                  onAddComment={feed.addComment}
-                />
-              ))}
+              {blocksOf(items).map((block) =>
+                block.kind === "recap" ? (
+                  <WeekRecapCard
+                    key={block.events[0].id}
+                    events={block.events}
+                    me={player}
+                    byId={byId}
+                    reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
+                    comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
+                    onToggleReaction={feed.toggleReaction}
+                    onAddComment={feed.addComment}
+                    onGoLeaderboard={onGoLeaderboard}
+                  />
+                ) : (
+                  <FeedItem
+                    key={block.events[0].id}
+                    events={block.events}
+                    me={player}
+                    byId={byId}
+                    // Réactions et commentaires de tout le groupe : chacun
+                    // porte son event_id, donc rien ne se perd au passage.
+                    reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
+                    comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
+                    onToggleReaction={feed.toggleReaction}
+                    onAddComment={feed.addComment}
+                  />
+                ),
+              )}
             </ul>
           </section>
         ))}
