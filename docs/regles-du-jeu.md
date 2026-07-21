@@ -22,9 +22,21 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 
 - À partir du **3e jour parfait d'affilée** : tes points de base sont multipliés par **×1,5**.
 - À partir du **7e jour d'affilée** : **×2**.
-- Un jour sans 3/3 casse la série. On repart de zéro.
+- Un jour sans 3/3 casse la série. On repart de zéro — sauf si ton joker s'en mêle.
 
 Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 10 pts par jour rien qu'avec le contrat de base — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
+
+**Le joker de série** (depuis le 21/07)
+
+Tu as **un joker, un seul, pour tout le challenge**. Il encaisse une journée ratée sans que ta série tombe.
+
+- Il part tout seul, tu n'as rien à faire ni à cliquer.
+- Il ne se déclenche qu'à partir d'une **série de 3 jours** : en dessous, il n'y a rien à sauver.
+- Il faut **revenir le lendemain**. Un joker recolle deux morceaux, il ne rattrape pas quelqu'un qui a arrêté. Deux jours ratés d'affilée, la série tombe quand même.
+- Le jour sauvé **ne compte pas** dans la série : 5 jours, joker, puis 3/3 → tu es à 6, pas 7. Il préserve, il ne récompense pas. Et il ne rapporte aucun point ce jour-là.
+- Une fois brûlé, il ne revient pas.
+
+Tu vois son état au Classement, à côté de ta série : 🛟 plein = disponible, estompé = déjà utilisé (la date au survol). Quand il part, le fil l'annonce à tout le monde : « 🛟 Léo a brûlé son joker — sa série de 9 jours tient ».
 
 ---
 
@@ -152,7 +164,7 @@ L'appli a un fil social. Personne n'écrit de post : les cartes tombent toutes s
 
 - **Réactions** : 5 emojis au choix — ❤️ 🔥 💪 😂 💀. Un tap ajoute, un retap enlève.
 - **Commentaires** : 140 caractères max. Pas d'édition, pas de suppression. Une pique ou un bravo, pas une conversation.
-- L'histoire ne s'efface pas : ce qui est dans le fil y reste.
+- L'histoire ne s'efface pas : ce qui est dans le fil y reste. **Une exception** (21/07) : si tu décoches et que ta journée n'est plus à 3/3, la carte « a validé ses 3 exos » disparaît — elle affirmait quelque chose de faux. Les réactions et commentaires qu'elle portait partent avec elle. Un bonus annulé, lui, garde sa carte : une séance est un fait, un bonus est une déclaration.
 
 ---
 
@@ -214,6 +226,18 @@ Oui, en retapant dessus le jour même. Après, c'est gravé.
 
 **Le multiplicateur ×2 s'applique à mes bonus ?**
 Jamais. Il ne multiplie que les points de base (exos + journée parfaite). Un bonus de +4 reste +4, série ou pas.
+
+**Pourquoi mes cartes sont grisées avec un cadenas ?**
+Tu n'as pas encore lancé ta séance. Tape n'importe où sur une carte, le lanceur s'ouvre. Une fois la séance partie, tu coches librement jusqu'à minuit.
+
+**Mon joker est parti sans que je demande, c'est normal ?**
+Oui. Il se déclenche tout seul le jour où ta série de 3+ aurait cassé, à condition que tu reviennes le lendemain. Tu ne peux ni le garder pour plus tard, ni le refuser — sinon il faudrait décider à 23h59 si on brûle son joker, et personne n'a envie de ce dilemme dans son lit.
+
+**Je peux avoir un deuxième joker ?**
+Non. Un seul pour les 50 jours. C'est ce qui fait qu'il compte.
+
+**Le jour sauvé par mon joker me rapporte des points ?**
+Aucun. Il préserve ta série, il ne remplace pas une journée. Tu gardes ton multiplicateur, c'est tout — et c'est déjà beaucoup.
 
 **Quelqu'un peut rejoindre en cours de route ?**
 Oui, dans la limite de **12 joueurs**. Et un joueur qui a coché ne serait-ce qu'un exo ne peut plus être supprimé.

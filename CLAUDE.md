@@ -25,7 +25,8 @@ PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jou
 
 ## Règles produit — elles priment sur toute idée de feature
 
-- **10 secondes.** L'usage type : dans un lit à 23h, ouvrir → cocher 3 exos → fermer. Chaque écran se juge au temps entre ouverture et coche. Une feature qui ralentit ce chemin est refusée d'office.
+- **10 secondes.** L'usage type : dans un lit à 23h, ouvrir → lancer sa séance → cocher 3 exos → fermer. Chaque écran se juge au temps entre ouverture et coche. Une feature qui ralentit ce chemin est refusée d'office.
+- **Pas de coche sans séance lancée** (depuis le 21/07). « Lancer ma séance » ouvre un chrono côté serveur, et c'est cette ligne en base qui déverrouille la journée — jusqu'à minuit, sur tous les écrans. Le portier est `hooks/useTodaySession.ts`, avec un dernier filet dans `App.toggleAndScore`. Une carte verrouillée s'affiche à 50 % avec un cadenas et ouvre le lanceur au tap : elle ne râle jamais. C'est la seule étape jamais ajoutée au chemin critique, et elle a coûté une discussion — ne la contourne pas « pour aller plus vite », et n'ajoute pas de deuxième porte au nom du même raisonnement.
 - **Mobile-first, sombre, physique.** Touch targets ≥ 44px, optimistic UI (jamais de spinner bloquant), feedback immédiat. La couleur, c'est les joueurs (palette fixe dans `lib/palette.ts`), le reste est neutre.
 - **Anti-références** (voir `PRODUCT.md`) : pas de dashboard SaaS, pas de badges à confettis, pas d'élément décoratif gratuit.
 - Toute l'UI est en **français**.

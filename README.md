@@ -10,15 +10,26 @@ Challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, du 1
 2. Ouvre **SQL Editor** et joue les migrations `supabase/*.sql` **dans l'ordre**, une par une :
 
    ```
-   migration.sql              migration8-events.sql
-   migration2-gamification.sql  migration9-jour-en-cours.sql
-   migration3-bonus.sql       migration10-paliers-volume.sql
-   migration4-seance.sql      migration11-bonus-retour.sql
-   migration4b-vue-chrono.sql migration12-realtime.sql
-   migration5-feed.sql        migration13-jour-parfait-collectif.sql
-   migration6-plafond-depassement.sql  migration14-duels.sql
-   migration7-breakdown.sql
+   migration.sql                       migration15-reequilibrage.sql
+   migration2-gamification.sql         migration16-cap-jour-leve.sql
+   migration3-bonus.sql                migration17-prime-hebdo.sql
+   migration4-seance.sql               migration18-trio-matinal.sql
+   migration4b-vue-chrono.sql          migration19-duel-departage-points.sql
+   migration5-feed.sql                 migration19-marches-500.sql
+   migration6-plafond-depassement.sql  migration20-cap-semaine-leve.sql
+   migration7-breakdown.sql            migration21-bonus-sans-materiel.sql
+   migration8-events.sql               migration22-paliers-cumulables.sql
+   migration9-jour-en-cours.sql        migration23-bonus-jour-en-cours.sql
+   migration10-paliers-volume.sql      migration24-joker-serie.sql
+   migration11-bonus-retour.sql        migration25-feed-joker.sql
+   migration12-realtime.sql            migration26-seance-decochee.sql
+   migration13-jour-parfait-collectif.sql
+   migration14-duels.sql
    ```
+
+   Colonne de gauche d'abord, puis celle de droite. Deux fichiers portent
+   le préfixe `19` (`duel-departage-points` avant `marches-500`) : ils sont
+   indépendants, mais garde cet ordre-là.
 
    L'ordre n'est pas cosmétique : `daily_points` et `get_daily_event()` sont redéfinies plusieurs fois, la dernière version gagne. La première migration crée les tables, l'index unique sur les prénoms, la RLS et les triggers qui font respecter les règles (fenêtre d'édition, cap 12 joueurs, suppression bloquée) — la fenêtre est resserrée au seul jour en cours par `migration9-jour-en-cours.sql`. Aucun seed : la liste des joueurs démarre vide. Pour monter une instance à d'autres dates (nouvelle bande), suis `supabase/README-nouvelle-instance.md`.
 3. Récupère l'URL du projet et la clé `anon` dans **Settings → API**.

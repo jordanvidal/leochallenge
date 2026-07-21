@@ -83,10 +83,29 @@ migration11-bonus-retour.sql
 migration12-realtime.sql
 migration13-jour-parfait-collectif.sql
 migration14-duels.sql
+migration15-reequilibrage.sql
+migration16-cap-jour-leve.sql
+migration17-prime-hebdo.sql
+migration18-trio-matinal.sql
+migration19-duel-departage-points.sql
+migration19-marches-500.sql
+migration20-cap-semaine-leve.sql
+migration21-bonus-sans-materiel.sql
+migration22-paliers-cumulables.sql
+migration23-bonus-jour-en-cours.sql
+migration24-joker-serie.sql
+migration25-feed-joker.sql
+migration26-seance-decochee.sql
 ```
 
-L'ordre n'est pas cosmétique : `daily_points` est redéfinie 7 fois et
-`get_daily_event()` 2 fois. La dernière version gagne.
+Deux fichiers portent le préfixe `19` : joue `duel-departage-points`
+avant `marches-500`. Ils sont indépendants, mais autant garder l'ordre
+dans lequel ils sont partis en prod.
+
+L'ordre n'est pas cosmétique : `daily_points` est redéfinie une dizaine
+de fois et `get_daily_event()` 2 fois. La dernière version gagne — c'est
+`migration24-joker-serie.sql` qui pose la version courante de
+`daily_points` et de `leaderboard()`.
 
 ### 3. Nouvelles clés
 
