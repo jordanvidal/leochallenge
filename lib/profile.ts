@@ -15,15 +15,35 @@ export type Profile = {
   fastestSeconds: number | null;
 };
 
-/** Heure de Paris d'un timestamp ISO, 0 à 23. */
-const parisHourFmt = new Intl.DateTimeFormat("fr-FR", {
+/**
+ * Heure de Paris d'un timestamp ISO, 0 à 23. null si illisible.
+ *
+ * Deux pièges, tous les deux vécus :
+ *
+ * 1. Ne JAMAIS passer par format(). En fr-FR il rend « 21 h », espace et
+ *    lettre compris, et Number("21 h") vaut NaN. On extrait donc la part
+ *    `hour` via formatToParts, qui ne dépend pas de la locale. (L'app est
+ *    en français, mais ici on lit un nombre, pas une phrase.)
+ * 2. hour12:false rend « 24 » à minuit dans certaines locales, d'où le %24.
+ *
+ * Un NaN qui passe empoisonne tout en silence : cells[NaN]++ n'incrémente
+ * rien, la bande reste plate et le libellé affiche « NaN h ». On renvoie
+ * null et l'appelant jette la ligne.
+ */
+const parisHourFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Paris",
   hour: "2-digit",
   hour12: false,
 });
-function parisHour(iso: string): number {
-  // fr-FR + hour12:false rend "24" à minuit passé — on ramène à 0.
-  return Number(parisHourFmt.format(new Date(iso))) % 24;
+function parisHour(iso: string): number | null {
+  const d = new Date(iso);
+  // formatToParts LÈVE sur une date invalide (RangeError), il ne rend pas
+  // NaN. Sans ce test, une seule ligne malformée ferait rejeter tout
+  // fetchProfiles et vider la page pour tout le monde.
+  if (Number.isNaN(d.getTime())) return null;
+  const part = parisHourFmt.formatToParts(d).find((p) => p.type === "hour");
+  const h = part ? Number(part.value) : NaN;
+  return Number.isInteger(h) && h >= 0 && h <= 24 ? h % 24 : null;
 }
 
 /**
@@ -59,7 +79,8 @@ export async function fetchProfiles(): Promise<Map<string, Profile>> {
     player_id: string;
     completed_at: string;
   }[]) {
-    get(r.player_id).hours.push(parisHour(r.completed_at));
+    const h = parisHour(r.completed_at);
+    if (h !== null) get(r.player_id).hours.push(h);
   }
 
   for (const r of (sessions.data ?? []) as {
