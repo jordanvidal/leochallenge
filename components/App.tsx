@@ -153,19 +153,6 @@ export default function App() {
     setShowDuelAnnounce(false);
   }
 
-  /** Coche + recalcul du classement + détection des moments.
-      Dernier filet du portier : quel que soit l'écran d'où vient le tap,
-      le jour en cours ne se coche pas sans séance ouverte. */
-  async function toggleAndScore(day: string, exo: Exercise) {
-    if (!player) return;
-    if (day === parisToday() && !session.started) {
-      data.showToast("Lance ta séance d'abord ▶");
-      return;
-    }
-    await data.toggleExercise(player.id, day, exo);
-    rescore(player.id);
-  }
-
   /** Fin (ou abandon) de séance guidée : les exos couverts passent à
       fait par le chemin d'écriture existant, puis recalcul du score. */
   async function validateWorkout(exos: Exercise[]) {
@@ -326,7 +313,6 @@ export default function App() {
             gamification={gamification}
             bonus={bonus}
             sessionStarted={session.started}
-            onToggle={toggleAndScore}
             onStartWorkout={() => setWorkoutOpen(true)}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
@@ -368,8 +354,6 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
-            sessionStarted={session.started}
-            onToggle={toggleAndScore}
             showToast={data.showToast}
           />
         )}

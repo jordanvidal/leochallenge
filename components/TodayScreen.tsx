@@ -1,7 +1,8 @@
 "use client";
 
-// L'écran par défaut, celui qui doit être parfait : trois grosses cartes,
-// un tap = validé, retap = annulé. Ouvrir → cocher → fermer en 10 secondes.
+// L'écran par défaut. Trois grosses cartes qui ne se cochent plus à la main :
+// c'est la séance qui valide, et elle seule. Fermées, elles ouvrent le lanceur
+// d'un tap ; séance lancée, elles affichent ce qui est fait.
 
 import { useEffect, useState } from "react";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
@@ -12,14 +13,7 @@ import {
   parisToday,
 } from "@/lib/challenge";
 import { Gamification } from "@/lib/gamification";
-import {
-  Entry,
-  entryCount,
-  entryKey,
-  Exercise,
-  EXERCISES,
-  Player,
-} from "@/lib/types";
+import { Entry, entryCount, entryKey, EXERCISES, Player } from "@/lib/types";
 import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
@@ -34,7 +28,6 @@ type Props = {
   bonus: BonusState | null;
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
-  onToggle: (day: string, exo: Exercise) => void;
   onStartWorkout: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
@@ -52,7 +45,6 @@ export default function TodayScreen({
   gamification,
   bonus,
   sessionStarted,
-  onToggle,
   onStartWorkout,
   onClaimBonus,
   onUnclaimBonus,
@@ -68,14 +60,10 @@ export default function TodayScreen({
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);
 
-  // Le beat du 3/3 : déclenché par le tap qui complète le jour (optimiste,
-  // comme la coche elle-même), jamais par un simple rechargement des données.
-  const [flash, setFlash] = useState(0);
-  useEffect(() => {
-    if (!flash) return;
-    const t = setTimeout(() => setFlash(0), 500);
-    return () => clearTimeout(t);
-  }, [flash]);
+  // Le beat du 3/3 vivait ici, déclenché par le tap qui complétait la
+  // journée. C'est la séance qui valide maintenant, et elle a sa propre
+  // célébration sur son écran de fin — l'état a été retiré plutôt que
+  // laissé à zéro pour toujours.
 
   // « à l'instant » vieillit : re-rendu léger toutes les 30 s tant qu'une
   // coche récente est affichée, pour que le libellé disparaisse tout seul.
@@ -106,7 +94,6 @@ export default function TodayScreen({
     <div
       className={`flex flex-1 flex-col px-5 pt-safe ${perfect ? "celebrate-bg" : ""}`}
     >
-      {flash > 0 && <div key={flash} className="perfect-flash" aria-hidden />}
       {/* Date + compte à rebours */}
       <header className="mt-4 flex items-end justify-between">
         <div>
@@ -148,10 +135,9 @@ export default function TodayScreen({
         />
       )}
 
-      {/* Les trois cartes. Physiques, presque tactiles. Fermées tant que la
-          séance n'est pas partie : on ne coche pas ce qu'on n'a pas fait.
-          Un tap dessus ne râle pas, il ouvre le lanceur — le chemin reste
-          d'un seul tap. */}
+      {/* Les trois cartes. Fermées, elles ouvrent le lanceur d'un tap — elles
+          ne râlent jamais. Séance lancée, elles deviennent un affichage : le
+          seul chemin d'écriture de la journée passe par la séance. */}
       {!over && (
         <div className="mt-5 flex flex-1 flex-col gap-3">
           {EXERCISES.map(({ key, label }) => {
@@ -160,23 +146,14 @@ export default function TodayScreen({
               <button
                 key={key}
                 aria-pressed={done}
-                aria-disabled={!sessionStarted}
+                // Une fois la séance lancée, la carte n'est plus une commande :
+                // c'est la séance qui coche, elle affiche le résultat. Bouton
+                // désactivé plutôt que tap silencieux — pas de fausse promesse
+                // d'interaction.
+                disabled={sessionStarted}
                 onClick={() => {
-                  if (!sessionStarted) {
-                    navigator.vibrate?.(8);
-                    onStartWorkout();
-                    return;
-                  }
-                  // La 3e coche du jour est plus grande que les deux autres :
-                  // vibration double + flash de la couleur du joueur.
-                  const completes = !done && entryCount(mine) === 2;
-                  if (completes) {
-                    navigator.vibrate?.([18, 70, 40]);
-                    setFlash(Date.now());
-                  } else {
-                    navigator.vibrate?.(done ? 8 : 18);
-                  }
-                  onToggle(today, key);
+                  navigator.vibrate?.(8);
+                  onStartWorkout();
                 }}
                 className="exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left"
                 style={{

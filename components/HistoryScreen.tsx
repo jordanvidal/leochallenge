@@ -2,22 +2,17 @@
 
 // Historique : joueurs en colonnes, jours en lignes, du plus récent au 13/07.
 // Façon graphe de contributions GitHub, en plus lisible sur mobile.
-// Sa colonne + le jour en cours = éditable. Le reste : lecture seule, toujours.
+// Lecture seule intégrale : depuis que la séance est le seul chemin de
+// validation, plus aucune case ne s'édite ici. On montre, on ne coche pas.
 
-import { useState } from "react";
 import { elapsedDays, isEditable } from "@/lib/challenge";
-import { Entry, entryCount, entryKey, Exercise, Player } from "@/lib/types";
-import DayEditor from "./DayEditor";
+import { Entry, entryCount, entryKey, Player } from "@/lib/types";
 import { Avatar } from "./ui";
 
 type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
-  /** Séance du jour lancée : sans elle, le jour en cours reste fermé ici
-      aussi, sinon la règle se contourne par le calendrier. */
-  sessionStarted: boolean;
-  onToggle: (day: string, exo: Exercise) => void;
   showToast: (msg: string) => void;
 };
 
@@ -42,12 +37,9 @@ export default function HistoryScreen({
   player,
   players,
   entries,
-  sessionStarted,
-  onToggle,
   showToast,
 }: Props) {
   const days = elapsedDays();
-  const [editing, setEditing] = useState<string | null>(null);
 
   // L'ordre des colonnes : soi d'abord, les autres ensuite.
   const columns = [player, ...players.filter((p) => p.id !== player.id)];
@@ -86,35 +78,25 @@ export default function HistoryScreen({
                     const count = entryCount(entries.get(entryKey(p.id, day)));
                     const isMine = p.id === player.id;
                     const editable = isMine && isEditable(day);
-                    // Seul le jour en cours est éditable, et il ne s'ouvre
-                    // qu'une fois la séance lancée.
-                    const open = editable && sessionStarted;
                     return (
                       <td key={p.id}>
                         <button
                           disabled={!isMine}
                           aria-label={`${p.name}, ${day} : ${count}/3`}
-                          onClick={() => {
-                            if (open) return setEditing(day);
+                          onClick={() =>
                             showToast(
                               editable
-                                ? "Lance ta séance d'abord ▶"
+                                ? "C'est ta séance qui coche ▶"
                                 : "Ce jour est verrouillé 🔒",
-                            );
-                          }}
-                          className="relative block size-11 rounded-lg"
+                            )
+                          }
+                          className="block size-11 rounded-lg"
                           style={cellStyle(count, p.color)}
-                        >
-                          {/* cadenas discret sur sa propre colonne fermée */}
-                          {isMine && !open && (
-                            <span
-                              className="absolute right-0.5 bottom-0.5 text-[9px] opacity-50"
-                              aria-hidden
-                            >
-                              🔒
-                            </span>
-                          )}
-                        </button>
+                        />
+                        {/* Le cadenas a disparu : il marquait les cases
+                            fermées quand certaines s'ouvraient encore. Tout
+                            étant verrouillé, le signaler neuf fois par colonne
+                            n'informe plus, ça décore. Le tap explique. */}
                       </td>
                     );
                   })}
@@ -125,15 +107,6 @@ export default function HistoryScreen({
         </div>
       )}
 
-      {editing && (
-        <DayEditor
-          day={editing}
-          player={player}
-          entry={entries.get(entryKey(player.id, editing))}
-          onToggle={(exo) => onToggle(editing, exo)}
-          onClose={() => setEditing(null)}
-        />
-      )}
     </div>
   );
 }

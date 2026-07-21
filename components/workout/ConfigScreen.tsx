@@ -195,8 +195,12 @@ export default function ConfigScreen({
             squats
           </p>
         ) : (
+          // Bloquant, et pas seulement prévenant : depuis que la séance est
+          // le SEUL chemin de validation, un format qui ne couvre pas les
+          // trois exos rend les manquants impossibles à valider de la
+          // journée. On refuse de lancer plutôt que de piéger.
           <p className="text-sm font-medium text-danger">
-            Ça ne valide pas la journée : {gaps.join(", ")}
+            Complète ton format pour lancer — il manque {gaps.join(", ")}.
           </p>
         )}
       </div>
@@ -206,7 +210,7 @@ export default function ConfigScreen({
           navigator.vibrate?.(18);
           onLaunch(config);
         }}
-        disabled={empty}
+        disabled={empty || gaps.length > 0}
         className="mb-2 min-h-16 w-full rounded-2xl text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-40"
         style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
       >
