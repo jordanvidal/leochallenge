@@ -174,6 +174,22 @@ export async function finishSession(
   return { duration: Number(data.duration_seconds), error: null };
 }
 
+/** Une séance a-t-elle été ouverte aujourd'hui ? C'est ce que le portier
+    des coches interroge : le bouton « Lancer ma séance » fait foi, et la
+    preuve est la ligne posée en base par le serveur (jour et heure de
+    départ compris). `error` non nul = on ne sait pas, pas « non ». */
+export async function fetchTodaySessionStarted(
+  playerId: string,
+): Promise<{ started: boolean; error: string | null }> {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("day")
+    .match({ player_id: playerId, day: parisToday() })
+    .maybeSingle();
+  if (error) return { started: false, error: error.message };
+  return { started: !!data, error: null };
+}
+
 /** Durée de la séance clôturée du jour (pour la ligne de partage). */
 export async function fetchTodaySessionDuration(
   playerId: string,

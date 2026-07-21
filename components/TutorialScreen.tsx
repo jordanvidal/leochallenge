@@ -58,8 +58,9 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       </p>
       <h1 className="mt-4 text-2xl font-bold">Chaque jour, jusqu&apos;au 31 août</h1>
       <p className="mt-3 text-muted">
-        100 pompes, 100 abdos, 100 squats. Tu les fais, tu coches. Trois
-        pastilles, c&apos;est tout.
+        100 pompes, 100 abdos, 100 squats. Tu lances ta séance, tu les fais,
+        tu coches. Les trois cartes restent fermées tant que la séance
+        n&apos;est pas partie.
       </p>
       <p className="mt-3 text-muted">
         Et tout le groupe voit qui a coché quoi. La pression, c&apos;est le jeu.
@@ -120,7 +121,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <h1 className="text-2xl font-bold">Le tour du proprio</h1>
       <p className="mt-3 text-muted">Cinq onglets en bas :</p>
       <div className="mt-5 space-y-3">
-        <TabHint label="Aujourd'hui">tu coches tes exos, tu lances une séance</TabHint>
+        <TabHint label="Aujourd'hui">tu lances ta séance, puis tu coches</TabHint>
         <TabHint label="Feed">ce que font les potes, en direct</TabHint>
         <TabHint label="Classement">qui mène, et d&apos;où viennent ses points</TabHint>
         <TabHint label="Historique">la grille de tous les jours</TabHint>

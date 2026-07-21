@@ -35,7 +35,13 @@ type NavigatorWakeLock = Navigator & {
   wakeLock?: { request(type: "screen"): Promise<WakeLockSentinelLike> };
 };
 
-export function useWorkout(playerId: string, showToast: (m: string) => void) {
+export function useWorkout(
+  playerId: string,
+  showToast: (m: string) => void,
+  /** Séance ouverte en base : c'est ce signal qui déverrouille les coches
+      de la journée. Posé sur la réponse serveur, pas sur le tap. */
+  onStarted: () => void,
+) {
   const [config, setConfig] = useState<WorkoutConfig | null>(null);
   const [step, setStep] = useState<WorkoutStep | null>(null);
   const [restLeft, setRestLeft] = useState(0); // millisecondes restantes
@@ -58,10 +64,11 @@ export function useWorkout(playerId: string, showToast: (m: string) => void) {
       touchPreset(playerId, c);
       startSession(playerId, c).then(({ day, error }) => {
         sessionDay.current = day;
+        if (day) onStarted();
         if (error) showToast(humanWorkoutError(error));
       });
     },
-    [playerId, showToast],
+    [playerId, showToast, onStarted],
   );
 
   /** Clôture serveur : la durée officielle revient de la base. */

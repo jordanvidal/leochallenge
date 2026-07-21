@@ -9,6 +9,7 @@ import { useChallengeData } from "@/hooks/useChallengeData";
 import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useTodaySession } from "@/hooks/useTodaySession";
 import { challengeIsOver, parisToday } from "@/lib/challenge";
 import { DUELS_ANNOUNCE_FROM } from "@/lib/duels";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
@@ -72,6 +73,9 @@ export default function App() {
 
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
   const { gamification, reloadGamification } = useGamification(!!player);
+
+  // Le portier : aucune coche du jour tant que la séance n'est pas lancée.
+  const session = useTodaySession(playerId);
 
   // Le fil : événements générés, réactions, commentaires, non-lus.
   const feed = useFeed(!!player, playerId, data.showToast);
@@ -149,9 +153,15 @@ export default function App() {
     setShowDuelAnnounce(false);
   }
 
-  /** Coche + recalcul du classement + détection des moments. */
+  /** Coche + recalcul du classement + détection des moments.
+      Dernier filet du portier : quel que soit l'écran d'où vient le tap,
+      le jour en cours ne se coche pas sans séance ouverte. */
   async function toggleAndScore(day: string, exo: Exercise) {
     if (!player) return;
+    if (day === parisToday() && !session.started) {
+      data.showToast("Lance ta séance d'abord ▶");
+      return;
+    }
     await data.toggleExercise(player.id, day, exo);
     rescore(player.id);
   }
@@ -279,6 +289,7 @@ export default function App() {
           todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
           onValidate={validateWorkout}
           streak={myStreak}
+          onSessionStart={session.markStarted}
           onClose={() => setWorkoutOpen(false)}
           showToast={data.showToast}
         />
@@ -314,6 +325,7 @@ export default function App() {
             liveChecks={data.liveChecks}
             gamification={gamification}
             bonus={bonus}
+            sessionStarted={session.started}
             onToggle={toggleAndScore}
             onStartWorkout={() => setWorkoutOpen(true)}
             onClaimBonus={(item) => claim(player.id, item)}
@@ -356,6 +368,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            sessionStarted={session.started}
             onToggle={toggleAndScore}
             showToast={data.showToast}
           />

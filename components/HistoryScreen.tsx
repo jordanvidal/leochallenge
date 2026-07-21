@@ -14,6 +14,9 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  /** Séance du jour lancée : sans elle, le jour en cours reste fermé ici
+      aussi, sinon la règle se contourne par le calendrier. */
+  sessionStarted: boolean;
   onToggle: (day: string, exo: Exercise) => void;
   showToast: (msg: string) => void;
 };
@@ -39,6 +42,7 @@ export default function HistoryScreen({
   player,
   players,
   entries,
+  sessionStarted,
   onToggle,
   showToast,
 }: Props) {
@@ -82,21 +86,27 @@ export default function HistoryScreen({
                     const count = entryCount(entries.get(entryKey(p.id, day)));
                     const isMine = p.id === player.id;
                     const editable = isMine && isEditable(day);
+                    // Seul le jour en cours est éditable, et il ne s'ouvre
+                    // qu'une fois la séance lancée.
+                    const open = editable && sessionStarted;
                     return (
                       <td key={p.id}>
                         <button
                           disabled={!isMine}
                           aria-label={`${p.name}, ${day} : ${count}/3`}
-                          onClick={() =>
-                            editable
-                              ? setEditing(day)
-                              : showToast("Ce jour est verrouillé 🔒")
-                          }
+                          onClick={() => {
+                            if (open) return setEditing(day);
+                            showToast(
+                              editable
+                                ? "Lance ta séance d'abord ▶"
+                                : "Ce jour est verrouillé 🔒",
+                            );
+                          }}
                           className="relative block size-11 rounded-lg"
                           style={cellStyle(count, p.color)}
                         >
-                          {/* cadenas discret sur sa propre colonne hors fenêtre */}
-                          {isMine && !editable && (
+                          {/* cadenas discret sur sa propre colonne fermée */}
+                          {isMine && !open && (
                             <span
                               className="absolute right-0.5 bottom-0.5 text-[9px] opacity-50"
                               aria-hidden
