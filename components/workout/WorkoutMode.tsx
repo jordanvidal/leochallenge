@@ -29,6 +29,8 @@ type Props = {
   /** Série serveur du joueur. Monte quand rescore() a rechargé le classement,
       c'est ce changement qui déclenche l'animation sur l'écran de fin. */
   streak: number;
+  /** Séance ouverte en base : déverrouille les coches de la journée. */
+  onSessionStart: () => void;
   onClose: () => void;
   showToast: (msg: string) => void;
 };
@@ -38,10 +40,11 @@ export default function WorkoutMode({
   todayEntry,
   onValidate,
   streak,
+  onSessionStart,
   onClose,
   showToast,
 }: Props) {
-  const w = useWorkout(player.id, showToast);
+  const w = useWorkout(player.id, showToast, onSessionStart);
   const [presets, setPresets] = useState<WorkoutPreset[] | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [breakdown, setBreakdown] = useState<DayBreakdown | null>(null);

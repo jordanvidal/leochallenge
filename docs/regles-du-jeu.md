@@ -10,6 +10,8 @@ L'antisèche complète. Si une question tombe dans le groupe, la réponse est ic
 
 Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Trois coches = journée parfaite (3/3). C'est tout le contrat. Le reste, c'est du bonus.
 
+**Une coche passe par une séance.** Les trois cartes sont fermées tant que tu n'as pas appuyé sur **« Lancer ma séance »**. C'est ce bouton qui fait foi : il ouvre un chrono côté serveur, et c'est lui qui ouvre ta journée. Une fois la séance partie, tu coches librement jusqu'à minuit — la séance guidée coche déjà toute seule les exos que ton format couvre, le reste tu le finis à la main. Pas de séance lancée, pas de coche, ni sur l'écran Aujourd'hui ni par le calendrier.
+
 **Les points de base :**
 
 - 1 point par exo coché.

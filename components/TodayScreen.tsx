@@ -32,6 +32,8 @@ type Props = {
   liveChecks: Map<string, number>; // joueur → dernière coche reçue en direct (ms)
   gamification: Gamification | null;
   bonus: BonusState | null;
+  /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
+  sessionStarted: boolean;
   onToggle: (day: string, exo: Exercise) => void;
   onStartWorkout: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
@@ -49,6 +51,7 @@ export default function TodayScreen({
   liveChecks,
   gamification,
   bonus,
+  sessionStarted,
   onToggle,
   onStartWorkout,
   onClaimBonus,
@@ -145,7 +148,10 @@ export default function TodayScreen({
         />
       )}
 
-      {/* Les trois cartes. Physiques, presque tactiles. */}
+      {/* Les trois cartes. Physiques, presque tactiles. Fermées tant que la
+          séance n'est pas partie : on ne coche pas ce qu'on n'a pas fait.
+          Un tap dessus ne râle pas, il ouvre le lanceur — le chemin reste
+          d'un seul tap. */}
       {!over && (
         <div className="mt-5 flex flex-1 flex-col gap-3">
           {EXERCISES.map(({ key, label }) => {
@@ -154,7 +160,13 @@ export default function TodayScreen({
               <button
                 key={key}
                 aria-pressed={done}
+                aria-disabled={!sessionStarted}
                 onClick={() => {
+                  if (!sessionStarted) {
+                    navigator.vibrate?.(8);
+                    onStartWorkout();
+                    return;
+                  }
                   // La 3e coche du jour est plus grande que les deux autres :
                   // vibration double + flash de la couleur du joueur.
                   const completes = !done && entryCount(mine) === 2;
@@ -167,8 +179,8 @@ export default function TodayScreen({
                   onToggle(today, key);
                 }}
                 className="exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left"
-                style={
-                  done
+                style={{
+                  ...(done
                     ? {
                         background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
                         boxShadow: `inset 0 0 0 2px color-mix(in oklch, ${player.color} 65%, transparent)`,
@@ -176,12 +188,19 @@ export default function TodayScreen({
                     : {
                         background: "var(--color-surface)",
                         boxShadow: "inset 0 0 0 1px var(--color-line)",
-                      }
-                }
+                      }),
+                  ...(sessionStarted ? {} : { opacity: 0.5 }),
+                }}
               >
                 <span
                   className="text-2xl font-bold"
-                  style={{ color: done ? player.color : "var(--color-ink)" }}
+                  style={{
+                    color: done
+                      ? player.color
+                      : sessionStarted
+                        ? "var(--color-ink)"
+                        : "var(--color-muted)",
+                  }}
                 >
                   {label}
                 </span>
@@ -193,9 +212,13 @@ export default function TodayScreen({
                   >
                     ✓
                   </span>
-                ) : (
+                ) : sessionStarted ? (
                   <span className="num-display text-4xl text-faint" aria-hidden>
                     100
+                  </span>
+                ) : (
+                  <span className="text-2xl" aria-hidden>
+                    🔒
                   </span>
                 )}
               </button>
@@ -204,20 +227,32 @@ export default function TodayScreen({
         </div>
       )}
 
-      {/* Le chemin en plus, jamais une obligation : l'app accompagne la
-          séance en temps réel. Disparaît une fois le jour à 3/3. */}
-      {!over && !perfect && (
-        <button
-          onClick={onStartWorkout}
-          className="mt-3 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
-          style={{
-            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
-            color: player.color,
-          }}
-        >
-          <span aria-hidden>▶</span> Lancer ma séance
-        </button>
+      {/* Ce bouton fait foi : c'est lui qui ouvre la journée. Tant que la
+          séance n'est pas partie, il est l'action principale ; une fois
+          lancée, il redevient discret (relancer un tour de plus). */}
+      {!over && (!perfect || !sessionStarted) && (
+        <div className="mt-3">
+          {!sessionStarted && (
+            <p className="mb-2 text-center text-[13px] text-muted">
+              Les coches s&apos;ouvrent quand la séance démarre.
+            </p>
+          )}
+          <button
+            onClick={onStartWorkout}
+            className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+            style={
+              sessionStarted
+                ? {
+                    background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+                    boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+                    color: player.color,
+                  }
+                : { background: player.color, color: "oklch(0.15 0 0)" }
+            }
+          >
+            <span aria-hidden>▶</span> Lancer ma séance
+          </button>
+        </div>
       )}
 
       {over && (
