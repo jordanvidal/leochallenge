@@ -17,25 +17,43 @@ const SEQUENCE_MS = 1500;
 
 type Props = {
   value: number;
+  /** Série d'avant, imposée par l'appelant. Sans elle le composant compare
+      aux rendus précédents — ce qui suppose qu'il était déjà monté quand la
+      valeur serveur arrive. C'est vrai sur la ligne de statut, faux sur
+      l'écran de fin de séance : lui se monte en pleine écriture, souvent
+      après le rechargement, et naissait donc déjà au bon chiffre — plus rien
+      à faire rouler. Le point de départ explicite rend l'animation
+      indépendante de l'ordre d'arrivée. */
+  from?: number;
   /** Classes du chiffre lui-même (taille, famille) — imposées par l'appelant. */
   className?: string;
   /** Prévient l'écran parent au démarrage du roulement (beat de fond). */
   onIncrement?: () => void;
 };
 
-export default function StreakCount({ value, className, onIncrement }: Props) {
+export default function StreakCount({
+  value,
+  from,
+  className,
+  onIncrement,
+}: Props) {
   const previous = useRef<number | null>(null);
   const [roll, setRoll] = useState<{ from: number; to: number } | null>(null);
 
   useEffect(() => {
-    const before = previous.current;
+    // `from` ne sert qu'au premier passage : ensuite c'est le composant qui
+    // sait d'où il vient. `??` et pas `||` — une série d'avant à 0 est une
+    // valeur, pas une absence.
+    const before = previous.current ?? from ?? null;
     previous.current = value;
     if (before === null || value !== before + 1) return;
     setRoll({ from: before, to: value });
     onIncrement?.();
     const t = setTimeout(() => setRoll(null), SEQUENCE_MS);
     return () => clearTimeout(t);
-    // onIncrement est stable côté appelants (useCallback ou setter d'état).
+    // onIncrement est stable côté appelants (useCallback ou setter d'état),
+    // et `from` est volontairement hors des dépendances : c'est une valeur
+    // de départ, pas une entrée à écouter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 

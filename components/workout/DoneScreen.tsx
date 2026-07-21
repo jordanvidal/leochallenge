@@ -60,6 +60,12 @@ export default function DoneScreen({
 }: Props) {
   const perfect = exosDone === 3;
 
+  // La série d'avant, gelée au montage. Cet écran s'affiche avant que
+  // l'entrée du jour soit écrite : la valeur qu'on lit ici est donc bien
+  // celle d'hier soir. On la garde parce que le bloc série, lui, n'apparaît
+  // qu'une fois le 3/3 enregistré — trop tard pour observer le +1 tout seul.
+  const [streakBefore] = useState(streak);
+
   const [beating, setBeating] = useState(false);
   const onIncrement = useCallback(() => setBeating(true), []);
   useEffect(() => {
@@ -110,7 +116,11 @@ export default function DoneScreen({
             <p className="num-display text-6xl" style={{ color: player.color }}>
               <span aria-hidden>🔥</span>{" "}
               {perfect ? (
-                <StreakCount value={streak} onIncrement={onIncrement} />
+                <StreakCount
+                  value={streak}
+                  from={streakBefore}
+                  onIncrement={onIncrement}
+                />
               ) : (
                 streak
               )}
