@@ -1,7 +1,9 @@
 "use client";
 
-// Tuto de première connexion : 5 cartes qu'on tape pour avancer.
+// Tuto de première connexion : 4 cartes qu'on tape pour avancer.
 // Une idée par carte, dans l'esprit « on frappe l'écran au pouce ».
+// Le tour des onglets a été retiré : cinq lignes pour nommer cinq
+// onglets déjà visibles en bas de l'écran, personne ne les lisait.
 // Le barème est calqué mot pour mot sur PlayerBreakdown (mini-barème) :
 // une seule source de vérité pour les règles. Montré une fois
 // (flag localStorage), ou rouvert depuis « Revoir les règles ».
@@ -39,16 +41,6 @@ function EventRow({ emoji, children }: { emoji: string; children: React.ReactNod
   );
 }
 
-/** Le tour de l'app : un onglet, un mot. */
-function TabHint({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline gap-4">
-      <span className="w-24 shrink-0 font-bold text-ink">{label}</span>
-      <span className="text-muted">{children}</span>
-    </div>
-  );
-}
-
 export default function TutorialScreen({ player, replay = false, onDone }: Props) {
   const cards = [
     // 1 — Le principe
@@ -74,11 +66,11 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="1 pt">par exo coché</Rule>
         <Rule amount="+2">journée parfaite (3 exos sur 3)</Rule>
         <Rule amount="×1,5">série de 3 jours parfaits</Rule>
-        <Rule amount="×2">série de 7 jours parfaits</Rule>
+        <Rule amount="×2">série de 7 jours parfaits, et ça ne monte plus</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-muted">
-        Pas de malus, personne ne te retire de points. Mais tes pastilles
-        vides, tout le monde les voit.
+        Un seul malus dans tout le jeu : perdre son duel de la semaine, −3.
+        Pour le reste, tes pastilles vides suffisent — tout le monde les voit.
       </p>
     </div>,
 
@@ -91,10 +83,6 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="💪">séance guidée bouclée</Rule>
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
-      <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
-        Garde-fou : un seul palier par exo et par jour. +50 pompes OU +100
-        pompes, jamais les deux.
-      </p>
     </div>,
 
     // 4 — Les événements du jour
@@ -113,19 +101,6 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         </EventRow>
         <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
         <EventRow emoji="👊">boss du dimanche : 200 pompes au total → +10</EventRow>
-      </div>
-    </div>,
-
-    // 5 — Le tour de l'app
-    <div key="tour">
-      <h1 className="text-2xl font-bold">Le tour du proprio</h1>
-      <p className="mt-3 text-muted">Cinq onglets en bas :</p>
-      <div className="mt-5 space-y-3">
-        <TabHint label="Aujourd'hui">tu lances ta séance, puis tu coches</TabHint>
-        <TabHint label="Feed">ce que font les potes, en direct</TabHint>
-        <TabHint label="Classement">qui mène, et d&apos;où viennent ses points</TabHint>
-        <TabHint label="Historique">la grille de tous les jours</TabHint>
-        <TabHint label="Stats">tes courbes et tes séries</TabHint>
       </div>
     </div>,
   ];

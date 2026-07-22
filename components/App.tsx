@@ -11,7 +11,6 @@ import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useTodaySession } from "@/hooks/useTodaySession";
 import { challengeIsOver, parisToday } from "@/lib/challenge";
-import { DUELS_ANNOUNCE_FROM } from "@/lib/duels";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -22,7 +21,6 @@ import {
 import { Exercise, Player, entryKey } from "@/lib/types";
 import BilanScreen from "./BilanScreen";
 import DailyEventModal from "./DailyEventModal";
-import DuelAnnounceModal from "./DuelAnnounceModal";
 import FeedScreen from "./feed/FeedScreen";
 import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
@@ -64,7 +62,6 @@ export default function App() {
   // Modale « événement du jour » : montrée une fois par jour si un
   // événement a été tiré (pas les jours « rien »).
   const [showEventModal, setShowEventModal] = useState(false);
-  const [showDuelAnnounce, setShowDuelAnnounce] = useState(false);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -134,24 +131,10 @@ export default function App() {
     setShowEventModal(false);
   }
 
-  // Annonce des duels, une seule fois par appareil. Muette avant dimanche
-  // 19h Paris (cf. DUELS_ANNOUNCE_FROM), pour partir en même temps que la
-  // notif push. L'événement du jour garde la priorité : l'annonce attend
-  // qu'il soit fermé. Clé v2 : ceux qui ont vu l'annonce partie trop tôt
-  // la revoient au bon moment.
-  useEffect(() => {
-    if (!player || showEventModal) return;
-    if (new Date() < DUELS_ANNOUNCE_FROM) return;
-    if (localStorage.getItem("lc100.duelsAnnounceSeen.v2") !== "1") {
-      setShowDuelAnnounce(true);
-    }
-  }, [player, showEventModal]);
-
-  /** Annonce des duels fermée : on ne la remontre jamais. */
-  function dismissDuelAnnounce() {
-    localStorage.setItem("lc100.duelsAnnounceSeen.v2", "1");
-    setShowDuelAnnounce(false);
-  }
+  // L'annonce one-shot des duels vivait ici : deux cartes montrées une
+  // fois par appareil avant le premier lundi de duels. Tout le groupe
+  // les a vues, la règle est au mini-barème du Classement — un écran de
+  // moins sur le chemin d'un joueur qui réinstalle.
 
   /** Fin (ou abandon) de séance guidée : les exos couverts passent à
       fait par le chemin d'écriture existant, puis recalcul du score. */
@@ -294,9 +277,6 @@ export default function App() {
           catalog={bonus.catalog}
           onClose={dismissEventModal}
         />
-      )}
-      {showDuelAnnounce && !showEventModal && (
-        <DuelAnnounceModal player={player} onClose={dismissDuelAnnounce} />
       )}
       {data.offline && (
         <p className="bg-raised py-1.5 text-center text-xs font-medium text-muted">
