@@ -104,23 +104,55 @@ export function hourCounts(hours: number[]): number[] {
   return cells;
 }
 
-/** « le soir · 17 h–22 h ». null tant qu'il n'y a rien à décrire. */
+/**
+ * Le créneau : « 🌙 le soir · vers 20 h ». null tant qu'il n'y a rien à décrire.
+ *
+ * Deux façons de mentir, toutes les deux corrigées ici.
+ *
+ * 1. La plage valait min–max. Une seule séance décalée — un 13 h isolé au
+ *    milieu de trois semaines de soirées — élargissait le créneau pour de bon.
+ *    « 13 h–22 h » décrivait l'enveloppe, jamais l'habitude.
+ * 2. Le moment sortait de la moyenne des heures. Sur deux blocs séparés
+ *    (6-8 h, puis 19 h) la moyenne atterrit dans le trou : l'app annonçait
+ *    « le midi » à un joueur qui n'a jamais coché à midi.
+ *
+ * À la place : la fenêtre de 3 h la plus chargée, et on en nomme le centre.
+ * Ce centre doit lui-même compter au moins une validation, sinon le libellé
+ * pointerait une heure creuse — et la bande de 24 h juste en dessous
+ * montrerait la barre vide qu'il désigne.
+ *
+ * On ne rend qu'un point, pas une plage : la dispersion, c'est le travail de
+ * cette bande. Répéter la même information deux fois, mal la seconde, c'est
+ * ce qu'on vient d'enlever.
+ */
 export function slotLabel(
   hours: number[],
-): { moment: string; range: string } | null {
+): { emoji: string; moment: string; hour: string } | null {
   if (hours.length === 0) return null;
-  const lo = Math.min(...hours);
-  const hi = Math.max(...hours);
-  const mid = hours.reduce((a, b) => a + b, 0) / hours.length;
-  const moment =
-    mid < 11
-      ? "le matin"
-      : mid < 15
-        ? "le midi"
-        : mid < 19
-          ? "l'après-midi"
-          : "le soir";
-  return { moment, range: `${lo} h–${hi} h` };
+  const cells = hourCounts(hours);
+
+  let peak = 0;
+  let best = -1;
+  for (let h = 0; h < 24; h++) {
+    if (cells[h] === 0) continue;
+    const window = (cells[h - 1] ?? 0) + cells[h] + (cells[h + 1] ?? 0);
+    // À égalité de fenêtre, l'heure la mieux fournie gagne ; à égalité totale,
+    // la plus matinale, parce qu'il faut bien trancher.
+    if (window > best || (window === best && cells[h] > cells[peak])) {
+      peak = h;
+      best = window;
+    }
+  }
+
+  const slot =
+    peak < 11
+      ? { emoji: "🌅", moment: "le matin" }
+      : peak < 15
+        ? { emoji: "☀️", moment: "le midi" }
+        : peak < 19
+          ? { emoji: "🌤️", moment: "l'après-midi" }
+          : { emoji: "🌙", moment: "le soir" };
+  return { ...slot, hour: `vers ${peak} h` };
 }
 
 /** "12:37" — mêmes minutes:secondes que l'écran de fin de séance. */
