@@ -36,8 +36,9 @@ joueur à partir du **7 août au matin** (flag localStorage
 ## Le push
 
 Un seul, **jeudi 7 août à 9h Paris** : réveille tout le monde vers
-l'écran. Pattern technique de `announce-duels.yml` : workflow GitHub à
-cron date-gated (8h UTC, garde `date -u +%F = 2026-08-07`), route
+l'écran. Le pattern est celui de feu `announce-duels.yml` (supprimé
+depuis, à relire dans l'historique git) : workflow GitHub à cron
+date-gated (8h UTC, garde `date -u +%F = 2026-08-07`), route
 `/api/cron/mi-temps` gardée par `isAuthorizedCron`, envoi via
 `sendToPlayers`. Copy à écrire au moment du build, ton chambreur
 habituel.
@@ -59,8 +60,8 @@ habituel.
 - L'écran doit rester vrai si un joueur l'ouvre tard (le 10 août) : les
   stats sont figées au 6 août au soir (bornes `p_until`), pas « à
   aujourd'hui ».
-- Supprimer `announce-duels.yml` à cette occasion (il est no-op depuis
-  le 19/07) et faire pareil pour `mi-temps.yml` après le 7.
+- Supprimer `mi-temps.yml` après le 7, comme `announce-duels.yml` l'a
+  été une fois son annonce partie.
 
 ## Vérifs prévues au build
 
