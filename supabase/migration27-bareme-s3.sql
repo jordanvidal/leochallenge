@@ -56,9 +56,17 @@ update public.bonus_catalog set ladder = 'course' where key = 'course_5km';
 -- Place au palier haut juste après le 5 km (sort = 8) : on décale les
 -- exercices suivants d'un cran. Les kinds ne partagent pas d'ordre,
 -- seul le tri des puces déclarables se lit ici.
+--
+-- Le garde `not exists` rend le décalage rejouable : c'est la seule
+-- instruction non idempotente du fichier, et une migration qu'on
+-- applique à 00h01 doit pouvoir être relancée sans décaler l'ordre
+-- une deuxième fois.
 update public.bonus_catalog
    set sort = sort + 1
- where kind = 'exercise' and sort >= 8;
+ where kind = 'exercise' and sort >= 8
+   and not exists (
+     select 1 from public.bonus_catalog where key = 'course_10km'
+   );
 
 insert into public.bonus_catalog (key, kind, emoji, label, points, sort, ladder) values
   ('course_10km', 'exercise', '🏃', '+5 km (10 au total)', 12, 8, 'course')
