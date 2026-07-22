@@ -114,7 +114,14 @@ export default function DoneScreen({
             }}
           >
             <p className="num-display text-6xl" style={{ color: player.color }}>
-              <span aria-hidden>🔥</span>{" "}
+              {/* La flamme suit le beat du bloc, allumé par StreakCount :
+                  elle ne reprend donc que quand la série a vraiment monté.
+                  À 2/3 le bloc dit « en jeu » et la flamme reste immobile —
+                  une flamme qui flambe sur une série non gagnée serait le
+                  faux succès qu'on refuse partout ailleurs. */}
+              <span className={beating ? "streak-flame" : ""} aria-hidden>
+                🔥
+              </span>{" "}
               {perfect ? (
                 <StreakCount
                   value={streak}

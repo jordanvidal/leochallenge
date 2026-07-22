@@ -331,6 +331,43 @@ button {
   }
 }
 
+/* La flamme reprend, à l'instant exact où le chiffre encaisse : deux
+   éléments, un seul geste. Elle est calée sur le même délai que
+   .streak-punch — plus tôt, elle tomberait dans le silence de 350→560 ms
+   qui rend le +1 lisible, et on retomberait dans le défaut de la v1.
+
+   L'origine est en bas : une flamme grandit par la base, elle ne gonfle
+   pas. D'où aussi le scaleY plus fort que le scaleX. Le halo passe par
+   drop-shadow — sur un emoji il épouse la forme du glyphe, alors qu'un
+   box-shadow dessinerait un rectangle. Les bornes sont écrites en
+   drop-shadow transparent et non en `none` : `none` ne s'interpole pas,
+   le halo apparaîtrait d'un coup.
+
+   Réservé à l'écran de fin. Sur la ligne de statut le beat inverse déjà
+   la ligne entière — une flamme qui bouge en plus y ferait bavard. */
+.streak-flame {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  animation: streak-flame 460ms cubic-bezier(0.22, 1, 0.36, 1) 1080ms both;
+}
+@keyframes streak-flame {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  35% {
+    transform: scale(1.1, 1.28) rotate(-3deg);
+    filter: drop-shadow(0 0 10px color-mix(in oklch, var(--pc) 65%, transparent));
+  }
+  70% {
+    transform: scale(1.02, 1.07) rotate(1.5deg);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+}
+
 /* Mot de passe raté */
 @keyframes shake {
   10%,
@@ -399,6 +436,7 @@ button {
   .live-pulse,
   .shake,
   .streak-roll .streak-punch,
+  .streak-flame,
   .streak-beat,
   .streak-beat-block {
     animation: none;
