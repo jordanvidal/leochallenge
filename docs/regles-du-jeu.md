@@ -53,6 +53,7 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🦵 +100 squats (200 au total) | +4 |
 | 🦵 +200 squats (300 au total) | +7 |
 | 🏃 5 km de course | +8 |
+| 🏃 +5 km (10 au total) | +12 |
 | 🧱 3 min de gainage | +3 |
 | 🪢 10 min de corde à sauter | +5 |
 | 🪜 500 marches | +5 |
@@ -62,15 +63,19 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🧎 200 fentes | +7 |
 | 💺 50 dips sur chaise | +4 |
 | 🪑 3 min de chaise murale | +3 |
-| 🚶 10 000 pas | +4 |
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 
-Les sept derniers sont arrivés le 20/07 (S2) : que du sans-matériel, pour les jours de vacances ou de déplacement. Les burpees et les fentes marchent par paliers comme les pompes — le palier haut inclut le bas (60 burpees = tu déclares le 60, pas les deux). Les 10 000 pas se lisent sur le téléphone, la chaise murale et le gainage se cumulent dans la journée mais chacun ne se déclare qu'une fois.
+Six bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement : burpees, fentes, dips, chaise murale. La chaise murale et le gainage se cumulent dans la journée, mais chacun ne se déclare qu'une fois.
 
-**Les garde-fous :**
+**Deux mouvements en S3 (27/07) :**
 
-- **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, 30 burpees OU 60 burpees, jamais les deux (sinon la première moitié serait payée deux fois).
+- 🚶 **Les 10 000 pas sont retirés.** Un jogging de 6 km cochait la course *et* les pas : deux bonus pour une seule sortie. Marcher n'est pas un exercice du challenge, c'est une conséquence de la journée. Les déclarations déjà enregistrées gardent leurs 4 points.
+- 🏃 **Le 10 km arrive**, en deuxième palier de la course. 5 km = 8 pts, le palier suivant = 12 pts : un 10 km déclaré en entier vaut **20 points**.
+
+**Le garde-fou :**
+
+- **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees, les fentes, la course. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 
@@ -85,16 +90,20 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | Bonus | Points | Condition |
 |---|---|---|
 | 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée). Depuis le 20/07, le trophée tourne : si tu as été premier hier, le +3 du jour va au premier des autres |
-| 🔥 Avant 8h | +3 | 3/3 bouclé avant 8h du matin. Depuis le 20/07, ne se cumule plus avec « premier du jour » le même jour |
-| 🌙 Après 22h | +2 | 3/3 bouclé après 22h |
-| ⚡ Séance éclair | +2 | Séance guidée (chrono de l'appli) bouclée en moins de 20 min. (+5 en S1, ramené à +2 le 20/07 — c'était devenu un salaire quotidien) |
 | 🥇 Séance la plus rapide | +2 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain). (+5 en S1, ramené à +2 le 20/07 — le trio matinal s'empilait sur le même joueur) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
 | 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
 
+**Ce qui a disparu le 27/07 (S3) :**
+
+- 🔥 **Avant 8h** (+3) et 🌙 **Après 22h** (+2). L'heure à laquelle tu t'entraînes dit quelque chose de ton emploi du temps, rien de ta performance. Un couche-tard et un lève-tôt ne sont pas départagés là-dessus.
+- ⚡ **Séance éclair** (< 20 min, +2). Sur les 16 séances chronométrées de la S2, 14 passaient sous la barre, chez les six joueurs. Ce n'était plus un bonus, c'était un salaire.
+
+Les points déjà marqués avec ces trois bonus restent acquis : rien n'est repris rétroactivement, les classements de la S1 et de la S2 ne bougent pas.
+
 Précisions :
 
-- Les bonus d'horaire (avant 8h, après 22h, lève-tôt, happy hour) exigent que la séance soit finie **le jour même**.
+- Le « premier du jour » exige que la séance soit finie **le jour même**.
 - Le chrono de la séance guidée est tenu par le serveur, pas par ton téléphone. Une séance de moins de 5 minutes est refusée — personne ne fait 300 répétitions en 4 minutes.
 - Le jour parfait collectif ne compte que les joueurs **actifs** (au moins une coche sur les 7 derniers jours) : un inscrit fantôme ne bloque pas le bonus des autres. Il faut être au moins deux.
 
@@ -106,20 +115,22 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 
 | Événement | Effet |
 |---|---|
-| 🎲 Pompes doublées | Ta coche pompes vaut le double aujourd'hui (+1 pt) |
-| 🍻 Happy hour | +5 si tu finis ton 3/3 entre 18h et 20h |
-| 🌄 Lève-tôt | +6 si tu finis avant 7h (cumulable avec le +3 « avant 8h ») |
+| 🎲 Pompes doublées | Tout ce qui est pompes double aujourd'hui : ta coche (+1) **et** tes paliers pompes déclarés (+50 pompes passe à 8, +100 à 14). Depuis le 27/07 — jusque-là seule la coche doublait |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8, qu'il ait joué ou non |
 | 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
 
-**Les probabilités du tirage :**
+🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 
-Du lundi au samedi : rien 40 %, pompes doublées 15 %, happy hour 15 %, lève-tôt 12 %, quitte ou double 10 %, jour miroir 8 %.
+**Les probabilités du tirage, depuis le 27/07 :**
 
-Le dimanche : rien 40 %, boss du dimanche 25 %, pompes doublées 10 %, happy hour 8 %, lève-tôt 7 %, quitte ou double 5 %, jour miroir 5 %.
+Du lundi au samedi : rien 50 %, quitte ou double 20 %, pompes doublées 15 %, jour miroir 15 %.
 
-Oui, 40 % des jours il ne se passe rien. Un événement quotidien n'est plus un événement.
+Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 10 %, quitte ou double 10 %, jour miroir 10 %.
+
+Oui, une moitié des jours il ne se passe rien. Un événement quotidien n'est plus un événement — et il n'en reste que trois, donc ils tombent d'autant plus rarement chacun. « Pompes doublées » n'est pas monté malgré les places libres : il vient de gagner en puissance.
+
+(Avant le 27/07 : rien 40 %, pompes doublées 15 %, happy hour 15 %, lève-tôt 12 %, quitte ou double 10 %, jour miroir 8 % ; le dimanche, rien 40 %, boss 25 %, pompes doublées 10 %, happy hour 8 %, lève-tôt 7 %, quitte ou double 5 %, miroir 5 %.)
 
 ---
 
@@ -213,7 +224,7 @@ Toutes les heures sont en heure de Paris.
 ## 11. FAQ
 
 **« Pompes doublées », ça double aussi mes bonus pompes ?**
-Non. Concrètement c'est +1 point si tu coches pompes ce jour-là (ta coche vaut 2 au lieu de 1). Tes bonus déclarés +50 ou +100 pompes gardent leur valeur normale.
+Oui, depuis le 27/07. Ta coche pompes vaut 2 au lieu de 1, et tes paliers pompes déclarés doublent aussi : +50 pompes passe à 8, +100 pompes à 14. C'est le seul jour où charger sur les pompes rapporte vraiment. (Jusqu'au 26/07, seule la coche doublait.)
 
 **Je peux perdre des points ?**
 Une seule façon : perdre ton duel de la semaine (−3, transférés au gagnant). Tout le reste ne fait que monter.

@@ -104,9 +104,9 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         Tiré au hasard, un max par jour. Certains jours, rien. D&apos;autres :
       </p>
       <div className="mt-5 space-y-2.5">
-        <EventRow emoji="🎲">pompes double : tes pompes comptent double</EventRow>
-        <EventRow emoji="🍻">happy hour : séance finie entre 18h et 20h → +5</EventRow>
-        <EventRow emoji="🌄">lève-tôt : séance finie avant 7h → +6</EventRow>
+        <EventRow emoji="🎲">
+          pompes double : ta coche pompes et tes bonus pompes comptent double
+        </EventRow>
         <EventRow emoji="🎰">
           quitte ou double : ton 3/3 double ta base du jour. Raté, rien ne
           bouge.
