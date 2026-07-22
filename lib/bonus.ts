@@ -15,9 +15,14 @@ export type BonusCatalogItem = {
   points: number;
   sort: number;
   // Échelle de volume : deux bonus qui la partagent sont le même exercice
-  // à deux hauteurs (+50 pompes / +100 pompes). Un seul par jour. null =
-  // bonus hors échelle, aucune exclusion.
+  // à deux hauteurs (+50 pompes / +100 pompes). Ils se cumulent depuis la
+  // migration 22 — cocher les deux, c'est déclarer le volume des deux.
+  // null = bonus hors échelle.
   ladder: string | null;
+  // Jour à partir duquel le bonus sort du barème. null = actif. On retire
+  // sans supprimer : les déclarations passées gardent leurs points et le
+  // fil garde ses libellés.
+  retired_on: string | null;
 };
 
 export type BonusClaim = {
@@ -41,6 +46,7 @@ export function humanBonusError(message: string): string {
   if (message.includes("CAP_JOUR")) return "Plafond de bonus du jour atteint 🔒";
   if (message.includes("CAP_SEMAINE"))
     return "Plafond de bonus sur 7 jours atteint 🔒";
+  if (message.includes("BONUS_RETIRE")) return "Ce bonus n'est plus au barème";
   if (message.includes("JOUR_VERROUILLE")) return "Ce jour est verrouillé 🔒";
   if (message.includes("JOUR_FUTUR")) return "On ne déclare pas en avance";
   if (message.includes("BOSS_INACTIF")) return "Pas de boss aujourd'hui";
@@ -82,9 +88,14 @@ export async function fetchBonus(): Promise<BonusState | null> {
   };
 }
 
-/** Bonus d'exercice déclarables (le boss se déclare dans son bandeau). */
+/** Bonus d'exercice déclarables aujourd'hui (le boss se déclare dans son
+    bandeau). Un bonus retiré disparaît de la feuille le jour dit, mais sa
+    ligne reste au catalogue pour l'historique. */
 export function claimables(state: BonusState): BonusCatalogItem[] {
-  return state.catalog.filter((c) => c.kind === "exercise");
+  const today = parisToday();
+  return state.catalog.filter(
+    (c) => c.kind === "exercise" && (!c.retired_on || today < c.retired_on),
+  );
 }
 
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */

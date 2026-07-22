@@ -246,15 +246,10 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
             <dl className="space-y-2">
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
-                <dd>pompes double : tes pompes comptent double ce jour-là</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>🍻</dt>
-                <dd>happy hour : séance finie entre 18h et 20h → +5</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>🌄</dt>
-                <dd>lève-tôt : séance finie avant 7h → +6</dd>
+                <dd>
+                  pompes double : ta coche pompes <b>et</b> tes paliers pompes
+                  déclarés comptent double ce jour-là
+                </dd>
               </div>
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>🎰</dt>
