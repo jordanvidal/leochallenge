@@ -90,23 +90,22 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | Bonus | Points | Condition |
 |---|---|---|
 | 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée). Depuis le 20/07, le trophée tourne : si tu as été premier hier, le +3 du jour va au premier des autres |
-| 🥇 Séance la plus rapide | +2 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain). (+5 en S1, ramené à +2 le 20/07 — le trio matinal s'empilait sur le même joueur) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
-| 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
 | 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
 
 **Ce qui a disparu le 27/07 (S3) :**
 
 - 🔥 **Avant 8h** (+3) et 🌙 **Après 22h** (+2). L'heure à laquelle tu t'entraînes dit quelque chose de ton emploi du temps, rien de ta performance. Un couche-tard et un lève-tôt ne sont pas départagés là-dessus.
 - ⚡ **Séance éclair** (< 20 min, +2). Sur les 16 séances chronométrées de la S2, 14 passaient sous la barre, chez les six joueurs. Ce n'était plus un bonus, c'était un salaire.
+- 🥇 **Séance la plus rapide** (+2). Même salaire déguisé : le jeu optimal était de lancer la séance, ne rien faire dedans, cocher les 3 exos à la main et finir juste au-dessus du plancher.
+- 🤝 **Jour parfait collectif** (+5 chacun). Il se ramollissait quand le groupe se vidait — fin août, deux actifs à 3/3 le touchaient presque tous les jours. Un bonus qui devient plus facile quand l'engagement baisse, c'est l'inverse du but.
 
-Les points déjà marqués avec ces trois bonus restent acquis : rien n'est repris rétroactivement, les classements de la S1 et de la S2 ne bougent pas.
+Les points déjà marqués avec ces bonus restent acquis : rien n'est repris rétroactivement, les classements de la S1 et de la S2 ne bougent pas.
 
 Précisions :
 
 - Le « premier du jour » exige que la séance soit finie **le jour même**.
 - Le chrono de la séance guidée est tenu par le serveur, pas par ton téléphone. Une séance de moins de 5 minutes est refusée — personne ne fait 300 répétitions en 4 minutes.
-- Le jour parfait collectif ne compte que les joueurs **actifs** (au moins une coche sur les 7 derniers jours) : un inscrit fantôme ne bloque pas le bonus des autres. Il faut être au moins deux.
 
 ---
 

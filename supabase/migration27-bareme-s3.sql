@@ -30,6 +30,10 @@
 --      versait +8 à un compte inactif qui le raflait à vie ; son scoring
 --      reste, les jours S1/S2 gardent leurs points), et quitte ou double
 --      redescend de 0.20 à 0.12 (première source de points du jeu).
+--   8. 🥇 Séance la plus rapide retirée (bornée au 27/07). Même salaire
+--      déguisé que l'éclair : lancer, ne rien faire, cocher à la main.
+--   9. 🤝 Jour parfait collectif retiré (borné au 27/07). Il se ramollit
+--      quand le groupe se vide — plus facile à mesure qu'on décroche.
 --
 -- AUCUN EFFET RÉTROACTIF. Chaque changement est daté au 27/07 dans la
 -- vue (< 27/07 pour un retrait, >= 27/07 pour un ajout), comme les
@@ -160,7 +164,8 @@ grant execute on function public.get_daily_event() to anon, authenticated;
 --    recopié au caractère près. Ce qui change pour la S3 :
 --
 --      · base_pts : journée parfaite +2 → +4, datée au 27/07 ;
---      · avant_8h, apres_22h, seance_20min : bornés à < 27/07 ;
+--      · avant_8h, apres_22h, seance_20min, seance_rapide,
+--        jour_parfait_collectif : bornés à < 27/07 ;
 --      · happy_hour, leve_tot : bornés à < 27/07 (ceinture et
 --        bretelles — ils ne sont plus tirés, mais un tirage forcé à
 --        la main ne doit pas ressusciter le barème) ;
@@ -406,13 +411,19 @@ base as (
             -- éclair : 5 pts figés pour la S1, valeur catalogue (2) ensuite
             then (case when s.day < date '2026-07-20' then 5
                        else public.bonus_value('seance_20min') end) else 0 end
-     -- rapide : 5 pts figés pour la S1, valeur catalogue (2) ensuite
-     + case when fw.player_id is not null
+     -- rapide : retirée au 27/07 (S3), même raison que l'éclair — le jeu
+     -- optimal était de lancer la séance, ne rien faire dedans, cocher à
+     -- la main et finir juste au-dessus du plancher. Bornée, pas supprimée.
+     -- (5 pts figés pour la S1, valeur catalogue (2) du 20/07 au 26/07.)
+     + case when s.day < date '2026-07-27' and fw.player_id is not null
             then (case when s.day < date '2026-07-20' then 5
                        else public.bonus_value('seance_rapide') end) else 0 end
      + case when cb.player_id is not null
             then public.bonus_value('retour') else 0 end
-     + case when cd.day is not null and coalesce(e.perfect, false)
+     -- collectif : retiré au 27/07 (S3) — il se ramollit quand le groupe
+     -- se vide (fin août, 2 actifs à 3/3 = +5 chacun presque gratis).
+     + case when s.day < date '2026-07-27'
+                 and cd.day is not null and coalesce(e.perfect, false)
             then public.bonus_value('jour_parfait_collectif') else 0 end
     ) as execution_bonus,
     (case when ev.event_key = 'pompes_double' and coalesce(e.pushups, false)
@@ -810,12 +821,15 @@ as $$
            -- éclair : 5 pts figés pour la S1, valeur catalogue (2) ensuite
            then (case when s.day < date '2026-07-20' then 5
                       else bonus_value('seance_20min') end) else 0 end as b_seance_20min,
-      -- rapide : 5 pts figés pour la S1, valeur catalogue (2) ensuite
-      case when fw.player_id is not null
+      -- rapide : retirée au 27/07 (S3), bornée comme dans daily_points.
+      -- (5 pts figés pour la S1, valeur catalogue (2) du 20/07 au 26/07.)
+      case when s.day < date '2026-07-27' and fw.player_id is not null
            then (case when s.day < date '2026-07-20' then 5
                       else bonus_value('seance_rapide') end) else 0 end as b_seance_rapide,
       case when cb.player_id is not null then bonus_value('retour') else 0 end as b_retour,
-      case when cd.day is not null and coalesce(e.perfect, false)
+      -- collectif : retiré au 27/07 (S3), bornée comme dans daily_points.
+      case when s.day < date '2026-07-27'
+                and cd.day is not null and coalesce(e.perfect, false)
            then bonus_value('jour_parfait_collectif') else 0 end as b_collectif,
       -- Depuis le 27/07, l'événement double aussi les paliers pompes
       -- déclarés. Le point doublé est porté par la ligne de l'événement
