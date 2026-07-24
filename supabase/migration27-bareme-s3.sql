@@ -290,6 +290,8 @@ spine as (
   select player_id, day from e
   union
   select player_id, day from public.bonus_claims
+  union
+  select player_id, day from joker
 ),
 -- Premier du jour. Jusqu'au 19/07 : le premier point, point. Depuis
 -- le 20/07 le trophée TOURNE : si tu as été premier à finir hier,
@@ -384,6 +386,7 @@ base as (
     coalesce(e.perfect, false) as perfect,
     coalesce(st.streak_pos, 0) as streak_pos,
     (jk.day is not null) as jokered,
+    (fd.player_id is not null) as premier_du_jour,
     case when coalesce(st.streak_pos, 0) >= 7 then 2.0
          when coalesce(st.streak_pos, 0) >= 3 then 1.5
          else 1.0 end as multiplier,
@@ -479,7 +482,7 @@ base as (
 ),
 premirror as (
   select
-    player_id, day, exos, perfect, streak_pos, jokered, multiplier, event_key,
+    player_id, day, exos, perfect, streak_pos, jokered, premier_du_jour, multiplier, event_key,
     -- Journée parfaite : +2 jusqu'au 26/07, +4 à partir du 27/07 (S3).
     -- Daté partout où la base est reconstruite, sinon le détail ment.
     (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier as base_pts,
@@ -605,11 +608,12 @@ select
   pm.base_pts as base_points,
   pm.execution_bonus + pm.event_bonus + pm.claim_bonus + pm.quitte_bonus
     + coalesce(x.pts, 0) as bonus_points,
-  -- jokered EN DERNIER, obligatoirement : « create or replace view » sait
-  -- ajouter une colonne en fin de liste, jamais en insérer une au milieu
-  -- (42P16). L'insérer entre streak_pos et multiplier reviendrait à
-  -- renommer les colonnes suivantes, et Postgres refuse.
-  pm.jokered
+  -- jokered puis premier_du_jour EN DERNIER, dans CET ordre : c'est la
+  -- signature de sortie de la vue en prod. « create or replace view »
+  -- sait ajouter une colonne en fin de liste, jamais en insérer une au
+  -- milieu ni en retirer (42P16) — l'ordre des colonnes est gravé.
+  pm.jokered,
+  pm.premier_du_jour
 from premirror pm
 left join extras_by_day x on x.player_id = pm.player_id and x.day = pm.day
 union all
@@ -625,7 +629,8 @@ select
   x.pts as points,
   0 as base_points,
   x.pts as bonus_points,
-  false as jokered
+  false as jokered,
+  false as premier_du_jour
 from extras_by_day x
 where not exists (
   select 1 from premirror pm

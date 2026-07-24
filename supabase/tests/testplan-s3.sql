@@ -27,12 +27,12 @@ create temp table t2base on commit drop as
 create temp table resultats (ord int, test text, detail text, ok boolean);
 
 -- ============================================================
--- ⬇️  COLLE ICI TOUT LE FICHIER migration27-bareme-s3.sql  ⬇️
+-- COLLE ICI TOUT LE FICHIER migration27-bareme-s3.sql
 -- ============================================================
 
 
 -- ============================================================
--- ⬇️  PARTIE TESTS  ⬇️
+-- PARTIE TESTS
 -- ============================================================
 
 -- ===================== TESTS =====================
@@ -113,7 +113,7 @@ from generate_series(date '2026-07-27',date '2026-08-02',interval '1 day') g(d);
 insert into resultats
 select 8,'T3b-serie-base_points',
        string_agg(base_points::text,',' order by day),
-       string_agg(base_points::text,',' order by day) = '7,7,10.5,10.5,10.5,10.5,14'
+       string_agg(base_points::text,',' order by day) = '7.0,7.0,10.5,10.5,10.5,10.5,14.0'
 from public.daily_points
 where player_id='00000000-0000-0000-0000-0000000000a2' and day between date '2026-07-27' and date '2026-08-02';
 
@@ -187,7 +187,7 @@ select 18,'T6-scoring-miroir-conserve','', position('jour_miroir' in pg_get_view
 
 -- T9 — séance rapide bornée dans les deux objets
 insert into resultats
-select 19,'T9-seance_rapide-bornee-vue','',
+select 19,'T9-gating-S3-present-vue','',
        position($$< date '2026-07-27' and fw.player_id$$ in pg_get_viewdef('public.daily_points'))>0;
 insert into resultats
 select 20,'T9-seance_rapide-bornee-rpc','',
