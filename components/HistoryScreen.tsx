@@ -6,6 +6,7 @@
 // validation, plus aucune case ne s'édite ici. On montre, on ne coche pas.
 
 import { elapsedDays, isEditable } from "@/lib/challenge";
+import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, Player } from "@/lib/types";
 import { Avatar } from "./ui";
 
@@ -13,6 +14,7 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  gamification: Gamification | null;
   showToast: (msg: string) => void;
 };
 
@@ -37,12 +39,21 @@ export default function HistoryScreen({
   player,
   players,
   entries,
+  gamification,
   showToast,
 }: Props) {
   const days = elapsedDays();
 
   // L'ordre des colonnes : soi d'abord, les autres ensuite.
   const columns = [player, ...players.filter((p) => p.id !== player.id)];
+
+  // Le jour où chaque joueur a brûlé son joker (null/absent = intact). La
+  // case correspondante est vide côté coches — c'est justement le jour
+  // sauvé — mais on la marque 🛟 pour qu'elle ne se confonde pas avec un
+  // simple jour manqué.
+  const jokerDayByPlayer = new Map(
+    (gamification?.total ?? []).map((r) => [r.player_id, r.joker_day ?? null]),
+  );
 
   return (
     <div className="flex min-h-full flex-col px-5 pt-safe">
@@ -78,25 +89,39 @@ export default function HistoryScreen({
                     const count = entryCount(entries.get(entryKey(p.id, day)));
                     const isMine = p.id === player.id;
                     const editable = isMine && isEditable(day);
+                    const isJoker = jokerDayByPlayer.get(p.id) === day;
                     return (
                       <td key={p.id}>
                         <button
-                          disabled={!isMine}
-                          aria-label={`${p.name}, ${day} : ${count}/3`}
+                          disabled={!isMine && !isJoker}
+                          aria-label={
+                            isJoker
+                              ? `${p.name}, ${day} : jour manqué sauvé par le joker`
+                              : `${p.name}, ${day} : ${count}/3`
+                          }
                           onClick={() =>
                             showToast(
-                              editable
-                                ? "C'est ta séance qui coche ▶"
-                                : "Ce jour est verrouillé 🔒",
+                              isJoker
+                                ? "🛟 Joker : la série a tenu malgré ce jour manqué"
+                                : editable
+                                  ? "C'est ta séance qui coche ▶"
+                                  : "Ce jour est verrouillé 🔒",
                             )
                           }
-                          className="block size-11 rounded-lg"
+                          className="relative flex size-11 items-center justify-center rounded-lg"
                           style={cellStyle(count, p.color)}
-                        />
+                        >
+                          {isJoker && (
+                            <span className="text-base" aria-hidden>
+                              🛟
+                            </span>
+                          )}
+                        </button>
                         {/* Le cadenas a disparu : il marquait les cases
                             fermées quand certaines s'ouvraient encore. Tout
                             étant verrouillé, le signaler neuf fois par colonne
-                            n'informe plus, ça décore. Le tap explique. */}
+                            n'informe plus, ça décore. Le tap explique. Le 🛟
+                            reste, lui : un jour sauvé n'est pas un jour manqué. */}
                       </td>
                     );
                   })}

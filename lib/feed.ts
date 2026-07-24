@@ -2,7 +2,7 @@
 // triggers et /api/moments, jamais saisis), réactions, commentaires.
 // Le feed raconte l'histoire, il ne compte aucun point.
 
-import { addDays, frenchDate, parisToday } from "./challenge";
+import { addDays, frenchDate, frenchDayMonth, parisToday } from "./challenge";
 import { BADGES, fmtPoints } from "./gamification";
 import { supabase } from "./supabase";
 import { formatClock } from "./workout";
@@ -24,7 +24,8 @@ export type FeedKind =
   | "collectif"
   | "duel_start"
   | "duel_result"
-  | "joker";
+  | "joker"
+  | "premier";
 
 export type FeedPayload = {
   day?: string;
@@ -135,6 +136,15 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
       return {
         emoji: "🛟",
         text: `a brûlé son joker — sa série de ${p.streak} jours tient`,
+      };
+    case "premier":
+      // Le trophée « premier du jour » se décerne une fois la journée
+      // finie (rotation comprise), donc la carte tombe le lendemain : on
+      // nomme le jour explicitement pour qu'elle ne se lise jamais de
+      // travers, même relue plus tard.
+      return {
+        emoji: "🌅",
+        text: `a fini premier${p.day ? ` le ${frenchDayMonth(p.day)}` : ""}${pts}`,
       };
     case "record":
       return { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };

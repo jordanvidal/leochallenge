@@ -1,6 +1,13 @@
 -- =============================================================
--- Migration 27 — le barème de la S3 (lundi 27 juillet)
+-- Migration 29 — le barème de la S3 (lundi 27 juillet)
 -- =============================================================
+-- Numérotée 29 : elle recrée daily_points / player_breakdown /
+-- get_daily_event APRÈS migration27-joker-visible et
+-- migration28-premier-du-jour-feed (déjà en prod), dont elle reprend
+-- les apports — la branche joker dans `spine` et la colonne
+-- premier_du_jour de la vue. La dernière définition gagne : cette
+-- migration doit s'appliquer en dernier.
+--
 -- Six semaines de jeu ont montré où le barème paie autre chose que
 -- l'effort. Arbitrages pris avec Jordan les 22 et 24/07, applicables
 -- au 27/07 :

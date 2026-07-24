@@ -5,7 +5,7 @@
 -- Tout tourne dans UNE transaction, puis ROLLBACK : rien ne persiste.
 --
 --   1. Colle ce bloc jusqu'au marqueur ⬇️.
---   2. Au marqueur, colle TOUT migration27-bareme-s3.sql.
+--   2. Au marqueur, colle TOUT migration29-bareme-s3.sql.
 --   3. Colle la partie TESTS.
 --   4. Exécute. Lis la table finale : tout doit être 'OK'.
 --
@@ -27,7 +27,7 @@ create temp table t2base on commit drop as
 create temp table resultats (ord int, test text, detail text, ok boolean);
 
 -- ============================================================
--- COLLE ICI TOUT LE FICHIER migration27-bareme-s3.sql
+-- COLLE ICI TOUT LE FICHIER migration29-bareme-s3.sql
 -- ============================================================
 
 

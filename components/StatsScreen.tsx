@@ -171,7 +171,7 @@ export default function StatsScreen({
             <div className="flex items-baseline justify-between text-[11px] font-semibold text-muted">
               <span>Ton créneau</span>
               <b className="text-xs text-ink">
-                {mySlot.moment} · {mySlot.range}
+                {mySlot.emoji} {mySlot.moment} · {mySlot.hour}
               </b>
             </div>
             <div className="mt-1.5">
