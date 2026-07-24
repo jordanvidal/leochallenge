@@ -15,8 +15,8 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 **Les points de base :**
 
 - 1 point par exo coché.
-- +2 points si tu fais les trois (journée parfaite).
-- Donc une journée à 3/3 = **5 points** de base.
+- **+4 points** si tu fais les trois (journée parfaite). C'était +2 jusqu'au 26/07 ; la S3 (27/07) fait peser plus lourd le contrat rempli. Les jours d'avant gardent leurs +2, rien n'est rétroactif.
+- Donc une journée à 3/3 = **7 points** de base (5 avant le 27/07).
 
 **Le multiplicateur de série :**
 
@@ -24,7 +24,7 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 - À partir du **7e jour d'affilée** : **×2**.
 - Un jour sans 3/3 casse la série. On repart de zéro — sauf si ton joker s'en mêle.
 
-Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 10 pts par jour rien qu'avec le contrat de base — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
+Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 14 pts par jour rien qu'avec le contrat de base (7 × 2 en S3, contre 10 avant) — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
 
 **Le joker de série** (depuis le 21/07)
 
@@ -93,6 +93,7 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | 🥇 Séance la plus rapide | +2 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain). (+5 en S1, ramené à +2 le 20/07 — le trio matinal s'empilait sur le même joueur) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
 | 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
+| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
 
 **Ce qui a disparu le 27/07 (S3) :**
 
@@ -115,20 +116,20 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 
 | Événement | Effet |
 |---|---|
-| 🎲 Pompes doublées | Tout ce qui est pompes double aujourd'hui : ta coche (+1) **et** tes paliers pompes déclarés (+50 pompes passe à 8, +100 à 14). Depuis le 27/07 — jusque-là seule la coche doublait |
+| 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche (+1) **et** tes paliers déclarés de cet exo. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, et seule la coche |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
-| 🪞 Jour miroir | Le dernier du classement général touche +8, qu'il ait joué ou non |
+| 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
 | 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
 
 🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 
 **Les probabilités du tirage, depuis le 27/07 :**
 
-Du lundi au samedi : rien 50 %, quitte ou double 20 %, pompes doublées 15 %, jour miroir 15 %.
+Du lundi au samedi : rien 52 %, pompes doublées 12 %, abdos doublés 12 %, squats doublés 12 %, quitte ou double 12 %.
 
-Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 10 %, quitte ou double 10 %, jour miroir 10 %.
+Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 6 %, abdos doublés 6 %, squats doublés 6 %, quitte ou double 12 %.
 
-Oui, une moitié des jours il ne se passe rien. Un événement quotidien n'est plus un événement — et il n'en reste que trois, donc ils tombent d'autant plus rarement chacun. « Pompes doublées » n'est pas monté malgré les places libres : il vient de gagner en puissance.
+Deux mouvements en S3 : le jour miroir quitte le tirage (il ne récompensait plus personne d'utile), et quitte ou double redescend de 20 % à 12 % — il était devenu la première source de points du jeu. Le doublement, lui, se répartit à parts égales sur les trois exos. Oui, une moitié des jours il ne se passe rien : un événement quotidien n'est plus un événement.
 
 (Avant le 27/07 : rien 40 %, pompes doublées 15 %, happy hour 15 %, lève-tôt 12 %, quitte ou double 10 %, jour miroir 8 % ; le dimanche, rien 40 %, boss 25 %, pompes doublées 10 %, happy hour 8 %, lève-tôt 7 %, quitte ou double 5 %, miroir 5 %.)
 

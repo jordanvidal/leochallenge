@@ -72,7 +72,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <h1 className="text-2xl font-bold">Comment on marque</h1>
       <dl className="mt-5 space-y-3">
         <Rule amount="1 pt">par exo coché</Rule>
-        <Rule amount="+2">journée parfaite (3 exos sur 3)</Rule>
+        <Rule amount="+4">journée parfaite (3 exos sur 3)</Rule>
         <Rule amount="×1,5">série de 3 jours parfaits</Rule>
         <Rule amount="×2">série de 7 jours parfaits</Rule>
       </dl>
@@ -105,13 +105,13 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       </p>
       <div className="mt-5 space-y-2.5">
         <EventRow emoji="🎲">
-          pompes double : ta coche pompes et tes bonus pompes comptent double
+          exo doublé : un exo tiré au hasard (pompes, abdos ou squats) — ta
+          coche et tes bonus de cet exo comptent double
         </EventRow>
         <EventRow emoji="🎰">
           quitte ou double : ton 3/3 double ta base du jour. Raté, rien ne
           bouge.
         </EventRow>
-        <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
         <EventRow emoji="👊">boss du dimanche : 200 pompes au total → +10</EventRow>
       </div>
     </div>,

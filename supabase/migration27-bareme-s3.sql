@@ -2,8 +2,8 @@
 -- Migration 27 — le barème de la S3 (lundi 27 juillet)
 -- =============================================================
 -- Six semaines de jeu ont montré où le barème paie autre chose que
--- l'effort. Arbitrages pris avec Jordan le 22/07, applicables au
--- 27/07 :
+-- l'effort. Arbitrages pris avec Jordan les 22 et 24/07, applicables
+-- au 27/07 :
 --
 --   1. 🏃 10 km de course ajouté, en deuxième palier de l'échelle
 --      course : 5 km = 8 pts, +5 km = 12 pts, donc 10 km = 20 pts.
@@ -12,19 +12,35 @@
 --   2. ⚡ Séance éclair (< 20 min) retirée. 14 séances chronométrées
 --      sur 16 depuis le 20/07 passaient sous la barre, chez les six
 --      joueurs : ce n'était plus un bonus, c'était un salaire.
---   3. 🎲 « Les pompes comptent double » double désormais aussi les
---      paliers pompes déclarés, pas seulement la coche.
---   4. 🕘 Les quatre bonus d'horloge retirés — avant 8h, après 22h,
+--   3. 🕘 Les quatre bonus d'horloge retirés — avant 8h, après 22h,
 --      happy hour, lève-tôt. L'heure à laquelle on s'entraîne dit
 --      quelque chose de l'emploi du temps, rien de la performance.
 --      Restent « premier du jour » (une course, quelqu'un la gagne)
 --      et « séance la plus rapide » (de la perf pure).
+--   4. ✅ Journée parfaite : le bonus de base passe de +2 à +4. Le
+--      contrat rempli (3/3) doit peser plus lourd que l'assaisonnement.
+--   5. 📅 « La semaine pleine » : +5 automatiques pour 7 jours parfaits
+--      sur une semaine lundi→dimanche, posés sur le dimanche. Comptée
+--      dans le classement hebdo (donc prime et duels), sans récursion.
+--   6. 🎲 Le doublement se généralise aux trois exos : « pompes / abdos
+--      / squats comptent double », un seul tiré par jour. Chacun double
+--      la coche ET les paliers déclarés de son échelle. « Pompes double »
+--      garde sa clé et son historique.
+--   7. 🎰🪞 La roue rééquilibrée : le jour miroir sort du tirage (il
+--      versait +8 à un compte inactif qui le raflait à vie ; son scoring
+--      reste, les jours S1/S2 gardent leurs points), et quitte ou double
+--      redescend de 0.20 à 0.12 (première source de points du jeu).
 --
--- AUCUN EFFET RÉTROACTIF. Chaque retrait est daté au 27/07 dans la
--- vue, comme les arbitrages du 20/07 l'ont été. Les points de la S1
--- et de la S2 ne bougent pas d'un demi-point, le classement général
--- non plus. Vérifiable : la vue ne change de valeur pour aucun jour
--- antérieur au 27/07.
+-- AUCUN EFFET RÉTROACTIF. Chaque changement est daté au 27/07 dans la
+-- vue (< 27/07 pour un retrait, >= 27/07 pour un ajout), comme les
+-- arbitrages du 20/07 l'ont été. Les points de la S1 et de la S2 ne
+-- bougent pas d'un demi-point, le classement général non plus.
+-- Vérifiable : la vue ne change de valeur pour aucun jour antérieur au
+-- 27/07 (protocole en fin de fichier, attendu : 0).
+--
+-- RÈGLE D'OR : daily_points (la vue) et player_breakdown (la RPC qui
+-- REJOUE le calcul pour l'écran « d'où viennent mes points ») changent
+-- ensemble, au caractère près. Toute arête ajoutée ici l'est là.
 -- =============================================================
 
 -- -------------------------------------------------------------
@@ -53,18 +69,35 @@ insert into public.bonus_catalog (key, kind, emoji, label, points, sort, ladder)
   ('course_10km', 'exercise', '🏃', '+5 km (10 au total)', 12, 8, 'course')
 on conflict (key) do nothing;
 
+-- Deux nouveaux bonus automatiques / événements de la S3 :
+--   · semaine_pleine : +5 posés sur le dimanche d'une semaine 7/7. Auto,
+--     ni déclaré ni tiré — même kind que prime_hebdo, jamais une puce.
+--   · abdos_double / squats_double : l'événement de doublement se tire
+--     désormais sur l'un des trois exos. Même valeur que pompes_double
+--     (la coche doublée = +1), lue au catalogue.
+insert into public.bonus_catalog (key, kind, emoji, label, points, sort, ladder) values
+  ('semaine_pleine', 'execution', '📅', 'La semaine pleine : 7 jours parfaits', 5, 19, null),
+  ('abdos_double',   'event',     '🎲', 'Les abdos comptent double aujourd''hui', 1, 20, null),
+  ('squats_double',  'event',     '🎲', 'Les squats comptent double aujourd''hui', 1, 20, null)
+on conflict (key) do nothing;
+
 -- -------------------------------------------------------------
--- 2. Le tirage : happy hour et lève-tôt sortent de la roue.
+-- 2. Le tirage : la roue de la S3.
 --
---    Ils libèrent 27 points de probabilité en semaine, 15 le
---    dimanche. Ils vont d'abord à « rien » — il ne reste que trois
---    événements, et un tirage qui tombe trop souvent cesse d'être un
---    événement (c'est déjà la raison des 40 % d'origine). Le reste
---    va à quitte ou double et au jour miroir. « Pompes double » ne
---    monte pas : il vient de gagner en puissance (point 4).
+--    Trois mouvements, tous à partir du 27/07 :
+--      · happy hour et lève-tôt avaient déjà quitté la roue ;
+--      · le jour miroir la quitte à son tour — il versait +8 au
+--        dernier du classement, or le dernier est un compte inactif
+--        (0 coche) qui le raflait à vie : le tirage ne récompensait
+--        plus personne d'utile. On arrête de le TIRER ; son scoring
+--        reste en place plus bas, les jours S1/S2 gardent leurs +8 ;
+--      · le doublement se répartit sur les trois exos (pompes / abdos
+--        / squats), à part égale, et quitte ou double redescend de
+--        0.20 à 0.12 — il était devenu la première source de points.
 --
 --    Rien à dater ici : la fonction ne tire que pour aujourd'hui et
---    relit les jours déjà tirés dans daily_events.
+--    relit les jours déjà tirés dans daily_events. Les tirages passés
+--    (miroir compris) sont figés dans la table, jamais rejoués.
 -- -------------------------------------------------------------
 
 create or replace function public.get_daily_event()
@@ -93,16 +126,18 @@ begin
     drawn := case
       when r < 0.45 then 'rien'
       when r < 0.70 then 'boss_dimanche'
-      when r < 0.80 then 'pompes_double'
-      when r < 0.90 then 'quitte_ou_double'
-      else 'jour_miroir'
+      when r < 0.76 then 'pompes_double'
+      when r < 0.82 then 'abdos_double'
+      when r < 0.88 then 'squats_double'
+      else 'quitte_ou_double'
     end;
   else
     drawn := case
-      when r < 0.50 then 'rien'
-      when r < 0.65 then 'pompes_double'
-      when r < 0.85 then 'quitte_ou_double'
-      else 'jour_miroir'
+      when r < 0.52 then 'rien'
+      when r < 0.64 then 'pompes_double'
+      when r < 0.76 then 'abdos_double'
+      when r < 0.88 then 'squats_double'
+      else 'quitte_ou_double'
     end;
   end if;
 
@@ -121,16 +156,19 @@ grant execute on function public.get_daily_event() to anon, authenticated;
 -- -------------------------------------------------------------
 -- 3. La vue daily_points, reprise de la migration 24 (joker).
 --
---    Cinq arêtes changent, tout le reste est identique au caractère
---    près — les ~300 lignes de série, de joker, de duels, de miroir
---    et de prime hebdo sont recopiées sans y toucher :
+--    Le squelette (série, joker, duels, miroir, prime hebdo) est
+--    recopié au caractère près. Ce qui change pour la S3 :
 --
+--      · base_pts : journée parfaite +2 → +4, datée au 27/07 ;
 --      · avant_8h, apres_22h, seance_20min : bornés à < 27/07 ;
 --      · happy_hour, leve_tot : bornés à < 27/07 (ceinture et
 --        bretelles — ils ne sont plus tirés, mais un tirage forcé à
 --        la main ne doit pas ressusciter le barème) ;
---      · pompes_double : à partir du 27/07, ajoute une seconde fois
---        les paliers pompes du jour, ce qui les double.
+--      · pompes_double : dès le 27/07, double aussi les paliers pompes,
+--        et deux sœurs (abdos_double, squats_double) font de même sur
+--        leur échelle — un CTE claims_* par exercice ;
+--      · full_weeks / semaine_pleine : +5 pour une semaine 7/7, injectés
+--        dans extras_core (donc comptés dans le classement hebdo).
 -- -------------------------------------------------------------
 
 create or replace view public.daily_points
@@ -143,6 +181,8 @@ e as (
          (pushups::int + abs::int + squats::int) as exos,
          (pushups and abs and squats) as perfect,
          pushups,
+         abs,
+         squats,
          completed_at,
          case when completed_at is not null
                and (completed_at at time zone 'Europe/Paris')::date = day
@@ -303,6 +343,21 @@ claims_pompes as (
   where cat.ladder = 'pompes'
   group by bc.player_id, bc.day
 ),
+-- Les deux sœurs, pour « les abdos / les squats comptent double ».
+claims_abdos as (
+  select bc.player_id, bc.day, sum(bc.points) as pts
+  from public.bonus_claims bc
+  join public.bonus_catalog cat on cat.key = bc.bonus_key
+  where cat.ladder = 'abdos'
+  group by bc.player_id, bc.day
+),
+claims_squats as (
+  select bc.player_id, bc.day, sum(bc.points) as pts
+  from public.bonus_claims bc
+  join public.bonus_catalog cat on cat.key = bc.bonus_key
+  where cat.ladder = 'squats'
+  group by bc.player_id, bc.day
+),
 timed as (
   select ws.player_id, ws.day, ws.duration_seconds, ws.finished_at
   from public.workout_sessions ws
@@ -368,6 +423,19 @@ base as (
      -- d'avant restent à la seule coche doublée.
      + case when ev.event_key = 'pompes_double' and s.day >= date '2026-07-27'
             then coalesce(cp.pts, 0) else 0 end
+     -- Les deux sœurs de la S3 : même logique, sur l'exo tiré. Ces
+     -- clés n'existent qu'à partir du 27/07 (jamais tirées avant),
+     -- donc la coche doublée n'a pas besoin de borne — aucun jour
+     -- antérieur ne les porte. Les paliers, eux, gardent la borne
+     -- explicite par symétrie avec les pompes.
+     + case when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
+            then public.bonus_value('abdos_double') else 0 end
+     + case when ev.event_key = 'abdos_double' and s.day >= date '2026-07-27'
+            then coalesce(ca.pts, 0) else 0 end
+     + case when ev.event_key = 'squats_double' and coalesce(e.squats, false)
+            then public.bonus_value('squats_double') else 0 end
+     + case when ev.event_key = 'squats_double' and s.day >= date '2026-07-27'
+            then coalesce(cq.pts, 0) else 0 end
      -- happy hour et lève-tôt : retirés au 27/07 (S3), et sortis du
      -- tirage par la même migration. La borne tient même si un
      -- événement était réinséré à la main dans daily_events.
@@ -394,16 +462,20 @@ base as (
   left join fastest_session fw on fw.day = s.day and fw.player_id = s.player_id
   left join claims c on c.player_id = s.player_id and c.day = s.day
   left join claims_pompes cp on cp.player_id = s.player_id and cp.day = s.day
+  left join claims_abdos ca on ca.player_id = s.player_id and ca.day = s.day
+  left join claims_squats cq on cq.player_id = s.player_id and cq.day = s.day
   left join public.daily_events ev on ev.day = s.day
 ),
 premirror as (
   select
     player_id, day, exos, perfect, streak_pos, jokered, multiplier, event_key,
-    (exos + case when perfect then 2 else 0 end) * multiplier as base_pts,
+    -- Journée parfaite : +2 jusqu'au 26/07, +4 à partir du 27/07 (S3).
+    -- Daté partout où la base est reconstruite, sinon le détail ment.
+    (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier as base_pts,
     execution_bonus, event_bonus, claim_bonus,
     case when event_key = 'quitte_ou_double' and perfect
          -- depuis le 20/07 : ne double plus que la base du jour
-         then (exos + case when perfect then 2 else 0 end) * multiplier
+         then (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier
               + case when day < date '2026-07-20'
                      then execution_bonus + event_bonus + claim_bonus
                      else 0 end
@@ -433,10 +505,25 @@ mirror_winner as (
   from standings
   order by mday, cum asc, player_id
 ),
+-- 📅 La semaine pleine (S3) : +5 pour qui aligne 7 jours parfaits sur
+-- une semaine lundi→dimanche entièrement révolue, posés sur le dimanche.
+-- Première semaine payée : 27/07→02/08, sur le 02/08. Modelé sur
+-- closed_weeks (même cross-join paris, même borne « semaine close »).
+-- Ne dépend que des jours parfaits, pas d'un classement : aucun risque
+-- de récursion quand extras_core alimente plus bas week_standing.
+full_weeks as (
+  select g.monday::date as monday, en.player_id
+  from paris,
+       generate_series(date '2026-07-27', paris.today, interval '7 days') as g(monday)
+  join e en on en.perfect and en.day between g.monday::date and g.monday::date + 6
+  where g.monday::date + 7 <= paris.today
+  group by g.monday::date, en.player_id
+  having count(*) = 7
+),
 -- Les points « posés » sur un jour sans passer par les entries :
--- le jour miroir (+8 au dernier) et les duels (+3 gagnant, −3 perdant,
--- posés sur le dimanche de la semaine jouée). Un match nul (winner
--- null) ne transfère rien.
+-- le jour miroir (+8 au dernier), les duels (+3 gagnant, −3 perdant,
+-- posés sur le dimanche de la semaine jouée) et la semaine pleine. Un
+-- match nul (winner null) ne transfère rien.
 extras_core as (
   select mw.player_id, mw.mday as day,
          public.bonus_value('jour_miroir') as pts
@@ -449,6 +536,10 @@ extras_core as (
   select dr.loser, dr.day, -public.bonus_value('duel_hebdo')
   from public.duel_results dr
   where dr.winner is not null
+  union all
+  select fw.player_id, fw.monday + 6 as day,
+         public.bonus_value('semaine_pleine') as pts
+  from full_weeks fw
 ),
 -- La prime hebdo : vainqueur du classement AFFICHÉ de chaque semaine
 -- close depuis le 20/07 (points + miroir + duels, la prime elle-même
@@ -537,8 +628,9 @@ where not exists (
 --    calcul de son côté (c'est ainsi depuis la migration 7). Patcher
 --    la vue sans elle ferait dire à l'écran « d'où viennent mes
 --    points » qu'un joueur a touché un bonus d'horaire le 28/07,
---    pour un total qui ne le contient pas. Les cinq bornes et le
---    doublement des pompes sont donc recopiés à l'identique.
+--    pour un total qui ne le contient pas. Les sept changements de la
+--    S3 (journée parfaite +4, bornes d'horaire, les trois doublements,
+--    la semaine pleine) sont donc recopiés ici à l'identique.
 --
 --    Repris de la migration 18, vérifié conforme à la fonction en
 --    place avant réécriture. Le reste ne bouge pas — y compris
@@ -561,6 +653,8 @@ as $$
            (pushups::int + abs::int + squats::int) as exos,
            (pushups and abs and squats) as perfect,
            pushups,
+           abs,
+           squats,
            completed_at,
            case when completed_at is not null
                  and (completed_at at time zone 'Europe/Paris')::date = day
@@ -656,6 +750,20 @@ as $$
     where cat.ladder = 'pompes'
     group by bc.player_id, bc.day
   ),
+  claims_abdos as (
+    select bc.player_id, bc.day, sum(bc.points) as pts
+    from public.bonus_claims bc
+    join public.bonus_catalog cat on cat.key = bc.bonus_key
+    where cat.ladder = 'abdos'
+    group by bc.player_id, bc.day
+  ),
+  claims_squats as (
+    select bc.player_id, bc.day, sum(bc.points) as pts
+    from public.bonus_claims bc
+    join public.bonus_catalog cat on cat.key = bc.bonus_key
+    where cat.ladder = 'squats'
+    group by bc.player_id, bc.day
+  ),
   claims_day as (
     select player_id, day, sum(points) as pts
     from public.bonus_claims
@@ -716,6 +824,15 @@ as $$
             then bonus_value('pompes_double') else 0 end
        + case when ev.event_key = 'pompes_double' and s.day >= date '2026-07-27'
               then coalesce(cp.pts, 0) else 0 end) as b_pompes_double,
+      -- Les deux sœurs de la S3, même logique sur l'exo tiré.
+      (case when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
+            then bonus_value('abdos_double') else 0 end
+       + case when ev.event_key = 'abdos_double' and s.day >= date '2026-07-27'
+              then coalesce(ca.pts, 0) else 0 end) as b_abdos_double,
+      (case when ev.event_key = 'squats_double' and coalesce(e.squats, false)
+            then bonus_value('squats_double') else 0 end
+       + case when ev.event_key = 'squats_double' and s.day >= date '2026-07-27'
+              then coalesce(cq.pts, 0) else 0 end) as b_squats_double,
       case when s.day < date '2026-07-27' and ev.event_key = 'happy_hour'
                 and e.done_ts::time >= time '18:00'
                 and e.done_ts::time < time '20:00'
@@ -735,17 +852,21 @@ as $$
     left join fastest_session fw on fw.day = s.day and fw.player_id = s.player_id
     left join claims_day c on c.player_id = s.player_id and c.day = s.day
     left join claims_pompes cp on cp.player_id = s.player_id and cp.day = s.day
+    left join claims_abdos ca on ca.player_id = s.player_id and ca.day = s.day
+    left join claims_squats cq on cq.player_id = s.player_id and cq.day = s.day
     left join public.daily_events ev on ev.day = s.day
   ),
   premirror as (
     select
       player_id, day, exos, perfect, multiplier, event_key,
-      (exos + case when perfect then 2 else 0 end) * multiplier as base_pts,
+      -- Journée parfaite : +2 jusqu'au 26/07, +4 dès le 27/07 (S3).
+      (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier as base_pts,
       b_premier_du_jour, b_avant_8h, b_apres_22h, b_seance_20min, b_seance_rapide,
-      b_retour, b_collectif, b_pompes_double, b_happy_hour, b_leve_tot, claim_bonus,
+      b_retour, b_collectif, b_pompes_double, b_abdos_double, b_squats_double,
+      b_happy_hour, b_leve_tot, claim_bonus,
       case when event_key = 'quitte_ou_double' and perfect
            -- depuis le 20/07 : ne double plus que la base du jour
-           then (exos + case when perfect then 2 else 0 end) * multiplier
+           then (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier
                 + case when day < date '2026-07-20'
                        then b_premier_du_jour + b_avant_8h + b_apres_22h
                             + b_seance_20min + b_seance_rapide + b_retour
@@ -758,7 +879,8 @@ as $$
   pmpts as (
     select player_id, day,
            base_pts + b_premier_du_jour + b_avant_8h + b_apres_22h + b_seance_20min
-           + b_seance_rapide + b_retour + b_collectif + b_pompes_double + b_happy_hour
+           + b_seance_rapide + b_retour + b_collectif + b_pompes_double
+           + b_abdos_double + b_squats_double + b_happy_hour
            + b_leve_tot + claim_bonus + b_quitte_ou_double as pts
     from premirror
   ),
@@ -803,6 +925,18 @@ as $$
       and (p_from is null or dr.day >= p_from)
       and (p_until is null or dr.day <= p_until)
   ),
+  -- 📅 La semaine pleine (S3), même calcul que dans daily_points :
+  -- 7 jours parfaits sur une semaine close (lundi ≥ 27/07), +5 le
+  -- dimanche. Comptée dans week_standing plus bas, comme la vue.
+  full_weeks as (
+    select g.monday::date as monday, en.player_id
+    from paris,
+         generate_series(date '2026-07-27', paris.today, interval '7 days') as g(monday)
+    join e en on en.perfect and en.day between g.monday::date and g.monday::date + 6
+    where g.monday::date + 7 <= paris.today
+    group by g.monday::date, en.player_id
+    having count(*) = 7
+  ),
   -- La prime hebdo : même calcul du vainqueur que daily_points
   -- (classement affiché, prime exclue), fenêtré sur le dimanche gagné.
   closed_weeks as (
@@ -825,6 +959,9 @@ as $$
       union all
       select dr.loser, dr.day, -bonus_value('duel_hebdo')
       from public.duel_results dr where dr.winner is not null
+      union all
+      select fw.player_id, fw.monday + 6 as day, bonus_value('semaine_pleine') as pts
+      from full_weeks fw
     ) s on s.day between cw.monday and cw.monday + 6
     group by cw.monday, s.player_id
   ),
@@ -844,6 +981,13 @@ as $$
       and (p_from is null or ww.monday + 6 >= p_from)
       and (p_until is null or ww.monday + 6 <= p_until)
   ),
+  semaine_mine as (
+    select fw.monday + 6 as day, bonus_value('semaine_pleine') as v
+    from full_weeks fw
+    where fw.player_id = p_player
+      and (p_from is null or fw.monday + 6 >= p_from)
+      and (p_until is null or fw.monday + 6 <= p_until)
+  ),
   auto as (
     select 'premier_du_jour'::text as k, b_premier_du_jour as v from mine
     union all select 'avant_8h',         b_avant_8h         from mine
@@ -853,12 +997,15 @@ as $$
     union all select 'retour',           b_retour           from mine
     union all select 'jour_parfait_collectif', b_collectif  from mine
     union all select 'pompes_double',    b_pompes_double    from mine
+    union all select 'abdos_double',     b_abdos_double     from mine
+    union all select 'squats_double',    b_squats_double    from mine
     union all select 'happy_hour',       b_happy_hour       from mine
     union all select 'leve_tot',         b_leve_tot         from mine
     union all select 'quitte_ou_double', b_quitte_ou_double from mine
     union all select 'jour_miroir',      v                  from mirror_mine
     union all select 'duel_hebdo',       v                  from duel_mine
     union all select 'prime_hebdo',      v                  from prime_mine
+    union all select 'semaine_pleine',   v                  from semaine_mine
   ),
   claims as (
     select bc.bonus_key as k, count(*)::bigint as cnt, sum(bc.points) as pts
@@ -877,13 +1024,16 @@ as $$
     union all
     select 'base', 'perfect', '✅', 'Journées parfaites',
            count(*) filter (where perfect)::bigint,
-           coalesce(sum(case when perfect then 2 else 0 end), 0)::numeric
+           -- +2 jusqu'au 26/07, +4 dès le 27/07 (S3), comme base_pts.
+           coalesce(sum(case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end), 0)::numeric
     from mine
     union all
     select 'base', 'streak', '🔥', 'Bonus de série',
            count(*) filter (where multiplier > 1)::bigint,
+           -- Le surplus de multiplicateur reconstruit la base : même
+           -- montant de journée parfaite daté, sinon détail ≠ total.
            coalesce(sum(
-             (exos + case when perfect then 2 else 0 end) * (multiplier - 1)
+             (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * (multiplier - 1)
            ), 0)::numeric
     from mine
   ),

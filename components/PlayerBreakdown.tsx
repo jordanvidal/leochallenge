@@ -247,8 +247,9 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
                 <dd>
-                  pompes double : ta coche pompes <b>et</b> tes paliers pompes
-                  déclarés comptent double ce jour-là
+                  exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
+                  ta coche <b>et</b> tes paliers déclarés compter double ce
+                  jour-là
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">
