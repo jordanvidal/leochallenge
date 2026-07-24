@@ -42,7 +42,8 @@ type FeedInsert = {
     | "badge"
     | "record"
     | "milestone"
-    | "joker";
+    | "joker"
+    | "premier";
   dedupe_key: string;
   payload: Record<string, unknown>;
 };
@@ -108,6 +109,10 @@ function momentPhrase(
       return { emoji: "📈", text: `bat sa meilleure série : ${payload.streak} jours` };
     case "milestone":
       return { emoji: "⚡", text: `aligne ${payload.streak} jours parfaits d'affilée` };
+    case "premier":
+      // Rendu réel côté client (lib/feed.ts) : cette carte n'est jamais
+      // poussée, donc cette branche ne sert qu'à l'exhaustivité du switch.
+      return { emoji: "🌅", text: "a fini premier" };
   }
 }
 
@@ -211,6 +216,8 @@ export async function POST(request: Request) {
     badges,
     streaks,
     jokers,
+    premierYesterday,
+    premierCat,
     todayEntries,
     collectifCat,
   ] = await Promise.all([
@@ -226,6 +233,20 @@ export async function POST(request: Request) {
         .from("daily_points")
         .select("player_id, day")
         .eq("jokered", true),
+      // 🌅 Le « premier du jour » de la VEILLE : le trophée est attribué
+      // une fois la journée finie (rotation comprise), donc c'est hier
+      // qu'on connaît le gagnant. Au plus une ligne.
+      supabase
+        .from("daily_points")
+        .select("player_id")
+        .eq("day", addDays(today, -1))
+        .eq("premier_du_jour", true)
+        .maybeSingle(),
+      supabase
+        .from("bonus_catalog")
+        .select("points")
+        .eq("key", "premier_du_jour")
+        .maybeSingle(),
       supabase
         .from("entries")
         .select("player_id, day, pushups, abs, squats")
@@ -244,10 +265,11 @@ export async function POST(request: Request) {
     badges.error ||
     streaks.error ||
     todayEntries.error
-    // jokers.error volontairement absent : cette route porte aussi les
+    // jokers/premier volontairement absents : cette route porte aussi les
     // records, les milestones, le jour parfait collectif et les push de
-    // dépassement. Perdre l'annonce d'un joker vaut infiniment mieux que
-    // faire tomber tout le reste en 500. On dégrade, on ne casse pas.
+    // dépassement. Perdre l'annonce d'un joker ou d'un premier du jour vaut
+    // infiniment mieux que faire tomber tout le reste en 500. On dégrade,
+    // on ne casse pas.
   ) {
     return NextResponse.json({ error: "lecture échouée" }, { status: 500 });
   }
@@ -386,6 +408,27 @@ export async function POST(request: Request) {
     ...streakMoments(streaks.data as StreakRow[], jokerDays, today),
   );
 
+  // 🌅 Premier du jour : le gagnant de la VEILLE (le trophée se décerne
+  // une fois la journée finie, rotation comprise). Une carte par jour,
+  // dédup par jour. Volontairement HORS push (voir plus bas) : un premier
+  // quotidien poussé à six serait le bruit que le produit refuse — la
+  // carte se découvre en ouvrant le fil, comme le « premier à terminer »
+  // vivait déjà, sans notif, dans le détail des points.
+  const premierId = (premierYesterday.data as { player_id: string } | null)
+    ?.player_id;
+  if (premierId) {
+    const yesterday = addDays(today, -1);
+    moments.push({
+      player_id: premierId,
+      kind: "premier",
+      dedupe_key: yesterday,
+      payload: {
+        day: yesterday,
+        ...(premierCat.data ? { points: Number(premierCat.data.points) } : {}),
+      },
+    });
+  }
+
   // 🗞️ L'upsert en ignoreDuplicates ne rend que les lignes vraiment
   // insérées : la dédup en base garantit qu'un moment ne part qu'une
   // fois en push, même si l'appel est rejoué. Erreur → data null →
@@ -400,8 +443,12 @@ export async function POST(request: Request) {
       })
       .select("player_id, kind, payload");
 
+    // Le « premier du jour » entre bien dans le fil (inséré ci-dessus)
+    // mais ne part JAMAIS en push : on le retire avant de grouper les
+    // notifs. Un joueur qui n'a que ça de neuf ne reçoit donc rien.
     const byPlayer = new Map<string, FeedInsert[]>();
     for (const m of (inserted ?? []) as FeedInsert[]) {
+      if (m.kind === "premier") continue;
       byPlayer.set(m.player_id, [...(byPlayer.get(m.player_id) ?? []), m]);
     }
     const allIds = playerIds;
