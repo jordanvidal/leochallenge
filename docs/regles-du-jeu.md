@@ -89,13 +89,13 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 
 | Bonus | Points | Condition |
 |---|---|---|
-| 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée). Depuis le 20/07, le trophée tourne : si tu as été premier hier, le +3 du jour va au premier des autres |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
 | 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
 
 **Ce qui a disparu le 27/07 (S3) :**
 
 - 🔥 **Avant 8h** (+3) et 🌙 **Après 22h** (+2). L'heure à laquelle tu t'entraînes dit quelque chose de ton emploi du temps, rien de ta performance. Un couche-tard et un lève-tôt ne sont pas départagés là-dessus.
+- 🌅 **Premier du jour** (+3). Pensé comme une course, mais un réveil malin le raflait autant qu'un vrai effort — comme les bonus d'horloge, il parlait plus de l'agenda que de la perf. Le trophée tournait depuis le 20/07 ; il s'éteint le 27/07.
 - ⚡ **Séance éclair** (< 20 min, +2). Sur les 16 séances chronométrées de la S2, 14 passaient sous la barre, chez les six joueurs. Ce n'était plus un bonus, c'était un salaire.
 - 🥇 **Séance la plus rapide** (+2). Même salaire déguisé : le jeu optimal était de lancer la séance, ne rien faire dedans, cocher les 3 exos à la main et finir juste au-dessus du plancher.
 - 🤝 **Jour parfait collectif** (+5 chacun). Il se ramollissait quand le groupe se vidait — fin août, deux actifs à 3/3 le touchaient presque tous les jours. Un bonus qui devient plus facile quand l'engagement baisse, c'est l'inverse du but.
@@ -104,7 +104,6 @@ Les points déjà marqués avec ces bonus restent acquis : rien n'est repris ré
 
 Précisions :
 
-- Le « premier du jour » exige que la séance soit finie **le jour même**.
 - Le chrono de la séance guidée est tenu par le serveur, pas par ton téléphone. Une séance de moins de 5 minutes est refusée — personne ne fait 300 répétitions en 4 minutes.
 
 ---
@@ -252,11 +251,6 @@ Aucun. Il préserve ta série, il ne remplace pas une journée. Tu gardes ton mu
 
 **Quelqu'un peut rejoindre en cours de route ?**
 Oui, dans la limite de **12 joueurs**. Et un joueur qui a coché ne serait-ce qu'un exo ne peut plus être supprimé.
-
-**Le « premier du jour », c'est attribué quand ?**
-Une fois la journée finie, pour éviter que le gagnant change à chaque coche et décoche. Pareil pour la séance la plus rapide.
-
-Et depuis le 20/07, le trophée tourne : si tu as été premier à finir hier, le +3 du jour va au premier des autres. L'exclusion ne dure qu'un jour — tu peux le reprendre dès le lendemain. Cas limite : si le tenant est le seul à finir, le trophée n'est pas attribué ce jour-là.
 
 **Qui décide qu'un bonus est vrai ?**
 Personne. C'est sur l'honneur — mais toutes les déclarations sont visibles par tout le monde, en direct. La pression sociale fait le reste.

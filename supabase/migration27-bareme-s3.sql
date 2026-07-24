@@ -15,8 +15,6 @@
 --   3. 🕘 Les quatre bonus d'horloge retirés — avant 8h, après 22h,
 --      happy hour, lève-tôt. L'heure à laquelle on s'entraîne dit
 --      quelque chose de l'emploi du temps, rien de la performance.
---      Restent « premier du jour » (une course, quelqu'un la gagne)
---      et « séance la plus rapide » (de la perf pure).
 --   4. ✅ Journée parfaite : le bonus de base passe de +2 à +4. Le
 --      contrat rempli (3/3) doit peser plus lourd que l'assaisonnement.
 --   5. 📅 « La semaine pleine » : +5 automatiques pour 7 jours parfaits
@@ -34,6 +32,11 @@
 --      déguisé que l'éclair : lancer, ne rien faire, cocher à la main.
 --   9. 🤝 Jour parfait collectif retiré (borné au 27/07). Il se ramollit
 --      quand le groupe se vide — plus facile à mesure qu'on décroche.
+--  10. 🥇 Premier du jour retiré (borné au 27/07). Pensé comme une
+--      course, mais un réveil malin le raflait autant qu'un vrai effort ;
+--      comme les bonus d'horloge, il parlait plus de l'agenda que de la
+--      perf. Borné, pas supprimé : les jours S1/S2 gardent leurs +3, et
+--      la colonne premier_du_jour de la vue reste (signature figée).
 --
 -- AUCUN EFFET RÉTROACTIF. Chaque changement est daté au 27/07 dans la
 -- vue (< 27/07 pour un retrait, >= 27/07 pour un ajout), comme les
@@ -390,7 +393,10 @@ base as (
     case when coalesce(st.streak_pos, 0) >= 7 then 2.0
          when coalesce(st.streak_pos, 0) >= 3 then 1.5
          else 1.0 end as multiplier,
-    (case when fd.player_id is not null
+    -- premier du jour : retiré au 27/07 (S3). Une course, mais un réveil
+    -- malin le raflait autant qu'un vrai effort. Borné, pas supprimé :
+    -- les jours S1/S2 gardent leurs +3.
+    (case when s.day < date '2026-07-27' and fd.player_id is not null
           then public.bonus_value('premier_du_jour') else 0 end
      -- dès le 20/07, ne se cumule plus avec « premier du jour » (les
      -- deux valent +3 ; si les valeurs divergent un jour, payer le
@@ -807,7 +813,8 @@ as $$
       case when coalesce(st.streak_pos, 0) >= 7 then 2.0
            when coalesce(st.streak_pos, 0) >= 3 then 1.5
            else 1.0 end as multiplier,
-      case when fd.player_id is not null then bonus_value('premier_du_jour') else 0 end as b_premier_du_jour,
+      -- premier du jour : retiré au 27/07 (S3), borné comme dans daily_points.
+      case when s.day < date '2026-07-27' and fd.player_id is not null then bonus_value('premier_du_jour') else 0 end as b_premier_du_jour,
       -- dès le 20/07, ne se cumule plus avec « premier du jour »
       -- avant 8h / après 22h : retirés au 27/07 (S3), bornés ici comme
       -- dans daily_points — le détail doit raconter la même histoire

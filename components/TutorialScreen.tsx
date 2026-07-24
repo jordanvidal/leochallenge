@@ -87,7 +87,6 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <h1 className="text-2xl font-bold">Les bonus, par-dessus</h1>
       <p className="mt-3 text-muted">Des points en plus qui s&apos;empilent sur ta base :</p>
       <dl className="mt-5 space-y-3">
-        <Rule amount="🥇">premier à finir son 3/3 dans la journée</Rule>
         <Rule amount="💪">séance guidée bouclée</Rule>
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>

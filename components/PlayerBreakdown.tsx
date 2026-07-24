@@ -213,7 +213,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                 <dd>par exo coché</dd>
               </div>
               <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">+2</dt>
+                <dt className="num-display w-14 shrink-0 text-ink">+4</dt>
                 <dd>journée parfaite (3 exos sur 3)</dd>
               </div>
               <div className="flex items-baseline gap-3">
@@ -226,7 +226,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               </div>
               <div className="flex items-baseline gap-3">
                 <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
-                <dd>premier du jour, séances, événements et exos déclarés s&apos;ajoutent par-dessus</dd>
+                <dd>séances, événements et exos déclarés s&apos;ajoutent par-dessus</dd>
               </div>
               <div className="flex items-baseline gap-3">
                 <dt className="w-14 shrink-0 font-bold text-ink">⚔️ ±3</dt>
@@ -235,6 +235,10 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               <div className="flex items-baseline gap-3">
                 <dt className="w-14 shrink-0 font-bold text-ink">🏆 +3</dt>
                 <dd>gagner la semaine : le vainqueur du classement hebdo prend 3 pts au général (posés le dimanche, depuis le 20/07)</dd>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <dt className="w-14 shrink-0 font-bold text-ink">📅 +5</dt>
+                <dd>la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le dimanche (depuis le 27/07)</dd>
               </div>
             </dl>
 
@@ -258,13 +262,6 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                   quitte ou double : si tu boucles ton 3/3, tes points de{" "}
                   <b>base</b> du jour comptent double. Si tu rates, rien ne
                   change (aucune perte).
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>🪞</dt>
-                <dd>
-                  jour miroir : le <b>dernier</b> du classement général reçoit
-                  +8 pour se relancer
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">
