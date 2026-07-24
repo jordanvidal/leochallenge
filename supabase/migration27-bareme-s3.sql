@@ -5,19 +5,16 @@
 -- l'effort. Arbitrages pris avec Jordan le 22/07, applicables au
 -- 27/07 :
 --
---   1. 🚶 10 000 pas retiré. Un jogging de 6 km cochait la course ET
---      les pas : deux bonus pour une sortie. Le pas n'est pas un
---      exercice du challenge, c'est une conséquence de la journée.
---   2. 🏃 10 km de course ajouté, en deuxième palier de l'échelle
+--   1. 🏃 10 km de course ajouté, en deuxième palier de l'échelle
 --      course : 5 km = 8 pts, +5 km = 12 pts, donc 10 km = 20 pts.
 --      Les paliers se cumulent depuis la migration 22, la grammaire
 --      est celle des pompes (« +100 pompes (200 au total) »).
---   3. ⚡ Séance éclair (< 20 min) retirée. 14 séances chronométrées
+--   2. ⚡ Séance éclair (< 20 min) retirée. 14 séances chronométrées
 --      sur 16 depuis le 20/07 passaient sous la barre, chez les six
 --      joueurs : ce n'était plus un bonus, c'était un salaire.
---   4. 🎲 « Les pompes comptent double » double désormais aussi les
+--   3. 🎲 « Les pompes comptent double » double désormais aussi les
 --      paliers pompes déclarés, pas seulement la coche.
---   5. 🕘 Les quatre bonus d'horloge retirés — avant 8h, après 22h,
+--   4. 🕘 Les quatre bonus d'horloge retirés — avant 8h, après 22h,
 --      happy hour, lève-tôt. L'heure à laquelle on s'entraîne dit
 --      quelque chose de l'emploi du temps, rien de la performance.
 --      Restent « premier du jour » (une course, quelqu'un la gagne)
@@ -28,27 +25,11 @@
 -- et de la S2 ne bougent pas d'un demi-point, le classement général
 -- non plus. Vérifiable : la vue ne change de valeur pour aucun jour
 -- antérieur au 27/07.
---
--- On RETIRE, on ne SUPPRIME pas : bonus_claims référence
--- bonus_catalog(key), et `pas_10000` compte déjà 4 déclarations.
--- D'où la colonne retired_on plutôt qu'un DELETE — l'historique
--- garde ses points et le fil garde ses libellés.
 -- =============================================================
 
 -- -------------------------------------------------------------
--- 1. Le catalogue : retrait des 10 000 pas, arrivée du 10 km.
+-- 1. Le catalogue : arrivée du 10 km.
 -- -------------------------------------------------------------
-
-alter table public.bonus_catalog add column if not exists retired_on date;
-
-comment on column public.bonus_catalog.retired_on is
-  'Jour à partir duquel le bonus n''est plus déclarable. null = actif. '
-  'On retire sans supprimer : bonus_claims référence cette clé et '
-  'les déclarations passées gardent leurs points.';
-
-update public.bonus_catalog
-   set retired_on = date '2026-07-27'
- where key = 'pas_10000';
 
 -- Le 5 km rejoint une échelle : deux paliers cumulables qui font 20.
 update public.bonus_catalog set ladder = 'course' where key = 'course_5km';
@@ -73,95 +54,7 @@ insert into public.bonus_catalog (key, kind, emoji, label, points, sort, ladder)
 on conflict (key) do nothing;
 
 -- -------------------------------------------------------------
--- 2. Le garde : un bonus retiré n'est plus déclarable.
---
---    Recopié en entier (plpgsql ne se patche pas) depuis la version
---    en place — migrations 22 (paliers cumulables) et 23 (jour en
---    cours seul). Seul le bloc BONUS_RETIRE est neuf.
--- -------------------------------------------------------------
-
-create or replace function public.guard_bonus_claim()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  cat public.bonus_catalog%rowtype;
-  paris_today date := (now() at time zone 'Europe/Paris')::date;
-  cap_day numeric := public.bonus_value('cap_claims_jour');
-  cap_week numeric := public.bonus_value('cap_points_semaine');
-  nb int;
-  worst numeric;
-begin
-  select * into cat from public.bonus_catalog where key = new.bonus_key;
-  if not found then
-    raise exception 'BONUS_INCONNU: % n''est pas au catalogue', new.bonus_key;
-  end if;
-
-  -- Un client resté ouvert depuis dimanche verrait encore la puce.
-  -- Le jour de la déclaration fait foi, pas la date du jour : la
-  -- vérité du barème est celle du jour joué.
-  if cat.retired_on is not null and new.day >= cat.retired_on then
-    raise exception 'BONUS_RETIRE: % n''est plus au barème', new.bonus_key;
-  end if;
-
-  if cat.kind <> 'exercise' then
-    if new.bonus_key = 'boss_dimanche' then
-      if not exists (
-        select 1 from public.daily_events
-        where day = new.day and event_key = 'boss_dimanche'
-      ) then
-        raise exception 'BOSS_INACTIF: pas de boss ce jour-là';
-      end if;
-    else
-      raise exception 'BONUS_NON_DECLARABLE: % est automatique', new.bonus_key;
-    end if;
-  end if;
-
-  if new.day > paris_today then
-    raise exception 'JOUR_FUTUR: on ne déclare pas en avance';
-  end if;
-  -- Ex-fenêtre de 48h (`paris_today - 2`). Migration 23.
-  if new.day < paris_today then
-    raise exception 'JOUR_VERROUILLE: seul le jour en cours est déclarable';
-  end if;
-
-  new.points := cat.points;
-  new.created_at := now();
-
-  if cat.kind = 'exercise' then
-    -- (Le bloc CAP_PALIER vivait ici : migration 22, paliers cumulables.)
-
-    select count(*) into nb
-    from public.bonus_claims bc
-    join public.bonus_catalog c on c.key = bc.bonus_key and c.kind = 'exercise'
-    where bc.player_id = new.player_id and bc.day = new.day;
-    if nb >= cap_day then
-      raise exception 'CAP_JOUR: % bonus d''exercice max par jour', cap_day;
-    end if;
-
-    select coalesce(max(t.total), 0) into worst
-    from (
-      select sum(bc.points) as total
-      from generate_series(new.day - 6, new.day, interval '1 day') g(w)
-      join public.bonus_claims bc
-        on bc.player_id = new.player_id
-       and bc.day between g.w::date and g.w::date + 6
-      join public.bonus_catalog c on c.key = bc.bonus_key and c.kind = 'exercise'
-      group by g.w
-    ) t;
-    if worst + cat.points > cap_week then
-      raise exception 'CAP_SEMAINE: plafond de % pts de bonus sur 7 jours', cap_week;
-    end if;
-  end if;
-
-  return new;
-end;
-$$;
-
--- -------------------------------------------------------------
--- 3. Le tirage : happy hour et lève-tôt sortent de la roue.
+-- 2. Le tirage : happy hour et lève-tôt sortent de la roue.
 --
 --    Ils libèrent 27 points de probabilité en semaine, 15 le
 --    dimanche. Ils vont d'abord à « rien » — il ne reste que trois
@@ -226,7 +119,7 @@ $$;
 grant execute on function public.get_daily_event() to anon, authenticated;
 
 -- -------------------------------------------------------------
--- 4. La vue daily_points, reprise de la migration 24 (joker).
+-- 3. La vue daily_points, reprise de la migration 24 (joker).
 --
 --    Cinq arêtes changent, tout le reste est identique au caractère
 --    près — les ~300 lignes de série, de joker, de duels, de miroir
@@ -638,7 +531,7 @@ where not exists (
 );
 
 -- -------------------------------------------------------------
--- 5. player_breakdown : les mêmes bornes, au même endroit.
+-- 4. player_breakdown : les mêmes bornes, au même endroit.
 --
 --    La RPC du détail ne lit pas daily_points : elle REJOUE le même
 --    calcul de son côté (c'est ainsi depuis la migration 7). Patcher
@@ -1017,7 +910,7 @@ as $$
 $$;
 
 -- -------------------------------------------------------------
--- 6. Vérifier la non-régression AVANT de valider.
+-- 5. Vérifier la non-régression AVANT de valider.
 --
 --    Cette migration ne doit rien changer aux jours déjà joués. Le
 --    protocole, dans l'éditeur SQL — photographier la vue actuelle,

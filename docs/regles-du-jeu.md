@@ -63,14 +63,14 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🧎 200 fentes | +7 |
 | 💺 50 dips sur chaise | +4 |
 | 🪑 3 min de chaise murale | +3 |
+| 🚶 10 000 pas | +4 |
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 
-Six bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement : burpees, fentes, dips, chaise murale. La chaise murale et le gainage se cumulent dans la journée, mais chacun ne se déclare qu'une fois.
+Sept bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement : burpees, fentes, dips, chaise murale, 10 000 pas. Les pas se lisent sur le téléphone ; la chaise murale et le gainage se cumulent dans la journée, mais chacun ne se déclare qu'une fois.
 
-**Deux mouvements en S3 (27/07) :**
+**Un mouvement en S3 (27/07) :**
 
-- 🚶 **Les 10 000 pas sont retirés.** Un jogging de 6 km cochait la course *et* les pas : deux bonus pour une seule sortie. Marcher n'est pas un exercice du challenge, c'est une conséquence de la journée. Les déclarations déjà enregistrées gardent leurs 4 points.
 - 🏃 **Le 10 km arrive**, en deuxième palier de la course. 5 km = 8 pts, le palier suivant = 12 pts : un 10 km déclaré en entier vaut **20 points**.
 
 **Le garde-fou :**
