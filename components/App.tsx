@@ -334,6 +334,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            gamification={gamification}
             showToast={data.showToast}
           />
         )}
