@@ -92,8 +92,8 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
-        Garde-fou : un seul palier par exo et par jour. +50 pompes OU +100
-        pompes, jamais les deux.
+        Les paliers d&apos;un même exo se cumulent : +50 <b>et</b> +100 pompes
+        le même jour, tu prends les deux.
       </p>
     </div>,
 

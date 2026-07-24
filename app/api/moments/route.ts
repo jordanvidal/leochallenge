@@ -317,7 +317,11 @@ export async function POST(request: Request) {
   const allPerfect =
     activeIds.size >= 2 &&
     [...activeIds].every((id) => doneToday.get(id) === 3);
-  if (allPerfect) {
+  // Retiré du barème le 27/07 (S3, cf. migration 27) : plus de points,
+  // donc plus de carte. Les jours d'avant gardent la leur. Même borne
+  // que la vue daily_points, pour que le fil ne promette pas un bonus
+  // qui ne tombe plus.
+  if (allPerfect && today < "2026-07-27") {
     moments.push({
       player_id: actorId,
       kind: "collectif",
