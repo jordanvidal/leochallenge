@@ -48,6 +48,15 @@ if (CHALLENGE_START > CHALLENGE_END) {
   );
 }
 
+// Bascule de la saison 3 (nouveau barème + écran de lancement). Configurable
+// par env comme les bornes du challenge : une autre bande n'a pas la même
+// histoire de saisons, elle posera sa propre date (ou aucune).
+export const SAISON3_START = readDayFromEnv(
+  process.env.NEXT_PUBLIC_SAISON3_START,
+  "2026-07-27",
+  "NEXT_PUBLIC_SAISON3_START",
+);
+
 // Fenêtre d'édition : le jour en cours uniquement. On ne déclare ses exos
 // que le jour même — ni rattrapage, ni fenêtre glissante sur les jours passés.
 export const EDIT_WINDOW_DAYS = 0;
@@ -147,6 +156,12 @@ export function allChallengeDays(): string[] {
     C'est la garde qui fait apparaître le Bilan et disparaître « Aujourd'hui ». */
 export function challengeIsOver(): boolean {
   return parisToday() > CHALLENGE_END;
+}
+
+/** La saison 3 a-t-elle commencé ? Garde de l'écran de lancement et repère
+    d'affichage. Vrai à partir du jour SAISON3_START (Paris) inclus. */
+export function saison3Started(): boolean {
+  return parisToday() >= SAISON3_START;
 }
 
 /** Le bilan est-il encore provisoire ? Vrai tant que le dernier jour tombe dans

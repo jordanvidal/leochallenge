@@ -366,7 +366,11 @@ export async function POST(request: Request) {
   const allPerfect =
     activeIds.size >= 2 &&
     [...activeIds].every((id) => doneToday.get(id) === 3);
-  if (allPerfect) {
+  // Retiré du barème le 27/07 (S3, cf. migration 27) : plus de points,
+  // donc plus de carte. Les jours d'avant gardent la leur. Même borne
+  // que la vue daily_points, pour que le fil ne promette pas un bonus
+  // qui ne tombe plus.
+  if (allPerfect && today < "2026-07-27") {
     moments.push({
       player_id: actorId,
       kind: "collectif",
@@ -496,8 +500,12 @@ export async function POST(request: Request) {
   // vivait déjà, sans notif, dans le détail des points.
   const premierId = (premierYesterday.data as { player_id: string } | null)
     ?.player_id;
-  if (premierId) {
-    const yesterday = addDays(today, -1);
+  const yesterday = addDays(today, -1);
+  // Retiré du barème le 27/07 (S3, cf. migration29) : plus de points,
+  // donc plus de carte. Le 26/07 est le dernier jour où il est gagné, donc
+  // la dernière carte tombe le 27 (elle annonce la veille). Même borne que
+  // daily_points : on n'annonce que les jours S2 (veille < 27/07).
+  if (premierId && yesterday < "2026-07-27") {
     moments.push({
       player_id: premierId,
       kind: "premier",
