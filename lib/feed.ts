@@ -37,6 +37,11 @@ export type FeedPayload = {
   badge?: string;
   streak?: number;
   co?: string[];
+  // record de volume : les répétitions de rab du jour, et l'ancien record
+  // qui vient de tomber. Leur présence distingue les deux familles de
+  // `kind: "record"` — sans `reps`, c'est un record de série.
+  reps?: number;
+  before?: number;
   // duels
   week_monday?: string;
   opponent?: string;
@@ -146,7 +151,21 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
         text: `a fini premier${p.day ? ` le ${frenchDayMonth(p.day)}` : ""}${pts}`,
       };
     case "record":
-      return { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
+      // Deux records sous le même kind — réutiliser 'record' évite d'étendre
+      // feed_events_kind_check, donc évite une migration. On discrimine sur
+      // le payload, et l'emoji sépare les deux à l'œil : deux cartes de même
+      // famille qui se ressembleraient seraient illisibles.
+      //
+      // L'ancien record est affiché, et c'est tout l'objet de la carte :
+      // sans lui « 350 répétitions » n'est qu'un chiffre, avec lui c'est une
+      // progression. C'est la seule chose que l'appli dise à un joueur sur
+      // lui-même plutôt que sur son rang.
+      return p.reps !== undefined
+        ? {
+            emoji: "💥",
+            text: `explose son record de rab : ${p.reps} répétitions, contre ${p.before} avant`,
+          }
+        : { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
     case "milestone":
       return { emoji: "⚡", text: `aligne ${p.streak} jours parfaits d'affilée` };
     case "collectif": {
