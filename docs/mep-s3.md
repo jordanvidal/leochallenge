@@ -12,14 +12,23 @@ trois PR — dans l'ordre, mais à n'importe quelle heure.
 
 ## Ce qui part
 
-| PR | Branche | Contenu | Migration |
-|---|---|---|---|
-| **#34** | `feature/pas-hors-course` | Barème S3, 10 km, un seul déplacement par jour | `29` |
-| **#38** | `feature/bonus-cardio` | Six bonus de cardio, rangement par zone | `31` |
-| **#39** | `feature/lancement-s3` | Le carrousel de lancement | aucune |
+| Ordre | PR | Branche | Contenu | Migration |
+|---|---|---|---|---|
+| 1 | **#34** | `feature/pas-hors-course` | Barème S3, 10 km, un seul déplacement par jour | `29` |
+| 2 | **#38** | `feature/bonus-cardio` | Six bonus de cardio, rangement par zone | `31` |
+| 3 | **#35** | `fix/feuille-bonus-glisser` | La feuille se ferme au glissé | aucune |
+| 4 | **#39** | `feature/lancement-s3` | Le carrousel de lancement | aucune |
 
-#30 est fermée : son unique apport (le correctif du doublement, `47772f3`)
-est greffé sur #34.
+Deux PR ont été fermées en préparant cette MEP :
+
+- **#30** — son unique apport (le correctif du doublement, `47772f3`) est
+  greffé sur #34, cherry-pick sans conflit.
+- **#36** — sa spec est déjà sur `main` depuis #37, dans une version plus
+  récente. La merger aurait *retiré* la correction sur l'angle mort RLS.
+
+#35 n'a rien à voir avec la S3 et pourrait partir seule, mais elle réécrit
+l'intérieur de la même feuille que #38 : elle est empilée dessus, conflit
+déjà résolu.
 
 **L'ordre n'est pas négociable.** #38 est basée sur #34 sur GitHub : la
 merger d'abord ferait entrer le barème S3 sans son plan de test. Et côté
@@ -75,8 +84,14 @@ un podium inattendu ne laisse jamais l'écran muet.
 ### 2. Merger, dans cet ordre
 
 1. **#34** → `main`
-2. **#38** → `main` (sa base bascule automatiquement de `feature/pas-hors-course` vers `main` une fois #34 mergée)
-3. **#39** → `main`
+2. **#38** → `main`
+3. **#35** → `main`
+4. **#39** → `main`
+
+Les bases sont chaînées sur GitHub (#35 vise #38, qui vise #34) : chacune
+bascule sur `main` toute seule quand la précédente est mergée, et la revue
+ne montre que le diff propre à la PR. Merger dans le désordre n'est pas
+possible — GitHub refusera.
 
 Après chaque merge, attendre que le déploiement Vercel passe au vert.
 
