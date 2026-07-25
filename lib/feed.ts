@@ -37,6 +37,11 @@ export type FeedPayload = {
   badge?: string;
   streak?: number;
   co?: string[];
+  // record de volume : les répétitions de rab du jour, et l'ancien record
+  // qui vient de tomber. Leur présence distingue les deux familles de
+  // `kind: "record"` — sans `reps`, c'est un record de série.
+  reps?: number;
+  before?: number;
   // duels
   week_monday?: string;
   opponent?: string;
@@ -89,9 +94,16 @@ const BONUS_PHRASES: Record<string, string> = {
   squats_100: "a remis 100 squats",
   squats_200: "a remis 200 squats",
   course_5km: "a couru 5 km",
+  course_10km: "a poussé jusqu'à 10 km",
   gainage_3min: "a tenu 3 min de gainage",
   corde_10min: "a sauté 10 min à la corde",
   marches_500: "a grimpé 500 marches",
+  jumping_jacks_100: "a claqué 100 jumping jacks",
+  jumping_jacks_200: "a claqué 200 jumping jacks",
+  climbers_100: "a enchaîné 100 mountain climbers",
+  climbers_200: "a enchaîné 200 mountain climbers",
+  squats_jump_50: "a sauté 50 squats jump",
+  squats_jump_100: "a sauté 100 squats jump",
   boss_dimanche: "a réussi le boss du dimanche",
 };
 
@@ -146,7 +158,21 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
         text: `a fini premier${p.day ? ` le ${frenchDayMonth(p.day)}` : ""}${pts}`,
       };
     case "record":
-      return { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
+      // Deux records sous le même kind — réutiliser 'record' évite d'étendre
+      // feed_events_kind_check, donc évite une migration. On discrimine sur
+      // le payload, et l'emoji sépare les deux à l'œil : deux cartes de même
+      // famille qui se ressembleraient seraient illisibles.
+      //
+      // L'ancien record est affiché, et c'est tout l'objet de la carte :
+      // sans lui « 350 répétitions » n'est qu'un chiffre, avec lui c'est une
+      // progression. C'est la seule chose que l'appli dise à un joueur sur
+      // lui-même plutôt que sur son rang.
+      return p.reps !== undefined
+        ? {
+            emoji: "💥",
+            text: `explose son record de rab : ${p.reps} répétitions, contre ${p.before} avant`,
+          }
+        : { emoji: "📈", text: `bat sa meilleure série : ${p.streak} jours` };
     case "milestone":
       return { emoji: "⚡", text: `aligne ${p.streak} jours parfaits d'affilée` };
     case "collectif": {

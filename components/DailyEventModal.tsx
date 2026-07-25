@@ -29,6 +29,12 @@ const COPY: Record<string, { howto: string }> = {
   pompes_double: {
     howto: "Aujourd'hui, tes pompes comptent double. Fais ta séance pour en profiter.",
   },
+  abdos_double: {
+    howto: "Aujourd'hui, tes abdos comptent double. Fais ta séance pour en profiter.",
+  },
+  squats_double: {
+    howto: "Aujourd'hui, tes squats comptent double. Fais ta séance pour en profiter.",
+  },
   happy_hour: {
     howto: "Termine ta séance entre 18h et 20h pour empocher le bonus.",
   },
@@ -80,10 +86,11 @@ export default function DailyEventModal({
   const glow = {
     filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
   };
-  // Multiplicateurs : « pompes double » double les pompes, « quitte ou
-  // double » double tout le jour. Le badge dit ×2 plutôt qu'un montant.
+  // Multiplicateurs : les doublements d'exo (pompes / abdos / squats)
+  // et « quitte ou double » multiplient par deux. Toutes ces clés
+  // finissent par « _double » — le badge dit ×2 plutôt qu'un montant.
   const badge =
-    event.key === "quitte_ou_double" || event.key === "pompes_double"
+    event.key.endsWith("_double")
       ? "×2"
       : event.points > 0
         ? `+${fmtPoints(event.points)}`

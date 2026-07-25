@@ -13,6 +13,11 @@ import { NextResponse } from "next/server";
 import { addDays } from "@/lib/challenge";
 import { BADGES } from "@/lib/gamification";
 import {
+  type VolumeClaim,
+  volumeDedupeKey,
+  volumeRecords,
+} from "@/lib/records";
+import {
   isAuthorizedApp,
   parisToday,
   sendToPlayers,
@@ -33,6 +38,7 @@ type EntryRow = {
   abs: boolean;
   squats: boolean;
 };
+type LadderRow = { key: string; ladder: string | null };
 type FeedInsert = {
   player_id: string;
   kind:
@@ -106,7 +112,16 @@ function momentPhrase(
         text: `a brûlé son joker — sa série de ${payload.streak} jours tient`,
       };
     case "record":
-      return { emoji: "📈", text: `bat sa meilleure série : ${payload.streak} jours` };
+      // Deux familles sous le même kind, discriminées par le payload (même
+      // règle que lib/feed.ts) : `reps` présent = record de volume, sinon
+      // record de série. Celui de volume ne part jamais en push (filtré
+      // plus bas), cette branche ne sert donc que l'exhaustivité.
+      return payload.reps !== undefined
+        ? {
+            emoji: "💥",
+            text: `explose son record de rab : ${payload.reps} répétitions, contre ${payload.before} avant`,
+          }
+        : { emoji: "📈", text: `bat sa meilleure série : ${payload.streak} jours` };
     case "milestone":
       return { emoji: "⚡", text: `aligne ${payload.streak} jours parfaits d'affilée` };
     case "premier":
@@ -220,6 +235,8 @@ export async function POST(request: Request) {
     premierCat,
     todayEntries,
     collectifCat,
+    ladders,
+    volumeClaims,
   ] = await Promise.all([
       supabase.rpc("leaderboard"),
       supabase.from("rank_snapshots").select("player_id, rank"),
@@ -257,6 +274,14 @@ export async function POST(request: Request) {
         .select("points")
         .eq("key", "jour_parfait_collectif")
         .maybeSingle(),
+      // 💥 Record de volume : l'échelle de chaque bonus (pompes / abdos /
+      // squats = le contrat, null ou autre = un à-côté) et toutes les
+      // déclarations, tous jours confondus — le record est à vie, il ne se
+      // borne pas à une fenêtre. Non filtré côté base : une liste de clés
+      // en dur se périmerait au premier palier ajouté au catalogue, et le
+      // volume reste modeste (123 lignes après 11 jours à six joueurs).
+      supabase.from("bonus_catalog").select("key, ladder"),
+      supabase.from("bonus_claims").select("player_id, day, bonus_key"),
     ]);
   if (
     lb.error ||
@@ -265,11 +290,13 @@ export async function POST(request: Request) {
     badges.error ||
     streaks.error ||
     todayEntries.error
-    // jokers/premier volontairement absents : cette route porte aussi les
-    // records, les milestones, le jour parfait collectif et les push de
+    // jokers/premier/volume volontairement absents : cette route porte aussi
+    // les records, les milestones, le jour parfait collectif et les push de
     // dépassement. Perdre l'annonce d'un joker ou d'un premier du jour vaut
     // infiniment mieux que faire tomber tout le reste en 500. On dégrade,
-    // on ne casse pas.
+    // on ne casse pas. Le bloc volume se saute en entier si l'une de ses
+    // deux lectures a échoué : sur des données partielles il annoncerait un
+    // faux record, ou retirerait une carte vraie.
   ) {
     return NextResponse.json({ error: "lecture échouée" }, { status: 500 });
   }
@@ -339,7 +366,11 @@ export async function POST(request: Request) {
   const allPerfect =
     activeIds.size >= 2 &&
     [...activeIds].every((id) => doneToday.get(id) === 3);
-  if (allPerfect) {
+  // Retiré du barème le 27/07 (S3, cf. migration 27) : plus de points,
+  // donc plus de carte. Les jours d'avant gardent la leur. Même borne
+  // que la vue daily_points, pour que le fil ne promette pas un bonus
+  // qui ne tombe plus.
+  if (allPerfect && today < "2026-07-27") {
     moments.push({
       player_id: actorId,
       kind: "collectif",
@@ -408,6 +439,59 @@ export async function POST(request: Request) {
     ...streakMoments(streaks.data as StreakRow[], jokerDays, today),
   );
 
+  // 💥 Record de volume : le joueur bat sa propre meilleure journée de rab.
+  // Aucun point en jeu — c'est une carte de fil, la seule mécanique où le
+  // dernier du classement peut gagner quelque chose. Dédup par jour, donc
+  // deux déclarations qui franchissent le seuil dans la soirée ne font
+  // qu'une carte.
+  //
+  // Cette route est appelée après chaque déclaration de bonus (useBonus →
+  // onBonusScored → rescore → notifyMoments), donc la détection tombe juste
+  // après le geste qui la déclenche.
+  let volumeToClear: string[] = [];
+  if (!ladders.error && !volumeClaims.error) {
+    const ladderOf = new Map(
+      (ladders.data as LadderRow[]).map((c) => [c.key, c.ladder]),
+    );
+    const { records, abandoned } = volumeRecords(
+      volumeClaims.data as VolumeClaim[],
+      ladderOf,
+      today,
+    );
+    for (const r of records) {
+      moments.push({
+        player_id: r.player_id,
+        kind: "record",
+        dedupe_key: volumeDedupeKey(r.day),
+        payload: { day: r.day, reps: r.reps, before: r.before },
+      });
+    }
+    // Le décochage passe par la même route : qui retire sa déclaration
+    // repasse sous son record, et la carte se met à mentir. Elle part.
+    // L'appli a deux comportements opposés et c'est assumé — un bonus
+    // annulé garde sa carte, une séance décochée perd la sienne (migration
+    // 26). Un record appartient à la seconde famille : c'est une
+    // affirmation sur l'histoire du joueur, pas sur son geste du soir.
+    //
+    // Les joueurs abandonnés sont épargnés : on ne sait pas s'ils ont le
+    // record, donc on ne retire rien.
+    const withRecord = new Set(records.map((r) => r.player_id));
+    volumeToClear = playerIds.filter(
+      (id) => !withRecord.has(id) && !abandoned.has(id),
+    );
+  }
+  if (volumeToClear.length > 0) {
+    // Le préfixe `vol:` ne peut appartenir qu'à un record de volume : celui
+    // de série se dédup sur une date nue. La suppression est donc précise,
+    // elle n'atteindra jamais une carte de série.
+    await supabase
+      .from("feed_events")
+      .delete()
+      .eq("kind", "record")
+      .eq("dedupe_key", volumeDedupeKey(today))
+      .in("player_id", volumeToClear);
+  }
+
   // 🌅 Premier du jour : le gagnant de la VEILLE (le trophée se décerne
   // une fois la journée finie, rotation comprise). Une carte par jour,
   // dédup par jour. Volontairement HORS push (voir plus bas) : un premier
@@ -416,8 +500,12 @@ export async function POST(request: Request) {
   // vivait déjà, sans notif, dans le détail des points.
   const premierId = (premierYesterday.data as { player_id: string } | null)
     ?.player_id;
-  if (premierId) {
-    const yesterday = addDays(today, -1);
+  const yesterday = addDays(today, -1);
+  // Retiré du barème le 27/07 (S3, cf. migration29) : plus de points,
+  // donc plus de carte. Le 26/07 est le dernier jour où il est gagné, donc
+  // la dernière carte tombe le 27 (elle annonce la veille). Même borne que
+  // daily_points : on n'annonce que les jours S2 (veille < 27/07).
+  if (premierId && yesterday < "2026-07-27") {
     moments.push({
       player_id: premierId,
       kind: "premier",
@@ -449,6 +537,13 @@ export async function POST(request: Request) {
     const byPlayer = new Map<string, FeedInsert[]>();
     for (const m of (inserted ?? []) as FeedInsert[]) {
       if (m.kind === "premier") continue;
+      // Le record de volume non plus ne part jamais en push. À une carte
+      // par jour environ pour le groupe, ce serait une notification de plus
+      // par jour pour cinq personnes — l'appli motive, elle ne harcèle pas.
+      // Un record personnel se découvre très bien en ouvrant le fil. Le
+      // record de SÉRIE, lui, continue de partir : d'où le test du payload
+      // et pas du kind.
+      if (m.kind === "record" && m.payload.reps !== undefined) continue;
       byPlayer.set(m.player_id, [...(byPlayer.get(m.player_id) ?? []), m]);
     }
     const allIds = playerIds;
