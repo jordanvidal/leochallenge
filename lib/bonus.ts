@@ -7,6 +7,11 @@ import { supabase } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
 
+/** Paquet d'affichage dans la feuille de déclaration : la zone que
+    l'exercice travaille. Purement visuel, aucune règle de points ne s'y
+    accroche. */
+export type BonusFamily = "cardio" | "haut" | "abdos" | "jambes";
+
 export type BonusCatalogItem = {
   key: string;
   kind: BonusKind;
@@ -19,6 +24,9 @@ export type BonusCatalogItem = {
   // migration 22 — cocher les deux, c'est déclarer le volume des deux.
   // null = bonus hors échelle.
   ladder: string | null;
+  // Famille d'affichage (migration 31). null pour les bonus non
+  // déclarables, et pour toute ligne ajoutée sans famille.
+  family: BonusFamily | null;
 };
 
 export type BonusClaim = {
@@ -86,6 +94,36 @@ export async function fetchBonus(): Promise<BonusState | null> {
 /** Bonus d'exercice déclarables (le boss se déclare dans son bandeau). */
 export function claimables(state: BonusState): BonusCatalogItem[] {
   return state.catalog.filter((c) => c.kind === "exercise");
+}
+
+/** Ordre et titres des paquets. Décidé ici et pas en base : c'est de la
+    mise en page, et la base n'a pas à connaître le français. */
+const FAMILIES: { key: BonusFamily; title: string }[] = [
+  { key: "cardio", title: "Cardio" },
+  { key: "haut", title: "Haut du corps" },
+  { key: "abdos", title: "Abdos & gainage" },
+  { key: "jambes", title: "Jambes" },
+];
+
+export type BonusGroup = { title: string | null; items: BonusCatalogItem[] };
+
+/** Les déclarables rangés par famille. Un paquet vide ne sort pas, et les
+    bonus sans famille finissent ensemble à la fin — tant que la migration
+    31 n'est pas passée, ça fait exactement la liste à plat d'avant. */
+export function claimableGroups(state: BonusState): BonusGroup[] {
+  const items = claimables(state);
+  const groups: BonusGroup[] = FAMILIES.map((f) => ({
+    title: f.title,
+    items: items.filter((c) => c.family === f.key),
+  })).filter((g) => g.items.length > 0);
+
+  const orphans = items.filter(
+    (c) => !FAMILIES.some((f) => f.key === c.family),
+  );
+  // Seuls des orphelins : rien à ranger, donc pas de titre à afficher.
+  if (groups.length === 0) return orphans.length ? [{ title: null, items: orphans }] : [];
+  if (orphans.length) groups.push({ title: "Autres", items: orphans });
+  return groups;
 }
 
 // --- Un seul déplacement par jour -----------------------------------
