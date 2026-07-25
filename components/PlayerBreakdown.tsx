@@ -6,7 +6,7 @@
 // player_breakdown — aucun calcul ici.
 
 import { useEffect, useState } from "react";
-import { frenchDateShort } from "@/lib/challenge";
+import { frenchDateShort, saison3Started } from "@/lib/challenge";
 import {
   Breakdown,
   BreakdownRow,
@@ -72,6 +72,10 @@ function SourceRow({ r, color }: { r: BreakdownRow; color: string }) {
 }
 
 export default function PlayerBreakdown({ player, row, from, until, label, onClose }: Props) {
+  // Le mini-barème décrit les règles EN VIGUEUR. C'est l'écran qu'on ouvre
+  // quand on ne comprend pas son score : le faire passer à la S3 avant la
+  // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
+  const s3 = saison3Started();
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
   const [showDays, setShowDays] = useState(false);
@@ -213,7 +217,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                 <dd>par exo coché</dd>
               </div>
               <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">+4</dt>
+                <dt className="num-display w-14 shrink-0 text-ink">{s3 ? "+4" : "+2"}</dt>
                 <dd>journée parfaite (3 exos sur 3)</dd>
               </div>
               <div className="flex items-baseline gap-3">
@@ -226,7 +230,10 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               </div>
               <div className="flex items-baseline gap-3">
                 <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
-                <dd>séances, événements et exos déclarés s&apos;ajoutent par-dessus</dd>
+                <dd>
+                  {s3 ? "" : "premier du jour, "}séances, événements et exos
+                  déclarés s&apos;ajoutent par-dessus
+                </dd>
               </div>
               <div className="flex items-baseline gap-3">
                 <dt className="w-14 shrink-0 font-bold text-ink">⚔️ ±3</dt>
@@ -236,10 +243,12 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                 <dt className="w-14 shrink-0 font-bold text-ink">🏆 +3</dt>
                 <dd>gagner la semaine : le vainqueur du classement hebdo prend 3 pts au général (posés le dimanche, depuis le 20/07)</dd>
               </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-14 shrink-0 font-bold text-ink">📅 +5</dt>
-                <dd>la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le dimanche (depuis le 27/07)</dd>
-              </div>
+              {s3 && (
+                <div className="flex items-baseline gap-3">
+                  <dt className="w-14 shrink-0 font-bold text-ink">📅 +5</dt>
+                  <dd>la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le dimanche (depuis le 27/07)</dd>
+                </div>
+              )}
             </dl>
 
             {/* Les événements du jour : tirés au hasard, expliqués une bonne fois */}
@@ -248,15 +257,32 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
               <span className="font-normal">(tirés au hasard, 1 max/jour)</span>
             </p>
             <dl className="space-y-2">
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
-                <dd>
-                  exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
-                  ta coche <b>et</b> tes paliers déclarés compter double ce
-                  jour-là. La coche double à sa valeur du jour, série
-                  comprise
-                </dd>
-              </div>
+              {s3 ? (
+                <div className="flex items-baseline gap-3">
+                  <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
+                  <dd>
+                    exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
+                    ta coche <b>et</b> tes paliers déclarés compter double ce
+                    jour-là. La coche double à sa valeur du jour, série
+                    comprise
+                  </dd>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-3">
+                    <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
+                    <dd>pompes double : tes pompes comptent double ce jour-là</dd>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <dt className="w-6 shrink-0 text-center" aria-hidden>🍻</dt>
+                    <dd>happy hour : séance finie entre 18h et 20h → +5</dd>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <dt className="w-6 shrink-0 text-center" aria-hidden>🌄</dt>
+                    <dd>lève-tôt : séance finie avant 7h → +6</dd>
+                  </div>
+                </>
+              )}
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>🎰</dt>
                 <dd>
@@ -265,6 +291,15 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                   change (aucune perte).
                 </dd>
               </div>
+              {!s3 && (
+                <div className="flex items-baseline gap-3">
+                  <dt className="w-6 shrink-0 text-center" aria-hidden>🪞</dt>
+                  <dd>
+                    jour miroir : le <b>dernier</b> du classement général reçoit
+                    +8 pour se relancer
+                  </dd>
+                </div>
+              )}
               <div className="flex items-baseline gap-3">
                 <dt className="w-6 shrink-0 text-center" aria-hidden>👊</dt>
                 <dd>boss du dimanche : 200 pompes au total → +10 (dimanche only)</dd>
