@@ -6,7 +6,7 @@ appliquer, et comment vérifier que rien n'a bougé pour la S1 et la S2.
 
 La partie base est exécutée par un agent programmé à **00h05 le lundi
 27/07**. La seule chose qui demande une main humaine, c'est le merge des
-trois PR — dans l'ordre, et avant minuit.
+trois PR — dans l'ordre, mais à n'importe quelle heure.
 
 ---
 
@@ -29,7 +29,7 @@ l'autre sens, le 10 km arrive sans famille et atterrit dans un paquet
 
 ---
 
-## D-1 — dimanche 26/07, quand tu veux dans la journée
+## Avant lundi — quand tu veux
 
 ### 1. Rien à figer
 
@@ -78,10 +78,25 @@ un podium inattendu ne laisse jamais l'écran muet.
 2. **#38** → `main` (sa base bascule automatiquement de `feature/pas-hors-course` vers `main` une fois #34 mergée)
 3. **#39** → `main`
 
-Après chaque merge, attendre que le déploiement Vercel passe au vert. Rien
-n'est visible pour le groupe à ce stade : les six puces de cardio, le 10 km
-et le rangement par zone n'existent qu'une fois les migrations passées, et
-le carrousel est gardé par `saison3Started()`, faux jusqu'à lundi.
+Après chaque merge, attendre que le déploiement Vercel passe au vert.
+
+**Rien n'est visible pour le groupe tant que les migrations ne sont pas
+passées**, et c'est vérifié fichier par fichier :
+
+| Ce qui pourrait fuiter | Ce qui l'en empêche |
+|---|---|
+| Les six puces de cardio, le 10 km | N'existent pas au catalogue sans la 29 et la 31 |
+| Le rangement par zone | Sans la colonne `family`, `claimableGroups()` retombe sur la liste à plat |
+| Un seul déplacement par jour | `movementLocked()` est gardé par `saison3Started()` |
+| Le carrousel de lancement | Même garde, côté `App` |
+| Le tuto et le mini-barème | Mêmes gardes : ils affichent le barème S2 jusqu'à lundi |
+| Les cartes de fil « collectif » et « premier du jour » | Bornées à `< 2026-07-27` dans `/api/moments` |
+
+C'est ce tableau qui autorise à merger n'importe quand. Il a coûté un
+correctif : le tuto et le mini-barème annonçaient « +4 journée parfaite »
+et retiraient quatre règles encore actives — mergés tôt, ils auraient
+décrit la S3 pendant le week-end où la prime et les duels de la S2 se
+jouent.
 
 ---
 
