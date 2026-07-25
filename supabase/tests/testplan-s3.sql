@@ -82,6 +82,11 @@ begin
   end;
 end $$;
 
+-- Triggers désarmés AVANT les cobayes, pas après : guard_player_insert
+-- plafonne la table à 12 joueurs, et 8 réels + 8 cobayes = 16. Le T7
+-- ci-dessus a besoin des triggers ACTIFS, il reste donc devant.
+set session_replication_role = 'replica';
+
 -- cobayes
 insert into public.players (id,name,color) values
  ('00000000-0000-0000-0000-0000000000a1','TEST1','#888'),
@@ -92,8 +97,6 @@ insert into public.players (id,name,color) values
  ('00000000-0000-0000-0000-0000000000a6','TEST6','#444'),
  ('00000000-0000-0000-0000-0000000000a7','TEST7','#333'),
  ('00000000-0000-0000-0000-0000000000a8','TEST8','#222');
-
-set session_replication_role = 'replica';
 
 -- T3 — journée parfaite +2 (20/07) vs +4 (27/07), jours isolés (mult 1)
 insert into public.entries (player_id,day,pushups,abs,squats,completed_at) values
@@ -209,10 +212,16 @@ select 17,'T6-soeurs-dans-tirage','',
 insert into resultats
 select 18,'T6-scoring-miroir-conserve','', position('jour_miroir' in pg_get_viewdef('public.daily_points'))>0;
 
--- T9 — séance rapide bornée dans les deux objets
+-- T9 — séance rapide bornée dans les deux objets.
+-- Deux formes, et ce n'est pas un caprice : Postgres NORMALISE le SQL
+-- d'une vue quand il le stocke (date '...' devient '...'::date, mots-clés
+-- en majuscules, parenthèses ajoutées), alors qu'un corps de fonction est
+-- gardé verbatim comme littéral. Chercher la forme source dans la vue ne
+-- peut donc jamais matcher — c'est ce qui faisait échouer ce test.
 insert into resultats
 select 19,'T9-gating-S3-present-vue','',
-       position($$< date '2026-07-27' and fw.player_id$$ in pg_get_viewdef('public.daily_points'))>0;
+       position($$(s.day < '2026-07-27'::date) AND (fw.player_id IS NOT NULL)$$
+                in pg_get_viewdef('public.daily_points'))>0;
 insert into resultats
 select 20,'T9-seance_rapide-bornee-rpc','',
        position($$< date '2026-07-27' and fw.player_id$$ in pg_get_functiondef('public.player_breakdown(uuid,date,date)'::regprocedure))>0;
