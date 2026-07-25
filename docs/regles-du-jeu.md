@@ -26,6 +26,8 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 
 Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 14 pts par jour rien qu'avec le contrat de base (7 × 2 en S3, contre 10 avant) — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
 
+Une seule nuance, depuis le 27/07 : les jours 🎲 « exo doublé », la coche de l'exo tiré est doublée **telle qu'elle vaut ce jour-là**, série comprise. À ×2, une coche vaut 2 points, la doubler en ajoute 2. Ce n'est pas le multiplicateur qui touche à un bonus, c'est le doublement qui porte sur une coche déjà multipliée. Tes paliers déclarés, eux, restent hors série comme tous les bonus.
+
 **Le joker de série** (depuis le 21/07)
 
 Tu as **un joker, un seul, pour tout le challenge**. Il encaisse une journée ratée sans que ta série tombe.
@@ -114,7 +116,7 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 
 | Événement | Effet |
 |---|---|
-| 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche (+1) **et** tes paliers déclarés de cet exo. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, et seule la coche |
+| 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche **et** tes paliers déclarés de cet exo. La coche double à sa vraie valeur du jour, série comprise (+1, +1,5 ou +2) ; les paliers doublent au nominal. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, seule la coche, et pour un forfait de +1 |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
 | 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
@@ -224,6 +226,9 @@ Toutes les heures sont en heure de Paris.
 
 **« Pompes doublées », ça double aussi mes bonus pompes ?**
 Oui, depuis le 27/07. Ta coche pompes vaut 2 au lieu de 1, et tes paliers pompes déclarés doublent aussi : +50 pompes passe à 8, +100 pompes à 14. C'est le seul jour où charger sur les pompes rapporte vraiment. (Jusqu'au 26/07, seule la coche doublait.)
+
+**Le doublement rapporte pareil quelle que soit ma série ?**
+Non, et c'est voulu. Il double ta coche telle qu'elle vaut ce jour-là : sans série elle vaut 1 et le doublement ajoute 1 ; à ×1,5 il ajoute 1,5 ; à ×2 il ajoute 2. Jusqu'au 26/07 l'appli versait +1 quoi qu'il arrive — un joueur à ×2 voyait donc sa coche passer de 2 à 3, soit une fois et demie, pas le double. L'événement payait d'autant moins qu'on était régulier ; corrigé au 27/07. Les points déjà marqués en S1 et S2 ne bougent pas.
 
 **Je peux perdre des points ?**
 Une seule façon : perdre ton duel de la semaine (−3, transférés au gagnant). Tout le reste ne fait que monter.

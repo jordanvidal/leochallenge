@@ -133,28 +133,30 @@ select 10,'T4-pompes-detail=vue','detail='||d, d=30 from (
   select round(sum(points),1) d from public.player_breakdown('00000000-0000-0000-0000-0000000000a3',date '2026-07-28',date '2026-07-28')) x;
 
 -- T4b — abdos_double (nouveau) : base7 bonus9 total16
+-- Un jour par événement : daily_events a la journée pour clé primaire,
+-- deux tirages le même jour ne peuvent pas coexister.
 insert into public.entries (player_id,day,pushups,abs,squats,completed_at) values
- ('00000000-0000-0000-0000-0000000000a4',date '2026-07-28',true,true,true,timestamptz '2026-07-28 21:00+00');
-insert into public.daily_events (day,event_key) values (date '2026-07-28','abdos_double');
+ ('00000000-0000-0000-0000-0000000000a4',date '2026-07-29',true,true,true,timestamptz '2026-07-29 21:00+00');
+insert into public.daily_events (day,event_key) values (date '2026-07-29','abdos_double');
 insert into public.bonus_claims (player_id,day,bonus_key,points) values
- ('00000000-0000-0000-0000-0000000000a4',date '2026-07-28','abdos_100',4);
+ ('00000000-0000-0000-0000-0000000000a4',date '2026-07-29','abdos_100',4);
 insert into resultats
 select 11,'T4b-abdos_double','base='||base_points||' bonus='||bonus_points||' total='||points,
        base_points=7 and bonus_points=9 and points=16
-from public.daily_points where player_id='00000000-0000-0000-0000-0000000000a4' and day=date '2026-07-28';
+from public.daily_points where player_id='00000000-0000-0000-0000-0000000000a4' and day=date '2026-07-29';
 insert into resultats
 select 12,'T4b-abdos-detail=vue','detail='||d, d=16 from (
-  select round(sum(points),1) d from public.player_breakdown('00000000-0000-0000-0000-0000000000a4',date '2026-07-28',date '2026-07-28')) x;
+  select round(sum(points),1) d from public.player_breakdown('00000000-0000-0000-0000-0000000000a4',date '2026-07-29',date '2026-07-29')) x;
 
 -- T4c — squats_double : total16
 insert into public.entries (player_id,day,pushups,abs,squats,completed_at) values
- ('00000000-0000-0000-0000-0000000000a5',date '2026-07-28',true,true,true,timestamptz '2026-07-28 21:00+00');
-insert into public.daily_events (day,event_key) values (date '2026-07-28','squats_double');
+ ('00000000-0000-0000-0000-0000000000a5',date '2026-07-30',true,true,true,timestamptz '2026-07-30 21:00+00');
+insert into public.daily_events (day,event_key) values (date '2026-07-30','squats_double');
 insert into public.bonus_claims (player_id,day,bonus_key,points) values
- ('00000000-0000-0000-0000-0000000000a5',date '2026-07-28','squats_100',4);
+ ('00000000-0000-0000-0000-0000000000a5',date '2026-07-30','squats_100',4);
 insert into resultats
 select 13,'T4c-squats_double','total='||points, base_points=7 and bonus_points=9 and points=16
-from public.daily_points where player_id='00000000-0000-0000-0000-0000000000a5' and day=date '2026-07-28';
+from public.daily_points where player_id='00000000-0000-0000-0000-0000000000a5' and day=date '2026-07-30';
 
 -- T5 — collectif retiré au 27/07 : 2 joueurs 3/3 le 25/08 -> bonus 0 chacun
 insert into public.entries (player_id,day,pushups,abs,squats,completed_at) values
@@ -174,6 +176,28 @@ insert into resultats
 select 15,'T8-detection-7sur7','jours_parfaits='||c, c=7 from (
   select count(*) filter (where pushups and abs and squats) c from public.entries
   where player_id='00000000-0000-0000-0000-0000000000a8' and day between date '2026-07-27' and date '2026-08-02') x;
+
+-- T4d — la coche doublée suit la série, les paliers non (S3, 27/07).
+-- On prolonge la série de a8 d'un jour : 8 parfaits d'affilée, donc ×2
+-- le 03/08. Squats doublés ce jour-là, avec un palier squats déclaré :
+--   base    (3 + 4) × 2                               = 14
+--   coche   1 × 2   (le forfait de +1 aurait donné 1)  =  2
+--   palier  +100 squats doublé, au nominal (4 + 4)     =  8
+--   -> bonus 10, total 24. Sous l'ancienne règle : 23.
+-- La semaine pleine (+5) se pose le 02/08, elle ne pollue pas le 03/08.
+insert into public.entries (player_id,day,pushups,abs,squats,completed_at) values
+ ('00000000-0000-0000-0000-0000000000a8',date '2026-08-03',true,true,true,timestamptz '2026-08-03 21:00+00');
+insert into public.daily_events (day,event_key) values (date '2026-08-03','squats_double');
+insert into public.bonus_claims (player_id,day,bonus_key,points) values
+ ('00000000-0000-0000-0000-0000000000a8',date '2026-08-03','squats_100',4);
+insert into resultats
+select 21,'T4d-coche-doublee-suit-la-serie',
+       'streak='||streak_pos||' base='||base_points||' bonus='||bonus_points||' total='||points,
+       streak_pos=8 and base_points=14 and bonus_points=10 and points=24
+from public.daily_points where player_id='00000000-0000-0000-0000-0000000000a8' and day=date '2026-08-03';
+insert into resultats
+select 22,'T4d-detail=vue','detail='||d, d=24 from (
+  select round(sum(points),1) d from public.player_breakdown('00000000-0000-0000-0000-0000000000a8',date '2026-08-03',date '2026-08-03')) x;
 
 -- T6 — roue : miroir hors tirage, scoring miroir conservé
 insert into resultats

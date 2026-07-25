@@ -30,7 +30,13 @@
 --   6. 🎲 Le doublement se généralise aux trois exos : « pompes / abdos
 --      / squats comptent double », un seul tiré par jour. Chacun double
 --      la coche ET les paliers déclarés de son échelle. « Pompes double »
---      garde sa clé et son historique.
+--      garde sa clé et son historique. Et la coche double POUR DE VRAI :
+--      jusqu'au 26/07 l'événement versait +1 forfaitaire, donc à ×2 de
+--      série une coche qui valait 2 n'en rapportait que 3 — l'événement
+--      payait d'autant moins qu'on était régulier. Dès le 27/07 la coche
+--      doublée suit le multiplicateur (+1, +1,5 ou +2). Les paliers, eux,
+--      restent au nominal : un palier est un bonus, et la série n'a
+--      jamais touché aux bonus.
 --   7. 🎰🪞 La roue rééquilibrée : le jour miroir sort du tirage (il
 --      versait +8 à un compte inactif qui le raflait à vie ; son scoring
 --      reste, les jours S1/S2 gardent leurs points), et quitte ou double
@@ -442,27 +448,36 @@ base as (
                  and cd.day is not null and coalesce(e.perfect, false)
             then public.bonus_value('jour_parfait_collectif') else 0 end
     ) as execution_bonus,
-    (case when ev.event_key = 'pompes_double' and coalesce(e.pushups, false)
-          then public.bonus_value('pompes_double') else 0 end
-     -- Depuis le 27/07, l'événement double AUSSI les paliers pompes
-     -- déclarés. claim_bonus les compte déjà une fois : les rajouter
-     -- une seconde fois, c'est exactement les doubler. Les jours
-     -- d'avant restent à la seule coche doublée.
-     + case when ev.event_key = 'pompes_double' and s.day >= date '2026-07-27'
-            then coalesce(cp.pts, 0) else 0 end
-     -- Les deux sœurs de la S3 : même logique, sur l'exo tiré. Ces
-     -- clés n'existent qu'à partir du 27/07 (jamais tirées avant),
-     -- donc la coche doublée n'a pas besoin de borne — aucun jour
-     -- antérieur ne les porte. Les paliers, eux, gardent la borne
-     -- explicite par symétrie avec les pompes.
-     + case when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
-            then public.bonus_value('abdos_double') else 0 end
-     + case when ev.event_key = 'abdos_double' and s.day >= date '2026-07-27'
-            then coalesce(ca.pts, 0) else 0 end
-     + case when ev.event_key = 'squats_double' and coalesce(e.squats, false)
-            then public.bonus_value('squats_double') else 0 end
-     + case when ev.event_key = 'squats_double' and s.day >= date '2026-07-27'
-            then coalesce(cq.pts, 0) else 0 end
+    -- 🎲 L'exo doublé. Un seul événement est tiré par jour : au plus une
+    -- des trois branches est vraie, les regrouper ne change rien au
+    -- montant et évite de répéter le facteur de série trois fois.
+    ((case when ev.event_key = 'pompes_double' and coalesce(e.pushups, false)
+           then public.bonus_value('pompes_double')
+           when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
+           then public.bonus_value('abdos_double')
+           when ev.event_key = 'squats_double' and coalesce(e.squats, false)
+           then public.bonus_value('squats_double')
+           else 0 end)
+     -- Depuis le 27/07, doubler la coche veut dire la doubler pour de
+     -- vrai : à ×2 de série, une coche vaut 2 points, la doubler en
+     -- ajoute 2, pas 1. Le forfait de +1 rendait l'événement d'autant
+     -- plus faible qu'on était régulier — l'inverse de ce qu'il promet.
+     -- Avant le 27/07 le facteur reste 1.0 : les jours S1/S2 gardent
+     -- leur +1 au demi-point près.
+     * case when s.day < date '2026-07-27' then 1.0
+            when coalesce(st.streak_pos, 0) >= 7 then 2.0
+            when coalesce(st.streak_pos, 0) >= 3 then 1.5
+            else 1.0 end
+     -- Depuis le 27/07, l'événement double AUSSI les paliers déclarés de
+     -- l'exo tiré. claim_bonus les compte déjà une fois : les rajouter
+     -- une seconde fois, c'est exactement les doubler. Eux ne suivent pas
+     -- la série — un palier est un bonus, et la série ne touche pas aux
+     -- bonus, ici pas plus qu'ailleurs.
+     + case when s.day < date '2026-07-27' then 0
+            when ev.event_key = 'pompes_double' then coalesce(cp.pts, 0)
+            when ev.event_key = 'abdos_double'  then coalesce(ca.pts, 0)
+            when ev.event_key = 'squats_double' then coalesce(cq.pts, 0)
+            else 0 end
      -- happy hour et lève-tôt : retirés au 27/07 (S3), et sortis du
      -- tirage par la même migration. La borne tient même si un
      -- événement était réinséré à la main dans daily_events.
@@ -850,20 +865,40 @@ as $$
       case when s.day < date '2026-07-27'
                 and cd.day is not null and coalesce(e.perfect, false)
            then bonus_value('jour_parfait_collectif') else 0 end as b_collectif,
-      -- Depuis le 27/07, l'événement double aussi les paliers pompes
-      -- déclarés. Le point doublé est porté par la ligne de l'événement
-      -- (c'est lui qui le crée) ; claim_bonus garde la valeur nominale.
+      -- 🎲 L'exo doublé, borné comme dans daily_points. Depuis le 27/07 la
+      -- coche doublée suit la série (à ×2, doubler une coche qui vaut 2
+      -- ajoute 2) et l'événement double aussi les paliers déclarés de
+      -- l'exo — eux au nominal, la série ne touche pas aux bonus. Le
+      -- point doublé est porté par la ligne de l'événement (c'est lui qui
+      -- le crée) ; claim_bonus garde la valeur nominale.
+      -- Trois colonnes séparées ici, contrairement à la vue : le détail
+      -- « d'où viennent mes points » nomme l'exo tiré.
       (case when ev.event_key = 'pompes_double' and coalesce(e.pushups, false)
-            then bonus_value('pompes_double') else 0 end
+            then bonus_value('pompes_double')
+                 * case when s.day < date '2026-07-27' then 1.0
+                        when coalesce(st.streak_pos, 0) >= 7 then 2.0
+                        when coalesce(st.streak_pos, 0) >= 3 then 1.5
+                        else 1.0 end
+            else 0 end
        + case when ev.event_key = 'pompes_double' and s.day >= date '2026-07-27'
               then coalesce(cp.pts, 0) else 0 end) as b_pompes_double,
       -- Les deux sœurs de la S3, même logique sur l'exo tiré.
       (case when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
-            then bonus_value('abdos_double') else 0 end
+            then bonus_value('abdos_double')
+                 * case when s.day < date '2026-07-27' then 1.0
+                        when coalesce(st.streak_pos, 0) >= 7 then 2.0
+                        when coalesce(st.streak_pos, 0) >= 3 then 1.5
+                        else 1.0 end
+            else 0 end
        + case when ev.event_key = 'abdos_double' and s.day >= date '2026-07-27'
               then coalesce(ca.pts, 0) else 0 end) as b_abdos_double,
       (case when ev.event_key = 'squats_double' and coalesce(e.squats, false)
-            then bonus_value('squats_double') else 0 end
+            then bonus_value('squats_double')
+                 * case when s.day < date '2026-07-27' then 1.0
+                        when coalesce(st.streak_pos, 0) >= 7 then 2.0
+                        when coalesce(st.streak_pos, 0) >= 3 then 1.5
+                        else 1.0 end
+            else 0 end
        + case when ev.event_key = 'squats_double' and s.day >= date '2026-07-27'
               then coalesce(cq.pts, 0) else 0 end) as b_squats_double,
       case when s.day < date '2026-07-27' and ev.event_key = 'happy_hour'
