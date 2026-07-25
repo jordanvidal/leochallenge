@@ -70,7 +70,7 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🧎 100 fentes | +4 |
 | 🧎 200 fentes | +7 |
 
-Dans l'appli, la feuille les range en trois paquets : **le contrat en plus**, **cardio**, **renfo & gainage**. Vingt-trois pastilles à plat, ça ne se lit plus.
+Dans l'appli, la feuille les range par zone travaillée : **cardio**, **haut du corps**, **abdos & gainage**, **jambes**. Vingt-trois pastilles à plat, ça ne se lit plus. Un exercice qui travaille deux choses va là où ça fait le plus mal : les burpees et les mountain climbers au cardio, la chaise murale aux jambes, le gainage aux abdos.
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 

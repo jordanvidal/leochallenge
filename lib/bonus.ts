@@ -7,9 +7,10 @@ import { supabase } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
 
-/** Paquet d'affichage dans la feuille de déclaration. Purement visuel :
-    aucune règle de points ne s'y accroche. */
-export type BonusFamily = "contrat" | "cardio" | "renfo";
+/** Paquet d'affichage dans la feuille de déclaration : la zone que
+    l'exercice travaille. Purement visuel, aucune règle de points ne s'y
+    accroche. */
+export type BonusFamily = "cardio" | "haut" | "abdos" | "jambes";
 
 export type BonusCatalogItem = {
   key: string;
@@ -97,9 +98,10 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
 /** Ordre et titres des paquets. Décidé ici et pas en base : c'est de la
     mise en page, et la base n'a pas à connaître le français. */
 const FAMILIES: { key: BonusFamily; title: string }[] = [
-  { key: "contrat", title: "Le contrat, en plus" },
   { key: "cardio", title: "Cardio" },
-  { key: "renfo", title: "Renfo & gainage" },
+  { key: "haut", title: "Haut du corps" },
+  { key: "abdos", title: "Abdos & gainage" },
+  { key: "jambes", title: "Jambes" },
 ];
 
 export type BonusGroup = { title: string | null; items: BonusCatalogItem[] };

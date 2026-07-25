@@ -24,9 +24,14 @@
 -- migration 22 : cocher les deux jumping jacks = 300 déclarés.
 --
 -- La colonne `family` sert l'affichage, rien d'autre : vingt-trois
--- pastilles en vrac ne se lisent plus, la feuille les range en
--- trois paquets. Nullable, donc les lignes execution/event/cap ne
--- bougent pas, et une ligne sans famille reste affichable.
+-- pastilles en vrac ne se lisent plus, la feuille les range par
+-- zone travaillée. Nullable, donc les lignes execution/event/cap
+-- ne bougent pas, et une ligne sans famille reste affichable.
+--
+-- Le classement dit ce que l'exercice travaille, pas son statut
+-- dans le règlement : les pompes vont au haut du corps, pas dans
+-- un paquet « le contrat en plus » qui ne veut rien dire pour
+-- quelqu'un qui cherche juste où cocher ses pompes.
 --
 -- Additive : une colonne, six lignes, des `sort` renumérotés
 -- (affichage seul, aucun point ne bouge). Aucune déclaration
@@ -40,7 +45,7 @@
 
 alter table public.bonus_catalog
   add column if not exists family text
-  check (family is null or family in ('contrat', 'cardio', 'renfo'));
+  check (family is null or family in ('cardio', 'haut', 'abdos', 'jambes'));
 
 -- -------------------------------------------------------------
 -- 2. Les six nouveaux. `on conflict do nothing` : rejouable.
@@ -58,21 +63,11 @@ on conflict (key) do nothing;
 -- -------------------------------------------------------------
 -- 3. Familles et ordre des dix-sept anciens.
 --
---    Le contrat d'abord (c'est le challenge, en plus), le cardio
---    ensuite avec les nouveaux en tête — les vieux du cardio sont
---    ceux que personne ne coche —, le renfo en dernier.
---
---    Les burpees partent au cardio : full-body, mais c'est le
---    souffle qui lâche en premier.
+--    Un exercice qui travaille deux choses va là où il fait le
+--    plus mal : les burpees et les mountain climbers au cardio
+--    (c'est le souffle qui lâche en premier), la chaise murale
+--    aux jambes, le gainage aux abdos.
 -- -------------------------------------------------------------
-
-update public.bonus_catalog set family = 'contrat', sort = v.sort
-from (values
-  ('pompes_50', 1), ('pompes_100', 2),
-  ('abdos_100', 3), ('abdos_200', 4),
-  ('squats_100', 5), ('squats_200', 6)
-) as v(key, sort)
-where bonus_catalog.key = v.key;
 
 update public.bonus_catalog set family = 'cardio', sort = v.sort
 from (values
@@ -82,9 +77,21 @@ from (values
 ) as v(key, sort)
 where bonus_catalog.key = v.key;
 
-update public.bonus_catalog set family = 'renfo', sort = v.sort
+update public.bonus_catalog set family = 'haut', sort = v.sort
 from (values
-  ('gainage_3min', 30), ('chaise_3min', 31), ('dips_50', 32),
-  ('fentes_100', 33), ('fentes_200', 34)
+  ('pompes_50', 30), ('pompes_100', 31), ('dips_50', 32)
+) as v(key, sort)
+where bonus_catalog.key = v.key;
+
+update public.bonus_catalog set family = 'abdos', sort = v.sort
+from (values
+  ('abdos_100', 40), ('abdos_200', 41), ('gainage_3min', 42)
+) as v(key, sort)
+where bonus_catalog.key = v.key;
+
+update public.bonus_catalog set family = 'jambes', sort = v.sort
+from (values
+  ('squats_100', 50), ('squats_200', 51),
+  ('fentes_100', 52), ('fentes_200', 53), ('chaise_3min', 54)
 ) as v(key, sort)
 where bonus_catalog.key = v.key;
