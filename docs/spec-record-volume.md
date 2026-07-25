@@ -204,22 +204,29 @@ record — si l'agent en obtient 13, le garde n'est pas posé.
 Le rythme attendu ensuite est d'environ une carte tous les deux jours pour le
 groupe : Hichem n'a rien battu depuis le 16/07, et c'est le comportement voulu.
 
-Tests unitaires à ajouter dans `tests/` (Vitest, déjà en place) : le premier
-record ne déclenche pas, l'égalité ne déclenche pas, les paliers cumulés
-s'additionnent, une clé inconnue d'une des trois échelles annule le calcul, la
-course et les pas n'entrent pas dans le total.
+Tests unitaires à ajouter dans `tests/` : le premier record ne déclenche pas,
+l'égalité ne déclenche pas, les paliers cumulés s'additionnent, une clé inconnue
+d'une des trois échelles annule le calcul, la course et les pas n'entrent pas
+dans le total.
+
+⚠️ Correction : cette spec annonçait « Vitest, déjà en place ». C'était faux —
+le repo n'avait aucune infra de test. L'implémentation l'installe (devDependency,
+`npm test`, `vitest.config.ts` pour l'alias `@/`).
 
 ---
 
-## 9. À trancher avec Jordan avant de coder
+## 9. Tranché avec Jordan avant de coder
 
-1. **Notification ou pas.** `/api/moments` envoie un push aux autres joueurs pour
-   chaque moment réellement inséré. À ~1 carte par jour, ça fait une notification
-   de plus par jour pour cinq personnes. **Ma recommandation : fil seulement, pas
-   de push** — la règle du produit est « l'appli motive, elle ne harcèle pas », et
-   un record personnel se découvre très bien en ouvrant l'appli. Ça demande
-   d'exclure cette carte de la liste des moments qui déclenchent l'envoi.
-2. **La formulation exacte** de la carte (§6).
-3. **Le seuil**, s'il en faut un. La spec n'en pose aucun au-delà de « un record
-   antérieur doit exister ». Un plancher (par exemple 100 répétitions) rendrait la
-   carte plus rare et plus forte, au prix d'une règle de plus à expliquer.
+1. **Notification : aucune.** `/api/moments` envoie un push aux autres joueurs
+   pour chaque moment réellement inséré ; le record de volume en est exclu, comme
+   le « premier du jour ». À ~1 carte par jour, ce serait une notification de plus
+   par jour pour cinq personnes, et la règle du produit est « l'appli motive, elle
+   ne harcèle pas ». La carte se découvre en ouvrant le fil. Le record de **série**,
+   lui, continue de partir en push : le filtre porte sur le payload, pas sur le `kind`.
+2. **Formulation retenue** : `💥 Jordan explose son record de rab : 350 répétitions,
+   contre 200 avant`. Le contraste est appuyé plutôt que mis entre parenthèses —
+   c'est l'ancien record qui fait la carte.
+3. **Seuil : aucun**, au-delà de « un record antérieur doit exister ». Le rythme
+   mesuré sur les données réelles (~1 carte tous les deux jours pour le groupe) est
+   déjà assez rare pour se passer d'un plancher, et c'est une règle de moins à
+   expliquer.
