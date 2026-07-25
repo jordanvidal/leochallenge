@@ -69,11 +69,19 @@ on conflict (key) do nothing;
 --    aux jambes, le gainage aux abdos.
 -- -------------------------------------------------------------
 
+--    ORDRE D'APPLICATION : cette migration passe APRÈS la 29 (barème S3).
+--    La 29 ajoute `course_10km` et décale les `sort` des exercices ; la 31
+--    repose ensuite des `sort` explicites, donc elle a le dernier mot. Dans
+--    l'autre sens, `course_10km` n'existerait pas encore, resterait sans
+--    famille, et atterrirait dans un paquet « Autres » en bas de la feuille.
+--    La ligne ci-dessous ne matche rien si la 29 n'est pas passée : aucune
+--    erreur, mais la feuille serait mal rangée.
+
 update public.bonus_catalog set family = 'cardio', sort = v.sort
 from (values
   ('burpees_30', 16), ('burpees_60', 17),
-  ('corde_10min', 18), ('course_5km', 19),
-  ('marches_500', 20), ('pas_10000', 21)
+  ('corde_10min', 18), ('course_5km', 19), ('course_10km', 20),
+  ('marches_500', 21), ('pas_10000', 22)
 ) as v(key, sort)
 where bonus_catalog.key = v.key;
 
