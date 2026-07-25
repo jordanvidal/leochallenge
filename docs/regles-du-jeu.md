@@ -15,8 +15,8 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 **Les points de base :**
 
 - 1 point par exo coché.
-- +2 points si tu fais les trois (journée parfaite).
-- Donc une journée à 3/3 = **5 points** de base.
+- **+4 points** si tu fais les trois (journée parfaite). C'était +2 jusqu'au 26/07 ; la S3 (27/07) fait peser plus lourd le contrat rempli. Les jours d'avant gardent leurs +2, rien n'est rétroactif.
+- Donc une journée à 3/3 = **7 points** de base (5 avant le 27/07).
 
 **Le multiplicateur de série :**
 
@@ -24,7 +24,9 @@ Chaque soir tu coches ce que tu as fait dans l'appli : pompes, abdos, squats. Tr
 - À partir du **7e jour d'affilée** : **×2**.
 - Un jour sans 3/3 casse la série. On repart de zéro — sauf si ton joker s'en mêle.
 
-Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 10 pts par jour rien qu'avec le contrat de base — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
+Point important : le multiplicateur ne s'applique **qu'aux points de base** (exos + journée parfaite). Jamais aux bonus. Une semaine à ×2, c'est 14 pts par jour rien qu'avec le contrat de base (7 × 2 en S3, contre 10 avant) — la régularité reste le moteur du jeu, les bonus sont l'assaisonnement.
+
+Une seule nuance, depuis le 27/07 : les jours 🎲 « exo doublé », la coche de l'exo tiré est doublée **telle qu'elle vaut ce jour-là**, série comprise. À ×2, une coche vaut 2 points, la doubler en ajoute 2. Ce n'est pas le multiplicateur qui touche à un bonus, c'est le doublement qui porte sur une coche déjà multipliée. Tes paliers déclarés, eux, restent hors série comme tous les bonus.
 
 **Le joker de série** (depuis le 21/07)
 
@@ -46,12 +48,6 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 
 | Bonus | Points |
 |---|---|
-| 💪 +50 pompes (150 au total) | +4 |
-| 💪 +100 pompes (200 au total) | +7 |
-| 🫁 +100 abdos (200 au total) | +4 |
-| 🫁 +200 abdos (300 au total) | +7 |
-| 🦵 +100 squats (200 au total) | +4 |
-| 🦵 +200 squats (300 au total) | +7 |
 | 🤸 100 jumping jacks | +3 |
 | 🤸 200 jumping jacks | +5 |
 | 🧗 100 mountain climbers | +4 |
@@ -60,27 +56,39 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🐸 100 squats jump | +7 |
 | 💥 30 burpees | +4 |
 | 💥 60 burpees | +7 |
-| 🏃 5 km de course | +8 |
 | 🪢 10 min de corde à sauter | +5 |
+| 🏃 5 km de course | +8 |
+| 🏃 10 km de course | +20 |
 | 🪜 500 marches | +5 |
 | 🚶 10 000 pas | +4 |
-| 🧱 3 min de gainage | +3 |
-| 🪑 3 min de chaise murale | +3 |
+| 💪 +50 pompes (150 au total) | +4 |
+| 💪 +100 pompes (200 au total) | +7 |
 | 💺 50 dips sur chaise | +4 |
+| 🫁 +100 abdos (200 au total) | +4 |
+| 🫁 +200 abdos (300 au total) | +7 |
+| 🧱 3 min de gainage | +3 |
+| 🦵 +100 squats (200 au total) | +4 |
+| 🦵 +200 squats (300 au total) | +7 |
 | 🧎 100 fentes | +4 |
 | 🧎 200 fentes | +7 |
+| 🪑 3 min de chaise murale | +3 |
 
-Dans l'appli, la feuille les range par zone travaillée : **cardio**, **haut du corps**, **abdos & gainage**, **jambes**. Vingt-trois pastilles à plat, ça ne se lit plus. Un exercice qui travaille deux choses va là où ça fait le plus mal : les burpees et les mountain climbers au cardio, la chaise murale aux jambes, le gainage aux abdos.
+Le tableau suit l'ordre de l'appli : la feuille range les puces par zone travaillée — **cardio**, **haut du corps**, **abdos & gainage**, **jambes**. Vingt-quatre pastilles à plat, ça ne se lit plus. Un exercice qui travaille deux choses va là où ça fait le plus mal : les burpees et les mountain climbers au cardio, la chaise murale aux jambes, le gainage aux abdos.
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 
-Sept bonus sans matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement. Les six de cardio ont suivi le 25/07 : le catalogue était devenu du renfo pur, et ceux qui préfèrent souffler plutôt que pousser n'avaient rien à cocher. Les 10 000 pas se lisent sur le téléphone, la chaise murale et le gainage se cumulent dans la journée mais chacun ne se déclare qu'une fois.
+Sept bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement : burpees, fentes, dips, chaise murale, 10 000 pas. Les pas se lisent sur le téléphone ; la chaise murale et le gainage se cumulent dans la journée, mais chacun ne se déclare qu'une fois.
 
-Un squat jump n'est pas un squat : il a son échelle à lui, et il ne compte donc pas dans le record de volume (qui ne suit que les trois exos du contrat).
+**Trois mouvements en S3 (27/07) :**
+
+- 🤸 **Six bonus de cardio arrivent** — jumping jacks, mountain climbers, squats jump, deux paliers chacun. Le catalogue était devenu du renfo pur : sur dix-sept bonus, quatre relevaient du cardio et trois n'étaient quasiment jamais cochés. Un squat jump n'est pas un squat : il a son échelle à lui, et ne compte donc pas dans le record de volume, qui ne suit que les trois exos du contrat.
+- 🏃 **Le 10 km arrive**, comme puce entière : **+20**, à côté du 5 km à +8. Deux distances, deux puces, le total annoncé sur chacune — tu coches celle que tu as courue.
+- 🚶 **Un seul déplacement par jour.** 5 km, 10 km ou 10 000 pas : une seule des trois puces décrit ta journée, et cocher l'une éteint les deux autres. Un 5 km fait déjà ~5 500 pas et un 10 km ~11 000 — les jours de course, la puce « pas » n'est pas un deuxième effort, c'est le reçu du premier. Trompé de puce ? Décoche, et prends l'autre.
 
 **Les garde-fous :**
 
-- **Les paliers d'un même exo se cumulent** depuis le 20/07. +50 pompes ET +100 pompes cochés, c'est 150 pompes déclarées, payées 4+7 = 11 pts. Idem pour les burpees, les fentes, les jumping jacks, les mountain climbers et les squats jump.
+- **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees, les fentes, les jumping jacks, les mountain climbers et les squats jump. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis. La course n'entre pas dans ce jeu-là : ses deux puces sont des distances entières, pas des incréments.
+- **Un seul déplacement par jour** (à partir du 27/07 — les jours d'avant ne sont pas retouchés). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 
@@ -94,19 +102,22 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 
 | Bonus | Points | Condition |
 |---|---|---|
-| 🌅 Premier du jour | +3 | Le premier à finir son 3/3 (attribué une fois la journée terminée). Depuis le 20/07, le trophée tourne : si tu as été premier hier, le +3 du jour va au premier des autres |
-| 🔥 Avant 8h | +3 | 3/3 bouclé avant 8h du matin. Depuis le 20/07, ne se cumule plus avec « premier du jour » le même jour |
-| 🌙 Après 22h | +2 | 3/3 bouclé après 22h |
-| ⚡ Séance éclair | +2 | Séance guidée (chrono de l'appli) bouclée en moins de 20 min. (+5 en S1, ramené à +2 le 20/07 — c'était devenu un salaire quotidien) |
-| 🥇 Séance la plus rapide | +2 | La séance chronométrée la plus rapide de la journée (s'il y en a au moins deux, attribué le lendemain). (+5 en S1, ramené à +2 le 20/07 — le trio matinal s'empilait sur le même joueur) |
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
-| 🤝 Jour parfait collectif | +5 chacun | Toute la bande à 3/3 le même jour |
+| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
+
+**Ce qui a disparu le 27/07 (S3) :**
+
+- 🔥 **Avant 8h** (+3) et 🌙 **Après 22h** (+2). L'heure à laquelle tu t'entraînes dit quelque chose de ton emploi du temps, rien de ta performance. Un couche-tard et un lève-tôt ne sont pas départagés là-dessus.
+- 🌅 **Premier du jour** (+3). Pensé comme une course, mais un réveil malin le raflait autant qu'un vrai effort — comme les bonus d'horloge, il parlait plus de l'agenda que de la perf. Le trophée tournait depuis le 20/07 ; il s'éteint le 27/07.
+- ⚡ **Séance éclair** (< 20 min, +2). Sur les 16 séances chronométrées de la S2, 14 passaient sous la barre, chez les six joueurs. Ce n'était plus un bonus, c'était un salaire.
+- 🥇 **Séance la plus rapide** (+2). Même salaire déguisé : le jeu optimal était de lancer la séance, ne rien faire dedans, cocher les 3 exos à la main et finir juste au-dessus du plancher.
+- 🤝 **Jour parfait collectif** (+5 chacun). Il se ramollissait quand le groupe se vidait — fin août, deux actifs à 3/3 le touchaient presque tous les jours. Un bonus qui devient plus facile quand l'engagement baisse, c'est l'inverse du but.
+
+Les points déjà marqués avec ces bonus restent acquis : rien n'est repris rétroactivement, les classements de la S1 et de la S2 ne bougent pas.
 
 Précisions :
 
-- Les bonus d'horaire (avant 8h, après 22h, lève-tôt, happy hour) exigent que la séance soit finie **le jour même**.
 - Le chrono de la séance guidée est tenu par le serveur, pas par ton téléphone. Une séance de moins de 5 minutes est refusée — personne ne fait 300 répétitions en 4 minutes.
-- Le jour parfait collectif ne compte que les joueurs **actifs** (au moins une coche sur les 7 derniers jours) : un inscrit fantôme ne bloque pas le bonus des autres. Il faut être au moins deux.
 
 ---
 
@@ -116,20 +127,22 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 
 | Événement | Effet |
 |---|---|
-| 🎲 Pompes doublées | Ta coche pompes vaut le double aujourd'hui (+1 pt) |
-| 🍻 Happy hour | +5 si tu finis ton 3/3 entre 18h et 20h |
-| 🌄 Lève-tôt | +6 si tu finis avant 7h (cumulable avec le +3 « avant 8h ») |
+| 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche **et** tes paliers déclarés de cet exo. La coche double à sa vraie valeur du jour, série comprise (+1, +1,5 ou +2) ; les paliers doublent au nominal. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, seule la coche, et pour un forfait de +1 |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
-| 🪞 Jour miroir | Le dernier du classement général touche +8, qu'il ait joué ou non |
+| 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
 | 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
 
-**Les probabilités du tirage :**
+🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 
-Du lundi au samedi : rien 40 %, pompes doublées 15 %, happy hour 15 %, lève-tôt 12 %, quitte ou double 10 %, jour miroir 8 %.
+**Les probabilités du tirage, depuis le 27/07 :**
 
-Le dimanche : rien 40 %, boss du dimanche 25 %, pompes doublées 10 %, happy hour 8 %, lève-tôt 7 %, quitte ou double 5 %, jour miroir 5 %.
+Du lundi au samedi : rien 52 %, pompes doublées 12 %, abdos doublés 12 %, squats doublés 12 %, quitte ou double 12 %.
 
-Oui, 40 % des jours il ne se passe rien. Un événement quotidien n'est plus un événement.
+Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 6 %, abdos doublés 6 %, squats doublés 6 %, quitte ou double 12 %.
+
+Deux mouvements en S3 : le jour miroir quitte le tirage (il ne récompensait plus personne d'utile), et quitte ou double redescend de 20 % à 12 % — il était devenu la première source de points du jeu. Le doublement, lui, se répartit à parts égales sur les trois exos. Oui, une moitié des jours il ne se passe rien : un événement quotidien n'est plus un événement.
+
+(Avant le 27/07 : rien 40 %, pompes doublées 15 %, happy hour 15 %, lève-tôt 12 %, quitte ou double 10 %, jour miroir 8 % ; le dimanche, rien 40 %, boss 25 %, pompes doublées 10 %, happy hour 8 %, lève-tôt 7 %, quitte ou double 5 %, miroir 5 %.)
 
 ---
 
@@ -223,7 +236,10 @@ Toutes les heures sont en heure de Paris.
 ## 11. FAQ
 
 **« Pompes doublées », ça double aussi mes bonus pompes ?**
-Non. Concrètement c'est +1 point si tu coches pompes ce jour-là (ta coche vaut 2 au lieu de 1). Tes bonus déclarés +50 ou +100 pompes gardent leur valeur normale.
+Oui, depuis le 27/07. Ta coche pompes vaut 2 au lieu de 1, et tes paliers pompes déclarés doublent aussi : +50 pompes passe à 8, +100 pompes à 14. C'est le seul jour où charger sur les pompes rapporte vraiment. (Jusqu'au 26/07, seule la coche doublait.)
+
+**Le doublement rapporte pareil quelle que soit ma série ?**
+Non, et c'est voulu. Il double ta coche telle qu'elle vaut ce jour-là : sans série elle vaut 1 et le doublement ajoute 1 ; à ×1,5 il ajoute 1,5 ; à ×2 il ajoute 2. Jusqu'au 26/07 l'appli versait +1 quoi qu'il arrive — un joueur à ×2 voyait donc sa coche passer de 2 à 3, soit une fois et demie, pas le double. L'événement payait d'autant moins qu'on était régulier ; corrigé au 27/07. Les points déjà marqués en S1 et S2 ne bougent pas.
 
 **Je peux perdre des points ?**
 Une seule façon : perdre ton duel de la semaine (−3, transférés au gagnant). Tout le reste ne fait que monter.
@@ -251,11 +267,6 @@ Aucun. Il préserve ta série, il ne remplace pas une journée. Tu gardes ton mu
 
 **Quelqu'un peut rejoindre en cours de route ?**
 Oui, dans la limite de **12 joueurs**. Et un joueur qui a coché ne serait-ce qu'un exo ne peut plus être supprimé.
-
-**Le « premier du jour », c'est attribué quand ?**
-Une fois la journée finie, pour éviter que le gagnant change à chaque coche et décoche. Pareil pour la séance la plus rapide.
-
-Et depuis le 20/07, le trophée tourne : si tu as été premier à finir hier, le +3 du jour va au premier des autres. L'exclusion ne dure qu'un jour — tu peux le reprendre dès le lendemain. Cas limite : si le tenant est le seul à finir, le trophée n'est pas attribué ce jour-là.
 
 **Qui décide qu'un bonus est vrai ?**
 Personne. C'est sur l'honneur — mais toutes les déclarations sont visibles par tout le monde, en direct. La pression sociale fait le reste.

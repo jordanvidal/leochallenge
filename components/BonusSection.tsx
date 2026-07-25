@@ -12,6 +12,7 @@ import {
   BonusCatalogItem,
   BonusState,
   claimableGroups,
+  movementLocked,
   weekBonusPoints,
 } from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
@@ -151,6 +152,20 @@ function BonusSheet({
     return mineCount >= capDay || weekUsed + item.points > capWeek;
   }
 
+  /** Un déplacement déclaré ferme-t-il les deux autres puces ? Une puce
+      éteinte sans un mot passerait pour un bug — c'est la seule raison de
+      fermeture que le joueur ne peut pas deviner.
+
+      Lu sur les groupes aplatis, pas sur le catalogue : la phrase doit
+      décrire les puces réellement affichées, jamais une de plus. */
+  const movementClash = groups.some((g) =>
+    g.items.some(
+      (item) =>
+        !mineToday.some((c) => c.bonus_key === item.key) &&
+        movementLocked(bonus, player.id, item),
+    ),
+  );
+
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60"
@@ -180,7 +195,7 @@ function BonusSheet({
           )}
         </div>
 
-        {/* Vingt-trois pastilles à plat, c'était un mur. Trois paquets
+        {/* Vingt-trois pastilles à plat, c'était un mur. Quatre paquets
             titrés : on cherche « du cardio », pas une pastille précise. */}
         <div className="flex flex-col gap-4 overflow-y-auto pb-1">
           {groups.map((g) => (
@@ -193,7 +208,12 @@ function BonusSheet({
               <div className="flex flex-wrap content-start gap-2">
                 {g.items.map((item) => {
                   const claimed = mineToday.some((c) => c.bonus_key === item.key);
-                  const off = !claimed && blocked(item);
+                  // Deux raisons d'éteindre une puce : les plafonds, et
+                  // l'exclusion de déplacement. Seule la seconde s'explique
+                  // sous les groupes — l'autre est déjà lisible au compteur.
+                  const off =
+                    !claimed &&
+                    (blocked(item) || movementLocked(bonus, player.id, item));
                   return (
                     <button
                       key={item.key}
@@ -237,6 +257,13 @@ function BonusSheet({
             </div>
           ))}
         </div>
+
+        {movementClash && (
+          <p className="mt-3 text-[11px] font-medium text-faint">
+            🚶 Un seul déplacement par jour : 5 km, 10 km ou 10 000 pas. Tes
+            kilomètres comptent une fois. Décoche pour changer.
+          </p>
+        )}
 
         <button
           onClick={onClose}

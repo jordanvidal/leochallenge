@@ -2,7 +2,7 @@
 // points, lue en base), événement du jour (RPC get_daily_event),
 // déclarations. Aucun montant en dur ici — tout vient du catalogue.
 
-import { addDays, parisToday } from "./challenge";
+import { addDays, parisToday, saison3Started } from "./challenge";
 import { supabase } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
@@ -21,7 +21,8 @@ export type BonusCatalogItem = {
   sort: number;
   // Échelle de volume : deux bonus qui la partagent sont le même exercice
   // à deux hauteurs (+50 pompes / +100 pompes). Ils se cumulent depuis la
-  // migration 22. null = bonus hors échelle.
+  // migration 22 — cocher les deux, c'est déclarer le volume des deux.
+  // null = bonus hors échelle.
   ladder: string | null;
   // Famille d'affichage (migration 31). null pour les bonus non
   // déclarables, et pour toute ligne ajoutée sans famille.
@@ -123,6 +124,52 @@ export function claimableGroups(state: BonusState): BonusGroup[] {
   if (groups.length === 0) return orphans.length ? [{ title: null, items: orphans }] : [];
   if (orphans.length) groups.push({ title: "Autres", items: orphans });
   return groups;
+}
+
+// --- Un seul déplacement par jour -----------------------------------
+// Trois puces décrivent la même chose : la distance parcourue dans la
+// journée. 🏃 5 km, 🏃 10 km, 🚶 10 000 pas. Une seule peut être vraie,
+// et on ne paie pas deux fois les mêmes kilomètres.
+//
+//   · 5 km et 10 km sont deux distances absolues, pas deux paliers qui
+//     s'empilent : cocher les deux annoncerait 15 km.
+//   · Un 5 km fait déjà ~5 500 pas, un 10 km ~11 000. Les jours de
+//     course, la puce « 10 000 pas » n'est pas un deuxième effort,
+//     c'est le reçu du premier — et elle ajouterait +4 aux 8 ou 20
+//     points déjà pris.
+//
+// Ce qui est coché ferme les deux autres, et se décoche toujours pour
+// changer d'avis. Les 10 000 pas restent entiers les jours sans course :
+// c'est ce pour quoi ils ont été créés le 20/07, le filet des jours sans
+// matériel.
+//
+// Bornée au 27/07 comme le reste du barème S3. Une règle qui arrive avec
+// une saison est une règle ; la même en plein milieu est une règle contre
+// quelqu'un. Ça rend aussi la branche mergeable n'importe quand : rien ne
+// bouge en prod avant lundi, quelle que soit l'heure du merge.
+const PAS_KEY = "pas_10000";
+
+/** Une puce de déplacement : la marche, ou n'importe quelle distance de
+    course. Le préfixe de clé est le repère — il ne dépend d'aucune
+    colonne, donc il vaut avant comme après la migration 29. */
+function isMovement(c: BonusCatalogItem): boolean {
+  return c.key === PAS_KEY || c.key.startsWith("course_");
+}
+
+/** Un autre déplacement déclaré aujourd'hui ferme-t-il cette puce ? */
+export function movementLocked(
+  state: BonusState,
+  playerId: string,
+  item: BonusCatalogItem,
+): boolean {
+  if (!saison3Started() || !isMovement(item)) return false;
+  const others = new Set(
+    state.catalog.filter(isMovement).map((c) => c.key),
+  );
+  others.delete(item.key); // décocher la sienne reste toujours possible
+  return state.todayClaims.some(
+    (c) => c.player_id === playerId && others.has(c.bonus_key),
+  );
 }
 
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
