@@ -233,6 +233,18 @@ export default function LaunchS3Screen({
           Le doublement ne vise plus que les pompes :{" "}
           <b className="text-ink">abdos et squats aussi</b>.
         </NewsRow>
+        <NewsRow icon="🤸">
+          <b className="text-ink">Six bonus de cardio</b> — jumping jacks,
+          mountain climbers, squats jump. De{" "}
+          <b className="font-bold" style={accent}>
+            +3
+          </b>{" "}
+          à{" "}
+          <b className="font-bold" style={accent}>
+            +7
+          </b>
+          .
+        </NewsRow>
         <NewsRow icon="🏃">
           Nouveau : le <b className="text-ink">10 km</b>,{" "}
           <b className="font-bold" style={accent}>
