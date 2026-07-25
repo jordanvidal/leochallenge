@@ -253,7 +253,8 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                 <dd>
                   exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
                   ta coche <b>et</b> tes paliers déclarés compter double ce
-                  jour-là
+                  jour-là. La coche double à sa valeur du jour, série
+                  comprise
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">
