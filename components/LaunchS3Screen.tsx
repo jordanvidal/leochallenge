@@ -221,16 +221,17 @@ export default function LaunchS3Screen({
           </b>{" "}
           — le double d&apos;avant.
         </NewsRow>
-        <NewsRow icon="🔁">
-          7 jours d&apos;affilée :{" "}
+        <NewsRow icon="📅">
+          <b className="text-ink">La semaine pleine</b> — 7/7 du lundi au
+          dimanche :{" "}
           <b className="font-bold" style={accent}>
             +5
-          </b>{" "}
-          de rab.
+          </b>
+          .
         </NewsRow>
         <NewsRow icon="🎲">
-          Chaque jour, <b className="text-ink">un exo compte double</b> — au
-          hasard.
+          Le doublement ne vise plus que les pompes :{" "}
+          <b className="text-ink">abdos et squats aussi</b>.
         </NewsRow>
         <NewsRow icon="🏃">
           Nouveau : le <b className="text-ink">10 km</b>,{" "}
@@ -262,12 +263,16 @@ export default function LaunchS3Screen({
           la plus rapide (+2 chacun).
         </NewsRow>
         <NewsRow icon="🕘">
-          <b className="text-ink">Les bonus d&apos;horaire</b> — 8h, 23h, happy
+          <b className="text-ink">Les bonus d&apos;horaire</b> — 8h, 22h, happy
           hour, lève-tôt (+2 à +6).
         </NewsRow>
         <NewsRow icon="🥇">
           <b className="text-ink">Le premier du jour</b> (+3) — c&apos;était
           plus une question d&apos;heure que d&apos;effort, on l&apos;assume.
+        </NewsRow>
+        <NewsRow icon="🤝">
+          <b className="text-ink">Le jour parfait collectif</b> (+5 chacun) — il
+          devenait plus facile à mesure que le groupe se vidait.
         </NewsRow>
       </div>
       <p className={vanne} style={{ borderColor: player.color }}>
