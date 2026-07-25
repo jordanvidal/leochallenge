@@ -7,7 +7,13 @@
 // ouvrir, et ce qui est déjà déclaré reste visible sur le rang.
 
 import { useEffect, useState } from "react";
-import { BonusCatalogItem, BonusState, claimables, weekBonusPoints } from "@/lib/bonus";
+import {
+  BonusCatalogItem,
+  BonusState,
+  claimables,
+  walkRunLocked,
+  weekBonusPoints,
+} from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 
@@ -145,6 +151,15 @@ function BonusSheet({
     return mineCount >= capDay || weekUsed + item.points > capWeek;
   }
 
+  /** Ce qui est déclaré aujourd'hui ferme-t-il des puces de l'autre camp
+      marche/course ? Une puce éteinte sans un mot passerait pour un bug —
+      c'est la seule raison de fermeture que le joueur ne peut pas deviner. */
+  const walkRunClash = items.some(
+    (item) =>
+      !mineToday.some((c) => c.bonus_key === item.key) &&
+      walkRunLocked(bonus, player.id, item),
+  );
+
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60"
@@ -177,7 +192,9 @@ function BonusSheet({
         <div className="flex flex-wrap content-start gap-2 overflow-y-auto pb-1">
           {items.map((item) => {
             const claimed = mineToday.some((c) => c.bonus_key === item.key);
-            const off = !claimed && blocked(item);
+            const off =
+              !claimed &&
+              (blocked(item) || walkRunLocked(bonus, player.id, item));
             return (
               <button
                 key={item.key}
@@ -218,6 +235,13 @@ function BonusSheet({
             );
           })}
         </div>
+
+        {walkRunClash && (
+          <p className="mt-3 text-[11px] font-medium text-faint">
+            🚶 Les 10 000 pas et la course ne se déclarent pas le même jour :
+            tes kilomètres sont déjà comptés une fois. Décoche pour changer.
+          </p>
+        )}
 
         <button
           onClick={onClose}

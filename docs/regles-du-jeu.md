@@ -69,13 +69,15 @@ Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une co
 
 Sept bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement : burpees, fentes, dips, chaise murale, 10 000 pas. Les pas se lisent sur le téléphone ; la chaise murale et le gainage se cumulent dans la journée, mais chacun ne se déclare qu'une fois.
 
-**Un mouvement en S3 (27/07) :**
+**Deux mouvements en S3 (27/07) :**
 
 - 🏃 **Le 10 km arrive**, en deuxième palier de la course. 5 km = 8 pts, le palier suivant = 12 pts : un 10 km déclaré en entier vaut **20 points**.
+- 🚶 **Les 10 000 pas et la course ne se déclarent plus le même jour.** Un 5 km fait déjà ~5 500 pas, un 10 km ~11 000 : ces jours-là, la puce « pas » n'est pas un deuxième effort, c'est le reçu du premier, et elle paierait les mêmes kilomètres une deuxième fois. Dans l'appli, cocher un camp éteint l'autre — et se décoche si tu t'es trompé de camp.
 
-**Le garde-fou :**
+**Les garde-fous :**
 
 - **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees, les fentes, la course. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis.
+- **Marche ou course, pas les deux** (depuis le 27/07). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 

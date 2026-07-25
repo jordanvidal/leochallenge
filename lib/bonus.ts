@@ -88,6 +88,46 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
   return state.catalog.filter((c) => c.kind === "exercise");
 }
 
+// --- Exclusion marche / course -------------------------------------
+// On ne paie pas deux fois les mêmes kilomètres. Un 5 km, c'est déjà
+// ~5 500 pas ; un 10 km, ~11 000 — sur une journée de course, la puce
+// « 10 000 pas » n'est pas un deuxième effort, c'est le reçu du premier,
+// et elle ajoute +4 aux 8 ou 20 points déjà pris. Les deux ne se
+// déclarent donc pas le même jour, dans les deux sens : ce qui est
+// coché ferme l'autre camp, et se décoche toujours pour changer d'avis.
+// La puce reste entière les jours sans course — c'est ce pour quoi elle
+// a été créée le 20/07, le filet des jours sans matériel.
+const PAS_KEY = "pas_10000";
+
+/** Une puce de l'échelle course. Le préfixe de clé double l'échelle :
+    avant la migration 29, course_5km est encore ladder null en base. */
+function isCourse(c: BonusCatalogItem): boolean {
+  return c.ladder === "course" || c.key.startsWith("course_");
+}
+
+/** Les puces de l'autre camp. Vide si l'item n'est pas concerné. */
+function otherCamp(
+  item: BonusCatalogItem,
+  catalog: BonusCatalogItem[],
+): BonusCatalogItem[] {
+  if (item.key === PAS_KEY) return catalog.filter(isCourse);
+  if (isCourse(item)) return catalog.filter((c) => c.key === PAS_KEY);
+  return [];
+}
+
+/** Une déclaration du jour ferme-t-elle cette puce ? */
+export function walkRunLocked(
+  state: BonusState,
+  playerId: string,
+  item: BonusCatalogItem,
+): boolean {
+  const keys = new Set(otherCamp(item, state.catalog).map((c) => c.key));
+  if (keys.size === 0) return false;
+  return state.todayClaims.some(
+    (c) => c.player_id === playerId && keys.has(c.bonus_key),
+  );
+}
+
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
 export function weekBonusPoints(state: BonusState, playerId: string): number {
   const exerciseKeys = new Set(
