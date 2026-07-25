@@ -53,7 +53,7 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🦵 +100 squats (200 au total) | +4 |
 | 🦵 +200 squats (300 au total) | +7 |
 | 🏃 5 km de course | +8 |
-| 🏃 +5 km (10 au total) | +12 |
+| 🏃 10 km de course | +20 |
 | 🧱 3 min de gainage | +3 |
 | 🪢 10 min de corde à sauter | +5 |
 | 🪜 500 marches | +5 |
@@ -71,13 +71,13 @@ Sept bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacance
 
 **Deux mouvements en S3 (27/07) :**
 
-- 🏃 **Le 10 km arrive**, en deuxième palier de la course. 5 km = 8 pts, le palier suivant = 12 pts : un 10 km déclaré en entier vaut **20 points**.
-- 🚶 **Les 10 000 pas et la course ne se déclarent plus le même jour.** Un 5 km fait déjà ~5 500 pas, un 10 km ~11 000 : ces jours-là, la puce « pas » n'est pas un deuxième effort, c'est le reçu du premier, et elle paierait les mêmes kilomètres une deuxième fois. Dans l'appli, cocher un camp éteint l'autre — et se décoche si tu t'es trompé de camp.
+- 🏃 **Le 10 km arrive**, comme puce entière : **+20**, à côté du 5 km à +8. Deux distances, deux puces, le total annoncé sur chacune — tu coches celle que tu as courue.
+- 🚶 **Un seul déplacement par jour.** 5 km, 10 km ou 10 000 pas : une seule des trois puces décrit ta journée, et cocher l'une éteint les deux autres. Un 5 km fait déjà ~5 500 pas et un 10 km ~11 000 — les jours de course, la puce « pas » n'est pas un deuxième effort, c'est le reçu du premier. Trompé de puce ? Décoche, et prends l'autre.
 
 **Les garde-fous :**
 
-- **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees, les fentes, la course. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis.
-- **Marche ou course, pas les deux** (à partir du 27/07 — les jours d'avant ne sont pas retouchés). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
+- **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees et les fentes. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis. La course n'entre pas dans ce jeu-là : ses deux puces sont des distances entières, pas des incréments.
+- **Un seul déplacement par jour** (à partir du 27/07 — les jours d'avant ne sont pas retouchés). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 

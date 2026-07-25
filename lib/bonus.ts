@@ -88,15 +88,22 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
   return state.catalog.filter((c) => c.kind === "exercise");
 }
 
-// --- Exclusion marche / course -------------------------------------
-// On ne paie pas deux fois les mêmes kilomètres. Un 5 km, c'est déjà
-// ~5 500 pas ; un 10 km, ~11 000 — sur une journée de course, la puce
-// « 10 000 pas » n'est pas un deuxième effort, c'est le reçu du premier,
-// et elle ajoute +4 aux 8 ou 20 points déjà pris. Les deux ne se
-// déclarent donc pas le même jour, dans les deux sens : ce qui est
-// coché ferme l'autre camp, et se décoche toujours pour changer d'avis.
-// La puce reste entière les jours sans course — c'est ce pour quoi elle
-// a été créée le 20/07, le filet des jours sans matériel.
+// --- Un seul déplacement par jour -----------------------------------
+// Trois puces décrivent la même chose : la distance parcourue dans la
+// journée. 🏃 5 km, 🏃 10 km, 🚶 10 000 pas. Une seule peut être vraie,
+// et on ne paie pas deux fois les mêmes kilomètres.
+//
+//   · 5 km et 10 km sont deux distances absolues, pas deux paliers qui
+//     s'empilent : cocher les deux annoncerait 15 km.
+//   · Un 5 km fait déjà ~5 500 pas, un 10 km ~11 000. Les jours de
+//     course, la puce « 10 000 pas » n'est pas un deuxième effort,
+//     c'est le reçu du premier — et elle ajouterait +4 aux 8 ou 20
+//     points déjà pris.
+//
+// Ce qui est coché ferme les deux autres, et se décoche toujours pour
+// changer d'avis. Les 10 000 pas restent entiers les jours sans course :
+// c'est ce pour quoi ils ont été créés le 20/07, le filet des jours sans
+// matériel.
 //
 // Bornée au 27/07 comme le reste du barème S3. Une règle qui arrive avec
 // une saison est une règle ; la même en plein milieu est une règle contre
@@ -104,33 +111,26 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
 // bouge en prod avant lundi, quelle que soit l'heure du merge.
 const PAS_KEY = "pas_10000";
 
-/** Une puce de l'échelle course. Le préfixe de clé double l'échelle :
-    avant la migration 29, course_5km est encore ladder null en base. */
-function isCourse(c: BonusCatalogItem): boolean {
-  return c.ladder === "course" || c.key.startsWith("course_");
+/** Une puce de déplacement : la marche, ou n'importe quelle distance de
+    course. Le préfixe de clé est le repère — il ne dépend d'aucune
+    colonne, donc il vaut avant comme après la migration 29. */
+function isMovement(c: BonusCatalogItem): boolean {
+  return c.key === PAS_KEY || c.key.startsWith("course_");
 }
 
-/** Les puces de l'autre camp. Vide si l'item n'est pas concerné. */
-function otherCamp(
-  item: BonusCatalogItem,
-  catalog: BonusCatalogItem[],
-): BonusCatalogItem[] {
-  if (item.key === PAS_KEY) return catalog.filter(isCourse);
-  if (isCourse(item)) return catalog.filter((c) => c.key === PAS_KEY);
-  return [];
-}
-
-/** Une déclaration du jour ferme-t-elle cette puce ? */
-export function walkRunLocked(
+/** Un autre déplacement déclaré aujourd'hui ferme-t-il cette puce ? */
+export function movementLocked(
   state: BonusState,
   playerId: string,
   item: BonusCatalogItem,
 ): boolean {
-  if (!saison3Started()) return false;
-  const keys = new Set(otherCamp(item, state.catalog).map((c) => c.key));
-  if (keys.size === 0) return false;
+  if (!saison3Started() || !isMovement(item)) return false;
+  const others = new Set(
+    state.catalog.filter(isMovement).map((c) => c.key),
+  );
+  others.delete(item.key); // décocher la sienne reste toujours possible
   return state.todayClaims.some(
-    (c) => c.player_id === playerId && keys.has(c.bonus_key),
+    (c) => c.player_id === playerId && others.has(c.bonus_key),
   );
 }
 

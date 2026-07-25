@@ -11,7 +11,7 @@ import {
   BonusCatalogItem,
   BonusState,
   claimables,
-  walkRunLocked,
+  movementLocked,
   weekBonusPoints,
 } from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
@@ -151,13 +151,13 @@ function BonusSheet({
     return mineCount >= capDay || weekUsed + item.points > capWeek;
   }
 
-  /** Ce qui est déclaré aujourd'hui ferme-t-il des puces de l'autre camp
-      marche/course ? Une puce éteinte sans un mot passerait pour un bug —
-      c'est la seule raison de fermeture que le joueur ne peut pas deviner. */
-  const walkRunClash = items.some(
+  /** Un déplacement déclaré ferme-t-il les deux autres puces ? Une puce
+      éteinte sans un mot passerait pour un bug — c'est la seule raison de
+      fermeture que le joueur ne peut pas deviner. */
+  const movementClash = items.some(
     (item) =>
       !mineToday.some((c) => c.bonus_key === item.key) &&
-      walkRunLocked(bonus, player.id, item),
+      movementLocked(bonus, player.id, item),
   );
 
   return (
@@ -194,7 +194,7 @@ function BonusSheet({
             const claimed = mineToday.some((c) => c.bonus_key === item.key);
             const off =
               !claimed &&
-              (blocked(item) || walkRunLocked(bonus, player.id, item));
+              (blocked(item) || movementLocked(bonus, player.id, item));
             return (
               <button
                 key={item.key}
@@ -236,10 +236,10 @@ function BonusSheet({
           })}
         </div>
 
-        {walkRunClash && (
+        {movementClash && (
           <p className="mt-3 text-[11px] font-medium text-faint">
-            🚶 Les 10 000 pas et la course ne se déclarent pas le même jour :
-            tes kilomètres sont déjà comptés une fois. Décoche pour changer.
+            🚶 Un seul déplacement par jour : 5 km, 10 km ou 10 000 pas. Tes
+            kilomètres comptent une fois. Décoche pour changer.
           </p>
         )}
 

@@ -12,10 +12,13 @@
 -- l'effort. Arbitrages pris avec Jordan les 22 et 24/07, applicables
 -- au 27/07 :
 --
---   1. 🏃 10 km de course ajouté, en deuxième palier de l'échelle
---      course : 5 km = 8 pts, +5 km = 12 pts, donc 10 km = 20 pts.
---      Les paliers se cumulent depuis la migration 22, la grammaire
---      est celle des pompes (« +100 pompes (200 au total) »).
+--   1. 🏃 10 km de course ajouté, en puce entière : 5 km = 8 pts,
+--      10 km = 20 pts. La grammaire des pompes (« +100 pompes (200 au
+--      total) ») a été essayée puis écartée le 25/07 : « +5 km (10 au
+--      total) » décrit un incrément, pas une course, et personne ne
+--      lisait ce que valait son 10 km. Deux distances, deux puces, et
+--      le total annoncé sur chacune. Donc pas d'échelle : on ne court
+--      pas 5 et 10 km le même jour, on en court une des deux.
 --   2. ⚡ Séance éclair (< 20 min) retirée. 14 séances chronométrées
 --      sur 16 depuis le 20/07 passaient sous la barre, chez les six
 --      joueurs : ce n'était plus un bonus, c'était un salaire.
@@ -61,10 +64,14 @@
 -- 1. Le catalogue : arrivée du 10 km.
 -- -------------------------------------------------------------
 
--- Le 5 km rejoint une échelle : deux paliers cumulables qui font 20.
-update public.bonus_catalog set ladder = 'course' where key = 'course_5km';
+-- Le 5 km reste hors échelle (ladder null, comme en S2). Le 10 km n'est
+-- pas son palier haut mais son alternative : les deux puces annoncent
+-- une distance absolue, et une seule décrit ta journée. L'exclusion est
+-- tenue côté client (lib/bonus.movementLocked) avec celle des 10 000
+-- pas — même famille, même raison : on ne paie pas deux fois les mêmes
+-- kilomètres.
 
--- Place au palier haut juste après le 5 km (sort = 8) : on décale les
+-- Place au 10 km juste après le 5 km (sort = 8) : on décale les
 -- exercices suivants d'un cran. Les kinds ne partagent pas d'ordre,
 -- seul le tri des puces déclarables se lit ici.
 --
@@ -80,7 +87,7 @@ update public.bonus_catalog
    );
 
 insert into public.bonus_catalog (key, kind, emoji, label, points, sort, ladder) values
-  ('course_10km', 'exercise', '🏃', '+5 km (10 au total)', 12, 8, 'course')
+  ('course_10km', 'exercise', '🏃', '10 km de course', 20, 8, null)
 on conflict (key) do nothing;
 
 -- Deux nouveaux bonus automatiques / événements de la S3 :
