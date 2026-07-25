@@ -235,6 +235,10 @@ export default function LaunchS3Screen({
         <NewsRow icon="🏃">
           Nouveau : le <b className="text-ink">10 km</b> rapporte gros.
         </NewsRow>
+        <NewsRow icon="🚶">
+          Du coup les <b className="text-ink">10 000 pas</b> et la course, plus
+          le même jour — un 10 km, c&apos;est déjà 11 000 pas.
+        </NewsRow>
       </div>
       <p className={vanne} style={{ borderColor: player.color }}>
         Fini de briller un jour sur trois : c&apos;est la constance qui rafle
