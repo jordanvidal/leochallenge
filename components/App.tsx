@@ -10,7 +10,13 @@ import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useTodaySession } from "@/hooks/useTodaySession";
-import { challengeIsOver, parisToday } from "@/lib/challenge";
+import {
+  addDays,
+  challengeIsOver,
+  parisToday,
+  SAISON3_START,
+  saison3Started,
+} from "@/lib/challenge";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -30,6 +36,7 @@ import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
 import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
+import LaunchS3Screen from "./LaunchS3Screen";
 import TutorialScreen from "./TutorialScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
@@ -59,6 +66,10 @@ export default function App() {
   const [workoutOpen, setWorkoutOpen] = useState(false);
   // Rouvrir le tuto à la demande (« Revoir les règles »), même déjà vu.
   const [replayTuto, setReplayTuto] = useState(false);
+  // Idem pour l'écran de lancement S3. forceLaunch = aperçu manuel hors date
+  // (revue avant le 27/07) via ?lancement=1, lu après montage (pas d'hydratation).
+  const [replayLaunch, setReplayLaunch] = useState(false);
+  const [forceLaunch, setForceLaunch] = useState(false);
   // Modale « événement du jour » : montrée une fois par jour si un
   // événement a été tiré (pas les jours « rien »).
   const [showEventModal, setShowEventModal] = useState(false);
@@ -67,6 +78,12 @@ export default function App() {
     () => (data.players ?? []).find((p) => p.id === playerId),
     [data.players, playerId],
   );
+
+  useEffect(() => {
+    setForceLaunch(
+      new URLSearchParams(window.location.search).get("lancement") === "1",
+    );
+  }, []);
 
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
   const { gamification, reloadGamification } = useGamification(!!player);
@@ -233,6 +250,36 @@ export default function App() {
     );
   }
 
+  // Écran de lancement S3 : une fois à partir du 27/07, ou en aperçu manuel
+  // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
+  if (
+    !over &&
+    (forceLaunch || replayLaunch || (saison3Started() && !id.launchS3Seen))
+  ) {
+    return (
+      <div style={accent}>
+        <LaunchS3Screen
+          player={player}
+          players={data.players}
+          replay={replayLaunch}
+          onLaunchSession={() => {
+            id.markLaunchS3Seen();
+            setReplayLaunch(false);
+            setForceLaunch(false);
+            setTab("today");
+            setWorkoutOpen(true);
+          }}
+          onDone={() => {
+            id.markLaunchS3Seen();
+            setReplayLaunch(false);
+            setForceLaunch(false);
+          }}
+        />
+        <Toast message={data.toast} />
+      </div>
+    );
+  }
+
   if (!id.standalone && !id.installLater) {
     return (
       <div style={accent}>
@@ -355,6 +402,19 @@ export default function App() {
         >
           Revoir les règles
         </button>
+        {saison3Started() && parisToday() <= addDays(SAISON3_START, 6) && (
+          <>
+            <span className="text-[11px] text-faint" aria-hidden>
+              ·
+            </span>
+            <button
+              onClick={() => setReplayLaunch(true)}
+              className="min-h-8 text-[11px] text-faint"
+            >
+              Revoir le lancement
+            </button>
+          </>
+        )}
         <span className="text-[11px] text-faint" aria-hidden>
           ·
         </span>
