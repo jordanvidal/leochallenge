@@ -9,6 +9,7 @@
 // (flag localStorage), ou rouvert depuis « Revoir les règles ».
 
 import { useState } from "react";
+import { saison3Started } from "@/lib/challenge";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 
@@ -42,6 +43,11 @@ function EventRow({ emoji, children }: { emoji: string; children: React.ReactNod
 }
 
 export default function TutorialScreen({ player, replay = false, onDone }: Props) {
+  // Le tuto décrit le barème EN VIGUEUR, pas celui qui arrive. Sans cette
+  // bascule, merger la branche avant lundi ferait mentir l'écran des règles
+  // pendant tout le week-end — celui où la prime hebdo et les duels de la
+  // S2 se jouent encore sous l'ancien barème.
+  const s3 = saison3Started();
   const cards = [
     // 1 — Le principe
     <div key="principe">
@@ -64,7 +70,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <h1 className="text-2xl font-bold">Comment on marque</h1>
       <dl className="mt-5 space-y-3">
         <Rule amount="1 pt">par exo coché</Rule>
-        <Rule amount="+2">journée parfaite (3 exos sur 3)</Rule>
+        <Rule amount={s3 ? "+4" : "+2"}>journée parfaite (3 exos sur 3)</Rule>
         <Rule amount="×1,5">série de 3 jours parfaits</Rule>
         <Rule amount="×2">série de 7 jours parfaits, et ça ne monte plus</Rule>
       </dl>
@@ -79,10 +85,14 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <h1 className="text-2xl font-bold">Les bonus, par-dessus</h1>
       <p className="mt-3 text-muted">Des points en plus qui s&apos;empilent sur ta base :</p>
       <dl className="mt-5 space-y-3">
-        <Rule amount="🥇">premier à finir son 3/3 dans la journée</Rule>
+        {!s3 && <Rule amount="🥇">premier à finir son 3/3 dans la journée</Rule>}
         <Rule amount="💪">séance guidée bouclée</Rule>
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
+      <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
+        Les paliers d&apos;un même exo se cumulent : +50 <b>et</b> +100 pompes
+        le même jour, tu prends les deux.
+      </p>
     </div>,
 
     // 4 — Les événements du jour
@@ -92,14 +102,25 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         Tiré au hasard, un max par jour. Certains jours, rien. D&apos;autres :
       </p>
       <div className="mt-5 space-y-2.5">
-        <EventRow emoji="🎲">pompes double : tes pompes comptent double</EventRow>
-        <EventRow emoji="🍻">happy hour : séance finie entre 18h et 20h → +5</EventRow>
-        <EventRow emoji="🌄">lève-tôt : séance finie avant 7h → +6</EventRow>
+        {s3 ? (
+          <EventRow emoji="🎲">
+            exo doublé : un exo tiré au hasard (pompes, abdos ou squats) — ta
+            coche et tes bonus de cet exo comptent double
+          </EventRow>
+        ) : (
+          <>
+            <EventRow emoji="🎲">pompes double : tes pompes comptent double</EventRow>
+            <EventRow emoji="🍻">happy hour : séance finie entre 18h et 20h → +5</EventRow>
+            <EventRow emoji="🌄">lève-tôt : séance finie avant 7h → +6</EventRow>
+          </>
+        )}
         <EventRow emoji="🎰">
           quitte ou double : ton 3/3 double ta base du jour. Raté, rien ne
           bouge.
         </EventRow>
-        <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
+        {!s3 && (
+          <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
+        )}
         <EventRow emoji="👊">boss du dimanche : 200 pompes au total → +10</EventRow>
       </div>
     </div>,
