@@ -350,7 +350,7 @@ export default function LaunchS3Screen({
       <div className="px-6 pb-3">
         {last ? (
           <BigButton onClick={finish}>
-            {replay ? "Fermer" : "Lancer ma séance 💥"}
+            {replay ? "Fermer" : "Démarrer la S3"}
           </BigButton>
         ) : (
           <p className="py-3 text-center text-sm text-faint">
