@@ -77,7 +77,7 @@ Sept bonus sans-matériel sont arrivés le 20/07 (S2), pour les jours de vacance
 **Les garde-fous :**
 
 - **Les paliers d'une même échelle se cumulent** (depuis le 20/07). +50 pompes et +100 pompes cochés tous les deux, c'est 250 pompes déclarées, et chaque palier est payé une fois — 4 + 7 = 11. Même chose pour les burpees, les fentes, la course. La règle d'avant (un seul palier par jour) datait des plafonds, tombés depuis.
-- **Marche ou course, pas les deux** (depuis le 27/07). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
+- **Marche ou course, pas les deux** (à partir du 27/07 — les jours d'avant ne sont pas retouchés). Les 10 000 pas gardent tout leur sens les jours sans course — c'est ce pour quoi ils ont été créés le 20/07 : le filet des jours de vacances ou de déplacement, quand tu n'as ni salle ni matériel.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 

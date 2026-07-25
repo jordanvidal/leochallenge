@@ -2,7 +2,7 @@
 // points, lue en base), événement du jour (RPC get_daily_event),
 // déclarations. Aucun montant en dur ici — tout vient du catalogue.
 
-import { addDays, parisToday } from "./challenge";
+import { addDays, parisToday, saison3Started } from "./challenge";
 import { supabase } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
@@ -97,6 +97,11 @@ export function claimables(state: BonusState): BonusCatalogItem[] {
 // coché ferme l'autre camp, et se décoche toujours pour changer d'avis.
 // La puce reste entière les jours sans course — c'est ce pour quoi elle
 // a été créée le 20/07, le filet des jours sans matériel.
+//
+// Bornée au 27/07 comme le reste du barème S3. Une règle qui arrive avec
+// une saison est une règle ; la même en plein milieu est une règle contre
+// quelqu'un. Ça rend aussi la branche mergeable n'importe quand : rien ne
+// bouge en prod avant lundi, quelle que soit l'heure du merge.
 const PAS_KEY = "pas_10000";
 
 /** Une puce de l'échelle course. Le préfixe de clé double l'échelle :
@@ -121,6 +126,7 @@ export function walkRunLocked(
   playerId: string,
   item: BonusCatalogItem,
 ): boolean {
+  if (!saison3Started()) return false;
   const keys = new Set(otherCamp(item, state.catalog).map((c) => c.key));
   if (keys.size === 0) return false;
   return state.todayClaims.some(
