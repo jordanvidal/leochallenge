@@ -5,24 +5,34 @@
 // Montré une fois à partir du 27/07 (flag localStorage, garde côté App),
 // rejouable. Bilan S2 + ce qui change, ton vannard.
 //
-// ⚠️ Les chiffres S2 sont FIGÉS À LA MAIN le dimanche 23h30, une fois la
-// saison close. N'éditer que le bloc S2 ci-dessous — rien d'autre.
+// ⚠️ Les chiffres S2 sont FIGÉS À LA MAIN le lundi 27/07 à 00h01, une fois
+// la saison close. N'éditer que le bloc S2 ci-dessous — rien d'autre. Les
+// requêtes qui les produisent sont dans docs/mep-s3.md.
 
 import { useEffect, useState } from "react";
+import { CHALLENGE_START, diffDays, SAISON3_START } from "@/lib/challenge";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 
+/** Les jours joués avant la S3. Calculé, jamais écrit en toutes lettres :
+    la phrase disait « douze jours » alors que du 13/07 au 26/07 il y en a
+    quatorze, et une saison décalée d'un jour la referait mentir. */
+const JOURS_AVANT_S3 = diffDays(CHALLENGE_START, SAISON3_START);
+
 const S2 = {
-  // Moyenne de répétitions par joueur (à définir dimanche : dénominateur =
-  // joueurs ayant coché au moins une fois). Placeholder en attendant.
-  moyenneReps: 2500,
-  totalReps: 17300,
-  joursParfaits: 57,
+  // Le dénominateur, c'est les CINQ qui ont joué — Hugo (0 rep), Nathan
+  // (200) et Jerem (900) sont hors décompte. Les compter divisait la
+  // moyenne par sept et sortait 2 771 là où les cinq sont à 3 660 : un
+  // chiffre exact qui sous-vend le groupe auquel l'écran s'adresse.
+  // Valeurs arrêtées au 25/07, à refaire le 27/07 à 00h01.
+  moyenneReps: 3660,
+  totalReps: 18300,
+  joursParfaits: 61,
   // Podium du classement général au soir de la S2. Révélé 3e → 2e → 1er.
   podium: [
     { medaille: "🥇", nom: "Doren", note: "En tête au général. Le stratège des points." },
-    { medaille: "🥈", nom: "Hichem", note: "12/12 parfaits. La machine n'a jamais calé." },
-    { medaille: "🥉", nom: "Pierre", note: "11 sans-faute, collé au train." },
+    { medaille: "🥈", nom: "Pierre", note: "13 sans-faute, collé au train." },
+    { medaille: "🥉", nom: "Hichem", note: "13 jours parfaits. La machine n'a jamais calé." },
   ],
 };
 
@@ -152,8 +162,8 @@ export default function LaunchS3Screen({
       </p>
       <h1 className="mt-4 text-4xl font-black">On remet ça.</h1>
       <p className="mt-4 text-lg text-muted">
-        La S2 est pliée. Douze jours dans les pattes, et déjà l&apos;envie
-        d&apos;y retourner.
+        La S2 est pliée. {JOURS_AVANT_S3} jours dans les pattes, et déjà
+        l&apos;envie d&apos;y retourner.
       </p>
       <p className={vanne} style={{ borderColor: player.color }}>
         Spoiler : personne n&apos;a assez souffert. On rempile. 💪
@@ -172,7 +182,8 @@ export default function LaunchS3Screen({
         répétitions chacun, en moyenne.
       </p>
       <p className="mt-1 text-sm text-muted">
-        {S2.totalReps.toLocaleString("fr-FR")} en tout · en douze jours
+        {S2.totalReps.toLocaleString("fr-FR")} en tout · en {JOURS_AVANT_S3}{" "}
+        jours
       </p>
       <p className={vanne} style={{ borderColor: player.color }}>
         Vos muscles vous détestent. C&apos;est le but.
