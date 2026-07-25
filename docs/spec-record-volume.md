@@ -130,6 +130,18 @@ Implémentation : `/api/moments` est **aussi** appelée au décochage (même
 `record`/`vol:<jour>` du jour si le volume recalculé ne dépasse plus le record
 antérieur. Pas de trigger SQL : tout se fait dans la route.
 
+⚠️ **Correction — ce paragraphe avait un angle mort.** « Tout se fait dans la
+route » ne suffisait pas : la route tourne avec la clé anon, et `feed_events`
+n'avait aucune politique RLS de suppression. Le `delete()` partait sans erreur
+et n'effaçait rien. La migration 26, citée en précédent, supprime via un trigger
+`security definer` qui contourne RLS — un privilège que la route n'a pas.
+
+D'où `supabase/migration30-record-volume-suppression.sql` : une politique de
+suppression, volontairement limitée à `kind = 'record' AND dedupe_key LIKE
+'vol:%'`. Le record de série se dédup sur une date nue, il reste hors d'atteinte,
+comme le reste du fil. Vérifié en prod : la carte de volume part, celle de série
+résiste.
+
 ---
 
 ## 5. Les points d'accroche
@@ -138,7 +150,7 @@ antérieur. Pas de trigger SQL : tout se fait dans la route.
 |---|---|
 | `app/api/moments/route.ts` | Charger les `bonus_claims` joints au catalogue, calculer le volume par (joueur, jour), détecter le dépassement, pousser le `FeedInsert`. Ajouter la passe de suppression au décochage. Le type `FeedInsert.kind` (~l.36) inclut déjà `"record"`. |
 | `lib/feed.ts` | Étendre `FeedPayload` avec `reps` et `before`. Dans le `case "record"` (~l.149), **discriminer sur le payload** : `reps` présent → volume, sinon → série. |
-| `supabase/` | **Rien.** Aucune migration. |
+| `supabase/` | ~~**Rien.** Aucune migration.~~ Une seule : le droit de supprimer une carte de volume (voir ci-dessous). |
 
 ### La discrimination sans nouveau `kind`
 
@@ -171,7 +183,9 @@ Trois choses s'y jouent :
 ## 7. Ce qu'il ne faut PAS faire
 
 - **Pas de points.** C'est ce qui garantit qu'il n'y a rien à optimiser.
-- **Pas de migration**, ni de trigger : le `kind` existe, la route suffit.
+- **Pas de trigger** : le `kind` existe, la route suffit à décider. Une seule
+  migration, et pas sur le schéma : le droit de supprimer une carte de volume
+  (§4). Le barème, les tables et les contraintes ne bougent pas.
 - **Pas d'écran, pas de compteur, pas de « ton record actuel » sur Aujourd'hui.**
   Rien sur le chemin des 10 secondes. La carte se découvre dans le fil.
 - **Pas de record hebdomadaire ni mensuel.** Un seul record, à vie, par joueur.
