@@ -89,6 +89,88 @@ export async function fetchGamification(): Promise<Gamification | null> {
   };
 }
 
+// --- Bilan des saisons 1 et 2, pour l'écran de lancement de la S3 -----
+// Ces chiffres vivaient en dur dans le composant, à figer à la main le
+// dimanche soir. Un écran qui s'affiche une fois, à une date connue, sur
+// des données que la base sait produire : il n'y avait aucune raison de
+// les recopier. Calculés ici, ils sont justes quoi qu'il arrive — et il
+// n'y a plus de déploiement à passer à minuit.
+
+export type BilanSaison = {
+  moyenneReps: number;
+  totalReps: number;
+  joursParfaits: number;
+  /** Les trois premiers du classement général, 1er en tête. */
+  podium: { playerId: string; nom: string; points: number; joursParfaits: number }[];
+  /** Combien de joueurs ont compté dans la moyenne. */
+  joueurs: number;
+};
+
+type EntryRow = {
+  player_id: string;
+  pushups: boolean;
+  abs: boolean;
+  squats: boolean;
+};
+
+/**
+ * Le bilan des jours joués avant `until` (inclus).
+ *
+ * Ne comptent que les joueurs qui ont coché **au moins la moitié des
+ * jours**. Le challenge s'ouvre à qui veut, et trois comptes se sont
+ * arrêtés à 0, 2 et 3 jours sur quatorze : les inclure divisait la
+ * moyenne par huit et sortait 2 771 répétitions là où ceux qui jouent
+ * sont à 3 660. Le seuil n'exclut personne à la main, et la marge est
+ * large — 11 à 13 jours d'un côté, 0 à 3 de l'autre.
+ */
+export async function fetchBilanSaison(
+  until: string,
+  joursTotal: number,
+  noms: Map<string, string>,
+): Promise<BilanSaison | null> {
+  const [entries, lb] = await Promise.all([
+    supabase
+      .from("entries")
+      .select("player_id, pushups, abs, squats")
+      .lte("day", until),
+    supabase.rpc("leaderboard", { p_until: until }),
+  ]);
+  if (entries.error || lb.error) return null;
+
+  // Jours cochés et répétitions, par joueur. Une coche = 100 répétitions.
+  const jours = new Map<string, number>();
+  const reps = new Map<string, number>();
+  for (const e of entries.data as EntryRow[]) {
+    const n = Number(e.pushups) + Number(e.abs) + Number(e.squats);
+    if (n === 0) continue;
+    jours.set(e.player_id, (jours.get(e.player_id) ?? 0) + 1);
+    reps.set(e.player_id, (reps.get(e.player_id) ?? 0) + n * 100);
+  }
+
+  const seuil = Math.ceil(joursTotal / 2);
+  const retenus = (lb.data as LeaderboardRow[])
+    .map(numify)
+    .filter((r) => (jours.get(r.player_id) ?? 0) >= seuil);
+  if (retenus.length === 0) return null;
+
+  const totalReps = retenus.reduce((s, r) => s + (reps.get(r.player_id) ?? 0), 0);
+  return {
+    totalReps,
+    moyenneReps: Math.round(totalReps / retenus.length),
+    joursParfaits: retenus.reduce((s, r) => s + r.perfect_days, 0),
+    joueurs: retenus.length,
+    podium: [...retenus]
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 3)
+      .map((r) => ({
+        playerId: r.player_id,
+        nom: noms.get(r.player_id) ?? "",
+        points: r.points,
+        joursParfaits: r.perfect_days,
+      })),
+  };
+}
+
 /** Classement d'une semaine passée (fenêtre close). Même RPC que le reste :
     aucun score stocké, tout est recalculé depuis les entries — l'historique
     hebdo est donc exact même si un bonus a été corrigé après coup. */

@@ -5,12 +5,15 @@
 // Montré une fois à partir du 27/07 (flag localStorage, garde côté App),
 // rejouable. Bilan S2 + ce qui change, ton vannard.
 //
-// ⚠️ Les chiffres S2 sont FIGÉS À LA MAIN le lundi 27/07 à 00h01, une fois
-// la saison close. N'éditer que le bloc S2 ci-dessous — rien d'autre. Les
-// requêtes qui les produisent sont dans docs/mep-s3.md.
+// Les chiffres du bilan viennent de la base, pas d'un bloc recopié à la
+// main : l'écran s'affiche à une date connue, sur des données closes que
+// `fetchBilanSaison` sait produire. Rien à figer le dimanche soir, rien à
+// déployer à minuit. Seules les vannes sous les noms du podium sont
+// écrites — c'est la seule chose qu'une requête ne saura jamais rendre.
 
 import { useEffect, useState } from "react";
-import { CHALLENGE_START, diffDays, SAISON3_START } from "@/lib/challenge";
+import { addDays, CHALLENGE_START, diffDays, SAISON3_START } from "@/lib/challenge";
+import { BilanSaison, fetchBilanSaison } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 
@@ -19,25 +22,31 @@ import { BigButton } from "./ui";
     quatorze, et une saison décalée d'un jour la referait mentir. */
 const JOURS_AVANT_S3 = diffDays(CHALLENGE_START, SAISON3_START);
 
-const S2 = {
-  // Le dénominateur, c'est les CINQ qui ont joué — Hugo (0 rep), Nathan
-  // (200) et Jerem (900) sont hors décompte. Les compter divisait la
-  // moyenne par sept et sortait 2 771 là où les cinq sont à 3 660 : un
-  // chiffre exact qui sous-vend le groupe auquel l'écran s'adresse.
-  // Valeurs arrêtées au 25/07, à refaire le 27/07 à 00h01.
-  moyenneReps: 3660,
-  totalReps: 18300,
-  joursParfaits: 61,
-  // Podium du classement général au soir de la S2. Révélé 3e → 2e → 1er.
-  podium: [
-    { medaille: "🥇", nom: "Doren", note: "En tête au général. Le stratège des points." },
-    { medaille: "🥈", nom: "Pierre", note: "13 sans-faute, collé au train." },
-    { medaille: "🥉", nom: "Hichem", note: "13 jours parfaits. La machine n'a jamais calé." },
-  ],
+/** Dernier jour compté : la veille de la S3. Borné, sinon la première
+    séance du lundi matin entrerait dans le bilan de la saison d'avant. */
+const DERNIER_JOUR = addDays(SAISON3_START, -1);
+
+const MEDAILLES = ["🥇", "🥈", "🥉"];
+
+/** Les vannes du podium, par prénom. Le classement vient de la base, la
+    voix reste écrite. Un prénom absent retombe sur ses stats — l'écran ne
+    reste jamais muet parce que quelqu'un a doublé tout le monde. */
+const NOTES: Record<string, string> = {
+  Doren: "En tête au général. Le stratège des points.",
+  Pierre: "Sans faute, collé au train.",
+  Hichem: "La machine n'a jamais calé.",
+  Léo: "Jamais devant, jamais absent.",
+  Jordan: "Toujours dans le coup.",
 };
+
+function noteDe(nom: string, joursParfaits: number): string {
+  return NOTES[nom] ?? `${joursParfaits} jours parfaits sur ${JOURS_AVANT_S3}.`;
+}
 
 type Props = {
   player: Player;
+  /** Tous les joueurs : sert à nommer le podium, que la base rend en ids. */
+  players: Player[];
   /** Rejeu manuel : le bouton final dit « Fermer » au lieu du CTA séance. */
   replay?: boolean;
   onDone: () => void;
@@ -77,8 +86,18 @@ function CountUp({ to }: { to: number }) {
 }
 
 /** Podium révélé de bas en haut : le 3e d'abord, puis le 2e, puis le 1er. */
-function PodiumReveal({ color }: { color: string }) {
-  const rows = S2.podium;
+function PodiumReveal({
+  color,
+  podium,
+}: {
+  color: string;
+  podium: BilanSaison["podium"];
+}) {
+  const rows = podium.map((p, i) => ({
+    medaille: MEDAILLES[i],
+    nom: p.nom,
+    note: noteDe(p.nom, p.joursParfaits),
+  }));
   const [step, setStep] = useState(prefersReducedMotion() ? rows.length : 0);
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -140,10 +159,27 @@ function NewsRow({
 
 export default function LaunchS3Screen({
   player,
+  players,
   replay = false,
   onDone,
   onLaunchSession,
 }: Props) {
+  // undefined = en cours, null = échec. Un bilan raté ne bloque pas le
+  // lancement de la saison : les trois slides de chiffres sautent, le
+  // reste passe. Mieux vaut un carrousel plus court qu'un zéro affiché
+  // à la place de quatorze jours d'efforts.
+  const [bilan, setBilan] = useState<BilanSaison | null | undefined>(undefined);
+  useEffect(() => {
+    let vivant = true;
+    const noms = new Map(players.map((p) => [p.id, p.name]));
+    fetchBilanSaison(DERNIER_JOUR, JOURS_AVANT_S3, noms).then((b) => {
+      if (vivant) setBilan(b);
+    });
+    return () => {
+      vivant = false;
+    };
+  }, [players]);
+
   const accent = { color: player.color } as React.CSSProperties;
   const eyebrow = "text-sm font-semibold uppercase tracking-widest";
   const vanne = "mt-6 border-l-2 pl-3 text-ink";
@@ -170,53 +206,59 @@ export default function LaunchS3Screen({
       </p>
     </div>,
 
-    // 2 — La moyenne
-    <div key="reps">
-      <p className={eyebrow} style={accent}>
-        Ce que vous avez encaissé
-      </p>
-      <p className="num-display mt-4 text-6xl font-black" style={accent}>
-        <CountUp to={S2.moyenneReps} />
-      </p>
-      <p className="mt-3 text-lg font-semibold">
-        répétitions chacun, en moyenne.
-      </p>
-      <p className="mt-1 text-sm text-muted">
-        {S2.totalReps.toLocaleString("fr-FR")} en tout · en {JOURS_AVANT_S3}{" "}
-        jours
-      </p>
-      <p className={vanne} style={{ borderColor: player.color }}>
-        Vos muscles vous détestent. C&apos;est le but.
-      </p>
-    </div>,
+    // 2, 3, 4 — le bilan chiffré. Absent si la base n'a pas répondu.
+    ...(bilan
+      ? [
+          // 2 — La moyenne
+          <div key="reps">
+            <p className={eyebrow} style={accent}>
+              Ce que vous avez encaissé
+            </p>
+            <p className="num-display mt-4 text-6xl font-black" style={accent}>
+              <CountUp to={bilan.moyenneReps} />
+            </p>
+            <p className="mt-3 text-lg font-semibold">
+              répétitions chacun, en moyenne.
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {bilan.totalReps.toLocaleString("fr-FR")} en tout · en{" "}
+              {JOURS_AVANT_S3} jours
+            </p>
+            <p className={vanne} style={{ borderColor: player.color }}>
+              Vos muscles vous détestent. C&apos;est le but.
+            </p>
+          </div>,
 
-    // 3 — Jours parfaits
-    <div key="parfaits">
-      <p className={eyebrow} style={accent}>
-        Le contrat
-      </p>
-      <p className="num-display mt-4 text-6xl font-black" style={accent}>
-        <CountUp to={S2.joursParfaits} />
-      </p>
-      <p className="mt-3 text-lg font-semibold">
-        journées bouclées à 100 / 100 / 100.
-      </p>
-      <p className={vanne} style={{ borderColor: player.color }}>
-        {S2.joursParfaits} fois le carton plein. La flemme n&apos;a pas gagné
-        souvent.
-      </p>
-    </div>,
+          // 3 — Jours parfaits
+          <div key="parfaits">
+            <p className={eyebrow} style={accent}>
+              Le contrat
+            </p>
+            <p className="num-display mt-4 text-6xl font-black" style={accent}>
+              <CountUp to={bilan.joursParfaits} />
+            </p>
+            <p className="mt-3 text-lg font-semibold">
+              journées bouclées à 100 / 100 / 100.
+            </p>
+            <p className={vanne} style={{ borderColor: player.color }}>
+              {bilan.joursParfaits} fois le carton plein. La flemme n&apos;a pas
+              gagné souvent.
+            </p>
+          </div>,
 
-    // 4 — Podium (révélé 3e → 2e → 1er)
-    <div key="podium">
-      <p className={eyebrow} style={accent}>
-        Le podium S2
-      </p>
-      <PodiumReveal color={player.color} />
-      <p className={vanne} style={{ borderColor: player.color }}>
-        Cinq acharnés, un mouchoir de poche au classement. La S3 va faire mal.
-      </p>
-    </div>,
+          // 4 — Podium (révélé 3e → 2e → 1er)
+          <div key="podium">
+            <p className={eyebrow} style={accent}>
+              Le podium S2
+            </p>
+            <PodiumReveal color={player.color} podium={bilan.podium} />
+            <p className={vanne} style={{ borderColor: player.color }}>
+              {bilan.joueurs} acharnés, un mouchoir de poche au classement. La
+              S3 va faire mal.
+            </p>
+          </div>,
+        ]
+      : []),
 
     // 5 — Ce qui arrive
     <div key="arrive">
@@ -334,6 +376,14 @@ export default function LaunchS3Screen({
   function finish() {
     if (!replay && onLaunchSession) onLaunchSession();
     else onDone();
+  }
+
+  // Le bilan arrive : on retient l'écran une fraction de seconde plutôt que
+  // de le monter sans ses trois slides puis de les faire apparaître sous le
+  // pouce — les barres de progression bougeraient en cours de lecture.
+  // Après tous les hooks, sinon leur ordre change d'un rendu à l'autre.
+  if (bilan === undefined) {
+    return <main className="fixed inset-0 z-50 bg-bg" aria-busy="true" />;
   }
 
   return (

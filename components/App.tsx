@@ -260,6 +260,7 @@ export default function App() {
       <div style={accent}>
         <LaunchS3Screen
           player={player}
+          players={data.players}
           replay={replayLaunch}
           onLaunchSession={() => {
             id.markLaunchS3Seen();
