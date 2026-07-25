@@ -97,6 +97,12 @@ const BONUS_PHRASES: Record<string, string> = {
   gainage_3min: "a tenu 3 min de gainage",
   corde_10min: "a sauté 10 min à la corde",
   marches_500: "a grimpé 500 marches",
+  jumping_jacks_100: "a claqué 100 jumping jacks",
+  jumping_jacks_200: "a claqué 200 jumping jacks",
+  climbers_100: "a enchaîné 100 mountain climbers",
+  climbers_200: "a enchaîné 200 mountain climbers",
+  squats_jump_50: "a sauté 50 squats jump",
+  squats_jump_100: "a sauté 100 squats jump",
   boss_dimanche: "a réussi le boss du dimanche",
 };
 

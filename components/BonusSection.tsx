@@ -2,12 +2,18 @@
 
 // Section bonus de l'écran Aujourd'hui : bandeau événement (s'il y en a
 // un) + un seul rang « Déclarer un bonus ». Le catalogue complet vit dans
-// une feuille : 17 puces en permanence, c'était un catalogue posé sur le
-// chemin des 10 secondes. Déclarer est un acte volontaire — un tap pour
-// ouvrir, et ce qui est déjà déclaré reste visible sur le rang.
+// une feuille : des dizaines de puces en permanence, c'était un catalogue
+// posé sur le chemin des 10 secondes. Déclarer est un acte volontaire — un
+// tap pour ouvrir, et ce qui est déjà déclaré reste visible sur le rang.
+// Dans la feuille, les puces sont rangées par famille (migration 31).
 
 import { useEffect, useState } from "react";
-import { BonusCatalogItem, BonusState, claimables, weekBonusPoints } from "@/lib/bonus";
+import {
+  BonusCatalogItem,
+  BonusState,
+  claimableGroups,
+  weekBonusPoints,
+} from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 
@@ -135,7 +141,7 @@ function BonusSheet({
   const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
   const mineCount = mineToday.filter((c) => exerciseKeys.has(c.bonus_key)).length;
   const weekUsed = weekBonusPoints(bonus, player.id);
-  const items = claimables(bonus);
+  const groups = claimableGroups(bonus);
 
   /** Une puce est déclarable tant que les plafonds le permettent. Les
       paliers d'une même échelle se cumulent depuis la migration 22 :
@@ -174,49 +180,62 @@ function BonusSheet({
           )}
         </div>
 
-        <div className="flex flex-wrap content-start gap-2 overflow-y-auto pb-1">
-          {items.map((item) => {
-            const claimed = mineToday.some((c) => c.bonus_key === item.key);
-            const off = !claimed && blocked(item);
-            return (
-              <button
-                key={item.key}
-                aria-pressed={claimed}
-                disabled={off}
-                onClick={() => {
-                  navigator.vibrate?.(claimed ? 8 : 18);
-                  if (claimed) onUnclaim(item);
-                  else onClaim(item);
-                }}
-                className="flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
-                style={
-                  claimed
-                    ? {
-                        background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                        boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
-                        color: player.color,
+        {/* Vingt-trois pastilles à plat, c'était un mur. Trois paquets
+            titrés : on cherche « du cardio », pas une pastille précise. */}
+        <div className="flex flex-col gap-4 overflow-y-auto pb-1">
+          {groups.map((g) => (
+            <div key={g.title ?? "tout"}>
+              {g.title && (
+                <h3 className="mb-2 text-xs font-bold tracking-wide text-faint uppercase">
+                  {g.title}
+                </h3>
+              )}
+              <div className="flex flex-wrap content-start gap-2">
+                {g.items.map((item) => {
+                  const claimed = mineToday.some((c) => c.bonus_key === item.key);
+                  const off = !claimed && blocked(item);
+                  return (
+                    <button
+                      key={item.key}
+                      aria-pressed={claimed}
+                      disabled={off}
+                      onClick={() => {
+                        navigator.vibrate?.(claimed ? 8 : 18);
+                        if (claimed) onUnclaim(item);
+                        else onClaim(item);
+                      }}
+                      className="flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
+                      style={
+                        claimed
+                          ? {
+                              background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                              boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
+                              color: player.color,
+                            }
+                          : {
+                              background: "var(--color-surface)",
+                              boxShadow: "inset 0 0 0 1px var(--color-line)",
+                              color: "var(--color-ink)",
+                            }
                       }
-                    : {
-                        background: "var(--color-surface)",
-                        boxShadow: "inset 0 0 0 1px var(--color-line)",
-                        color: "var(--color-ink)",
-                      }
-                }
-              >
-                <span aria-hidden>{item.emoji}</span>
-                {item.label}
-                <span
-                  className="font-medium"
-                  style={{
-                    color: claimed ? player.color : "var(--color-faint)",
-                  }}
-                >
-                  +{fmtPoints(item.points)}
-                </span>
-                {claimed && <span aria-hidden>✓</span>}
-              </button>
-            );
-          })}
+                    >
+                      <span aria-hidden>{item.emoji}</span>
+                      {item.label}
+                      <span
+                        className="font-medium"
+                        style={{
+                          color: claimed ? player.color : "var(--color-faint)",
+                        }}
+                      >
+                        +{fmtPoints(item.points)}
+                      </span>
+                      {claimed && <span aria-hidden>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         <button

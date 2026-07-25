@@ -7,6 +7,10 @@ import { supabase } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
 
+/** Paquet d'affichage dans la feuille de déclaration. Purement visuel :
+    aucune règle de points ne s'y accroche. */
+export type BonusFamily = "contrat" | "cardio" | "renfo";
+
 export type BonusCatalogItem = {
   key: string;
   kind: BonusKind;
@@ -15,9 +19,12 @@ export type BonusCatalogItem = {
   points: number;
   sort: number;
   // Échelle de volume : deux bonus qui la partagent sont le même exercice
-  // à deux hauteurs (+50 pompes / +100 pompes). Un seul par jour. null =
-  // bonus hors échelle, aucune exclusion.
+  // à deux hauteurs (+50 pompes / +100 pompes). Ils se cumulent depuis la
+  // migration 22. null = bonus hors échelle.
   ladder: string | null;
+  // Famille d'affichage (migration 31). null pour les bonus non
+  // déclarables, et pour toute ligne ajoutée sans famille.
+  family: BonusFamily | null;
 };
 
 export type BonusClaim = {
@@ -85,6 +92,35 @@ export async function fetchBonus(): Promise<BonusState | null> {
 /** Bonus d'exercice déclarables (le boss se déclare dans son bandeau). */
 export function claimables(state: BonusState): BonusCatalogItem[] {
   return state.catalog.filter((c) => c.kind === "exercise");
+}
+
+/** Ordre et titres des paquets. Décidé ici et pas en base : c'est de la
+    mise en page, et la base n'a pas à connaître le français. */
+const FAMILIES: { key: BonusFamily; title: string }[] = [
+  { key: "contrat", title: "Le contrat, en plus" },
+  { key: "cardio", title: "Cardio" },
+  { key: "renfo", title: "Renfo & gainage" },
+];
+
+export type BonusGroup = { title: string | null; items: BonusCatalogItem[] };
+
+/** Les déclarables rangés par famille. Un paquet vide ne sort pas, et les
+    bonus sans famille finissent ensemble à la fin — tant que la migration
+    31 n'est pas passée, ça fait exactement la liste à plat d'avant. */
+export function claimableGroups(state: BonusState): BonusGroup[] {
+  const items = claimables(state);
+  const groups: BonusGroup[] = FAMILIES.map((f) => ({
+    title: f.title,
+    items: items.filter((c) => c.family === f.key),
+  })).filter((g) => g.items.length > 0);
+
+  const orphans = items.filter(
+    (c) => !FAMILIES.some((f) => f.key === c.family),
+  );
+  // Seuls des orphelins : rien à ranger, donc pas de titre à afficher.
+  if (groups.length === 0) return orphans.length ? [{ title: null, items: orphans }] : [];
+  if (orphans.length) groups.push({ title: "Autres", items: orphans });
+  return groups;
 }
 
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */

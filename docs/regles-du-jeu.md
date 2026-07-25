@@ -52,25 +52,35 @@ T'en as fait plus que les 100 ? Tu le déclares dans l'appli et tu prends les po
 | 🫁 +200 abdos (300 au total) | +7 |
 | 🦵 +100 squats (200 au total) | +4 |
 | 🦵 +200 squats (300 au total) | +7 |
-| 🏃 5 km de course | +8 |
-| 🧱 3 min de gainage | +3 |
-| 🪢 10 min de corde à sauter | +5 |
-| 🪜 500 marches | +5 |
+| 🤸 100 jumping jacks | +3 |
+| 🤸 200 jumping jacks | +5 |
+| 🧗 100 mountain climbers | +4 |
+| 🧗 200 mountain climbers | +7 |
+| 🐸 50 squats jump | +4 |
+| 🐸 100 squats jump | +7 |
 | 💥 30 burpees | +4 |
 | 💥 60 burpees | +7 |
+| 🏃 5 km de course | +8 |
+| 🪢 10 min de corde à sauter | +5 |
+| 🪜 500 marches | +5 |
+| 🚶 10 000 pas | +4 |
+| 🧱 3 min de gainage | +3 |
+| 🪑 3 min de chaise murale | +3 |
+| 💺 50 dips sur chaise | +4 |
 | 🧎 100 fentes | +4 |
 | 🧎 200 fentes | +7 |
-| 💺 50 dips sur chaise | +4 |
-| 🪑 3 min de chaise murale | +3 |
-| 🚶 10 000 pas | +4 |
+
+Dans l'appli, la feuille les range en trois paquets : **le contrat en plus**, **cardio**, **renfo & gainage**. Vingt-trois pastilles à plat, ça ne se lit plus.
 
 Les 500 marches valaient +3 jusqu'au 19/07 : 20 étages, c'est l'effort d'une corde à sauter de 10 min, pas d'un gainage de 3 min. Passé à +5 le 20/07. Les déclarations déjà enregistrées gardent leurs points d'origine.
 
-Les sept derniers sont arrivés le 20/07 (S2) : que du sans-matériel, pour les jours de vacances ou de déplacement. Les burpees et les fentes marchent par paliers comme les pompes — le palier haut inclut le bas (60 burpees = tu déclares le 60, pas les deux). Les 10 000 pas se lisent sur le téléphone, la chaise murale et le gainage se cumulent dans la journée mais chacun ne se déclare qu'une fois.
+Sept bonus sans matériel sont arrivés le 20/07 (S2), pour les jours de vacances ou de déplacement. Les six de cardio ont suivi le 25/07 : le catalogue était devenu du renfo pur, et ceux qui préfèrent souffler plutôt que pousser n'avaient rien à cocher. Les 10 000 pas se lisent sur le téléphone, la chaise murale et le gainage se cumulent dans la journée mais chacun ne se déclare qu'une fois.
+
+Un squat jump n'est pas un squat : il a son échelle à lui, et il ne compte donc pas dans le record de volume (qui ne suit que les trois exos du contrat).
 
 **Les garde-fous :**
 
-- **Un seul palier par exo et par jour.** +50 pompes OU +100 pompes, 30 burpees OU 60 burpees, jamais les deux (sinon la première moitié serait payée deux fois).
+- **Les paliers d'un même exo se cumulent** depuis le 20/07. +50 pompes ET +100 pompes cochés, c'est 150 pompes déclarées, payées 4+7 = 11 pts. Idem pour les burpees, les fentes, les jumping jacks, les mountain climbers et les squats jump.
 
 Les deux plafonds quantitatifs ont sauté : la limite de 3 déclarations par jour le 20/07, puis le plafond de 25 points de bonus sur 7 jours glissants le même jour (S2). Ils punissaient les grosses semaines légitimes — le catalogue borne déjà chaque déclaration via les paliers. L'appli affiche toujours le total déclaré sur 7 jours, comme repère.
 
