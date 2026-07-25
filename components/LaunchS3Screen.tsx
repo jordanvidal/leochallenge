@@ -233,11 +233,15 @@ export default function LaunchS3Screen({
           hasard.
         </NewsRow>
         <NewsRow icon="🏃">
-          Nouveau : le <b className="text-ink">10 km</b> rapporte gros.
+          Nouveau : le <b className="text-ink">10 km</b>,{" "}
+          <b className="font-bold" style={accent}>
+            +20
+          </b>{" "}
+          d&apos;un coup.
         </NewsRow>
         <NewsRow icon="🚶">
-          Du coup les <b className="text-ink">10 000 pas</b> et la course, plus
-          le même jour — un 10 km, c&apos;est déjà 11 000 pas.
+          <b className="text-ink">Un seul déplacement par jour</b> : 5 km, 10 km
+          ou 10 000 pas — un 10 km, c&apos;est déjà 11 000 pas.
         </NewsRow>
       </div>
       <p className={vanne} style={{ borderColor: player.color }}>
