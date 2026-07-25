@@ -386,10 +386,21 @@ button {
   display: none;
 }
 
+/* Feuille qui se ferme au glissé. Le retour à sa place (ou sa sortie par
+   le bas) est animé ; pendant que le doigt tire, elle colle au doigt et
+   toute transition doit disparaître, sinon elle traîne d'une demi-seconde. */
+.sheet-drag {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sheet-drag.is-dragging {
+  transition: none;
+}
+
 /* Reduced motion : tout devient instantané, rien ne casse */
 @media (prefers-reduced-motion: reduce) {
   .exo-card,
-  .celebrate-bg {
+  .celebrate-bg,
+  .sheet-drag {
     transition: none;
   }
   .check-pop,
