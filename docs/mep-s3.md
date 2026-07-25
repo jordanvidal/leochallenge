@@ -4,8 +4,9 @@ Trois chantiers convergent sur la même nuit. Ce fichier est la seule
 séquence à suivre : il dit quoi merger, dans quel ordre, quelles migrations
 appliquer, et comment vérifier que rien n'a bougé pour la S1 et la S2.
 
-À exécuter par un agent programmé à **00h05 le lundi 27/07** pour la partie
-base, et à la main par Jordan pour la partie dimanche soir.
+La partie base est exécutée par un agent programmé à **00h05 le lundi
+27/07**. La seule chose qui demande une main humaine, c'est le merge des
+trois PR — dans l'ordre, et avant minuit.
 
 ---
 
@@ -28,35 +29,48 @@ l'autre sens, le 10 km arrive sans famille et atterrit dans un paquet
 
 ---
 
-## D-1 — dimanche 26/07, après 23h00
+## D-1 — dimanche 26/07, quand tu veux dans la journée
 
-### 1. Figer les chiffres S2 du carrousel
+### 1. Rien à figer
 
-Le bloc `S2` en tête de `components/LaunchS3Screen.tsx` contient des
-placeholders. Il se remplit **une fois la journée de dimanche finie**, sinon
-les derniers 3/3 du soir manquent.
+Il y avait ici une étape « recopier les chiffres S2 dans
+`LaunchS3Screen.tsx` avant minuit ». **Elle n'existe plus** : le carrousel
+appelle `fetchBilanSaison()` au montage et calcule moyenne, total, jours
+parfaits et podium depuis la base, bornés à la veille de la S3. Il n'y a
+donc ni chiffre à recopier, ni build à passer à minuit, et le bilan est juste
+même si personne ne touche à rien.
 
-```sql
--- Les trois compteurs de la slide « Ce que vous avez encaissé »
-with lb as (select * from leaderboard(null, date '2026-07-26'))
-select
-  (select count(*) from lb where exos_done > 0)                as joueurs_actifs,
-  (select sum(exos_done) * 100 from lb)                        as total_reps,
-  (select round((sum(exos_done) * 100.0)
-              / nullif(count(*) filter (where exos_done > 0), 0)) from lb) as moyenne_reps,
-  (select sum(perfect_days) from lb)                           as jours_parfaits;
-```
+Ne comptent que les joueurs ayant coché **au moins la moitié des jours**
+(7 sur 14). Au 25/07 ça retient cinq joueurs sur huit, avec une marge large :
+11 à 13 jours d'un côté, 0 à 3 de l'autre.
+
+Pour contrôler ce que l'écran affichera, sans l'ouvrir :
 
 ```sql
--- Le podium, et de quoi écrire les notes sous chaque nom
-select p.name, lb.rank, lb.points, lb.perfect_days, lb.exos_done * 100 as reps
-from leaderboard(null, date '2026-07-26') lb
-join players p on p.id = lb.player_id
-order by lb.rank, p.name;
+with jours as (
+  select player_id,
+         count(*) filter (where pushups or abs or squats) as j,
+         sum(pushups::int + abs::int + squats::int) * 100  as reps
+  from entries where day <= date '2026-07-26' group by player_id
+),
+retenus as (
+  select lb.*, j.reps, p.name
+  from leaderboard(null, date '2026-07-26') lb
+  join jours j   on j.player_id = lb.player_id
+  join players p on p.id = lb.player_id
+  where j.j >= ceil(14 / 2.0)
+)
+select (select count(*) from retenus)                                as joueurs,
+       (select sum(reps) from retenus)                               as total_reps,
+       (select round(sum(reps)::numeric / count(*)) from retenus)    as moyenne_reps,
+       (select sum(perfect_days) from retenus)                       as jours_parfaits,
+       (select string_agg(name, ' > ' order by points desc)
+          from (select name, points from retenus order by points desc limit 3) t) as podium;
 ```
 
-Reporter dans `S2 = { moyenneReps, totalReps, joursParfaits, podium }`.
-**Ne toucher à rien d'autre dans ce fichier.**
+Seules les vannes sous les noms du podium restent écrites à la main, dans
+`NOTES` (indexées par prénom). Un prénom absent retombe sur ses stats, donc
+un podium inattendu ne laisse jamais l'écran muet.
 
 ### 2. Merger, dans cet ordre
 
@@ -169,24 +183,15 @@ arrière se fait par la vue, pas par les lignes.
 
 ---
 
-## Points en suspens — à trancher avant dimanche soir
+## Points en suspens
 
-Trois choses relevées dans le carrousel en préparant cette MEP. Elles ne
-bloquent aucune migration, mais elles partent devant six personnes.
+Les trois relevés en préparant cette MEP sont **traités** :
 
-1. **« Douze jours dans les pattes ».** Le challenge a commencé le 13/07 ;
-   au soir du 26/07 ça fait **quatorze** jours. La phrase apparaît deux fois
-   (slides 1 et 2).
+1. « Douze jours » → le nombre est calculé depuis `CHALLENGE_START` et
+   `SAISON3_START`, il affiche quatorze et suivra une saison décalée.
+2. La moyenne de répétitions ne compte plus que les joueurs ayant coché au
+   moins la moitié des jours — 3 660 au lieu de 2 771.
+3. Le podium placeholder est supprimé : il vient de la base.
 
-2. **La moyenne de répétitions est tirée vers le bas.** Le dénominateur est
-   « les joueurs ayant coché au moins une fois », soit **7** comptes — dont
-   deux quasi inactifs (Nathan 200 reps, Hugo 0, Jerem 900). Résultat au
-   25/07 : 2 771 de moyenne, alors que les cinq qui jouent vraiment sont à
-   ~3 700 chacun. La slide dit « répétitions chacun, en moyenne » — c'est
-   exact, mais ça sous-vend le groupe qu'elle s'adresse.
-
-3. **Le podium placeholder est faux.** Au 25/07 c'est Doren, **Pierre**,
-   Hichem — le fichier annonce Doren, Hichem, Pierre. Et les notes sont
-   fausses aussi : Hichem est à 13 jours parfaits (pas « 12/12 »), Pierre à
-   13 (pas 11). Tout ça se recalcule dimanche soir de toute façon, mais la
-   grammaire des notes (« 12/12 parfaits ») ne tiendra plus sur 14 jours.
+Il ne reste donc rien à trancher avant dimanche. La seule chose qui demande
+une main humaine, c'est le merge des trois PR dans l'ordre.
