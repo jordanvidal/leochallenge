@@ -5,6 +5,7 @@
 
 import { useEffect } from "react";
 import { Feed } from "@/hooks/useFeed";
+import { addDays } from "@/lib/challenge";
 import { dayLabel, FeedEvent, parisDayOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import FeedItem from "./FeedItem";
@@ -17,10 +18,21 @@ type Props = {
   onGoLeaderboard: () => void;
 };
 
-/** Les lignes écrites par le job du lundi matin. Elles sortent du flux
-    normal : groupées, elles forment le bilan de la semaine. */
-function isDuel(e: FeedEvent): boolean {
-  return e.kind === "duel_start" || e.kind === "duel_result";
+/** Les lignes de bascule d'une semaine à l'autre : les duels, écrits par
+    le job du lundi matin, et le récit, écrit par pg_cron à minuit. Elles
+    sortent du flux normal : groupées, elles forment le bilan de la semaine. */
+function isHebdo(e: FeedEvent): boolean {
+  return e.kind === "duel_start" || e.kind === "duel_result" || e.kind === "recit";
+}
+
+/** La semaine CLOSE dont parle un événement hebdo — la clé de regroupement.
+    `duel_start` ouvre la semaine suivante : sa carte est celle d'avant.
+    Sans cette clé, un rattrapage qui écrit deux récits le même jour les
+    empilerait dans une seule carte, trois semaines mélangées. */
+function closedMondayOf(e: FeedEvent): string | null {
+  const wm = e.payload.week_monday;
+  if (!wm) return null;
+  return e.kind === "duel_start" ? addDays(wm, -7) : wm;
 }
 
 /** Groupe les événements par jour civil Paris, ordre du fil conservé. */
@@ -70,15 +82,24 @@ type Block =
   | { kind: "recap"; at: string; events: FeedEvent[] };
 
 function blocksOf(items: FeedEvent[]): Block[] {
-  const duels = items.filter(isDuel);
-  const blocks: Block[] = groupBursts(items.filter((e) => !isDuel(e))).map(
+  const blocks: Block[] = groupBursts(items.filter((e) => !isHebdo(e))).map(
     (events) => ({ kind: "burst", at: events[0].created_at, events }),
   );
-  if (duels.length > 0) {
-    // Le job insère tout d'un bloc : le plus récent donne l'heure du bilan.
-    const at = duels.reduce((m, e) => (e.created_at > m ? e.created_at : m), duels[0].created_at);
-    blocks.push({ kind: "recap", at, events: duels });
+
+  // Un bilan par semaine close, jamais deux semaines dans la même carte.
+  const semaines = new Map<string, FeedEvent[]>();
+  for (const e of items.filter(isHebdo)) {
+    const key = closedMondayOf(e) ?? e.id; // sans date, l'événement reste seul
+    const deja = semaines.get(key);
+    if (deja) deja.push(e);
+    else semaines.set(key, [e]);
   }
+  for (const events of semaines.values()) {
+    // Le job insère tout d'un bloc : le plus récent donne l'heure du bilan.
+    const at = events.reduce((m, e) => (e.created_at > m ? e.created_at : m), events[0].created_at);
+    blocks.push({ kind: "recap", at, events });
+  }
+
   return blocks.sort((a, b) => (a.at > b.at ? -1 : 1));
 }
 

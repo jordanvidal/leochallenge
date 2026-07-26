@@ -3,7 +3,7 @@
 // Le feed raconte l'histoire, il ne compte aucun point.
 
 import { addDays, frenchDate, frenchDayMonth, parisToday } from "./challenge";
-import { BADGES, fmtPoints } from "./gamification";
+import { BADGES, fmtPoints, frenchRank } from "./gamification";
 import { supabase } from "./supabase";
 import { formatClock } from "./workout";
 
@@ -25,7 +25,8 @@ export type FeedKind =
   | "duel_start"
   | "duel_result"
   | "joker"
-  | "premier";
+  | "premier"
+  | "recit";
 
 export type FeedPayload = {
   day?: string;
@@ -51,7 +52,35 @@ export type FeedPayload = {
   outcome?: "win" | "draw";
   tiebreak?: boolean;
   bye?: boolean; // exempt de la semaine
+  // récit du lundi : le job SQL n'écrit que des faits, la phrase se
+  // fabrique ici (voir supabase/migration32-recit-hebdo.sql). `angle`
+  // commande tout le reste — chaque angle n'emporte que ce qu'il utilise.
+  angle?: RecitAngle;
+  rank?: number; // rang au général à la fermeture de la semaine
+  rank_before?: number; // et une semaine plus tôt
+  parfaits?: number; // jours parfaits de la semaine, sur 7
+  jours_vides?: number; // jours sans une seule coche
+  finish?: number; // points des deux derniers jours
+  joker?: boolean;
+  peers?: string[]; // les autres sans-fautes de la semaine
+  leader?: string;
+  leader_parfaits?: number;
+  foil?: string; // celui à qui on compare
+  foil_finish?: number;
+  gap?: number; // écart de points avec le foil
+  streak_before?: number; // l'ancien record de série
 };
+
+/** Les angles du récit, dans l'ordre de priorité de la spéc (§6). */
+export type RecitAngle =
+  | "sans_faute_sans_recompense"
+  | "sans_faute"
+  | "bond"
+  | "chute"
+  | "finish"
+  | "serie_record"
+  | "duel_departage"
+  | "defaut";
 
 export type FeedEvent = {
   id: string;
@@ -106,6 +135,117 @@ const BONUS_PHRASES: Record<string, string> = {
   squats_jump_100: "a sauté 100 squats jump",
   boss_dimanche: "a réussi le boss du dimanche",
 };
+
+/** "A, B et C" — les autres sans-fautes de la semaine. */
+function frenchList(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
+}
+
+/** Le sprint de fin comparé à celui d'en face : un rapport quand il est
+    net, les deux chiffres sinon. Jamais un superlatif (spéc §7, règle 5). */
+function finishCompare(finish: number, foil?: string, foilFinish?: number): string {
+  if (!foil || foilFinish === undefined || Number(foilFinish) <= 0) return "";
+  const ratio = finish / Number(foilFinish);
+  if (ratio >= 2.5) return `, le triple de ${foil}`;
+  if (ratio >= 1.8) return `, le double de ${foil}`;
+  return `, contre ${fmtPoints(Number(foilFinish))} à ${foil}`;
+}
+
+/** Le récit du lundi : un angle, une ou deux phrases, jamais un adjectif
+    sans un chiffre derrière. Les faits viennent du job SQL — ici on ne
+    fait qu'écrire le français. Voir docs/spec-recit-hebdo.md §6 et §7. */
+function recitPhrase(p: FeedPayload): { emoji: string; text: string } {
+  const rank = frenchRank(Number(p.rank ?? 0));
+  const before = frenchRank(Number(p.rank_before ?? 0));
+  const pts = fmtPoints(Number(p.points ?? 0));
+  const finish = Number(p.finish ?? 0);
+
+  switch (p.angle) {
+    case "sans_faute_sans_recompense": {
+      const peers = p.peers ?? [];
+      const avec = peers.length > 0 ? `, avec ${frenchList(peers)},` : ", seul du groupe,";
+      // Si le leader est lui aussi à 7/7 il est déjà nommé juste avant :
+      // le citer une seconde fois ne dirait rien de plus.
+      const suite =
+        p.leader && p.leader_parfaits !== undefined && Number(p.leader_parfaits) < 7
+          ? ` ${p.leader}, 1er, en a coché ${p.leader_parfaits}.`
+          : "";
+      return {
+        emoji: "🎯",
+        text: `a bouclé la semaine à 7 jours parfaits sur 7${avec} et finit ${rank}.${suite}`,
+      };
+    }
+    case "sans_faute":
+      return {
+        emoji: "🎯",
+        text:
+          `a bouclé la semaine à 7 jours parfaits sur 7, et finit ${rank}.` +
+          (p.foil && p.gap !== undefined
+            ? ` ${fmtPoints(Number(p.gap))} pts d'avance sur ${p.foil}.`
+            : ""),
+      };
+    case "bond":
+      return {
+        emoji: "📈",
+        text:
+          `était ${before} il y a une semaine, il est ${rank}. ` +
+          `${fmtPoints(finish)} pts sur les deux derniers jours` +
+          finishCompare(finish, p.foil, p.foil_finish) +
+          (p.joker ? ", et un joker brûlé en route" : "") +
+          ".",
+      };
+    case "chute": {
+      const vides = Number(p.jours_vides ?? 0);
+      const suite =
+        vides > 0
+          ? ` ${vides} jour${vides > 1 ? "s" : ""} sans une seule coche.`
+          : ` ${fmtPoints(finish)} pts sur les deux derniers jours` +
+            finishCompare(finish, p.foil, p.foil_finish) +
+            ".";
+      return { emoji: "📉", text: `était ${before} il y a une semaine, il est ${rank}.${suite}` };
+    }
+    case "finish":
+      return {
+        emoji: "🏁",
+        text:
+          `a tout mis à la fin : ${fmtPoints(finish)} de ses ${pts} pts sont tombés ` +
+          `sur les deux derniers jours.` +
+          (p.foil && p.foil_finish !== undefined
+            ? ` ${p.foil} sur la même fenêtre : ${fmtPoints(Number(p.foil_finish))}.`
+            : ""),
+      };
+    case "serie_record":
+      return {
+        emoji: "⚡",
+        text:
+          `tient ${p.streak} jours parfaits d'affilée — sa plus longue série` +
+          (p.streak_before ? `, l'ancienne s'arrêtait à ${p.streak_before}` : "") +
+          ".",
+      };
+    case "duel_departage":
+      return {
+        emoji: "⚔️",
+        text:
+          `a gagné son duel contre ${p.foil} au départage : ${p.score} en jours ` +
+          `parfaits, ${p.pointsScore} aux points.`,
+      };
+    case "defaut":
+      return {
+        emoji: "📊",
+        text:
+          `rafle la semaine avec ${pts} pts` +
+          (p.foil && p.gap !== undefined
+            ? `, ${fmtPoints(Number(p.gap))} devant ${p.foil}`
+            : "") +
+          ".",
+      };
+    default:
+      // Angle inconnu : une version du job plus récente que l'app. On dit
+      // le peu qu'on sait plutôt que de casser le fil.
+      return { emoji: "📊", text: `a bouclé sa semaine à ${pts} pts.` };
+  }
+}
 
 /** La phrase d'un événement, sans le prénom (affiché à part, coloré). */
 export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
@@ -208,6 +348,8 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
         text: `remporte son duel contre ${p.opponent} ${p.score}${tb} et lui prend ${fmtPoints(Number(p.points ?? 3))} pts`,
       };
     }
+    case "recit":
+      return recitPhrase(p);
   }
 }
 
