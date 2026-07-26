@@ -64,6 +64,8 @@ export default function App() {
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
   const [workoutOpen, setWorkoutOpen] = useState(false);
+  // Ouverture directe sur l'onglet bonus (porte « Enchaîner des bonus »).
+  const [workoutOnBonus, setWorkoutOnBonus] = useState(false);
   // Rouvrir le tuto à la demande (« Revoir les règles »), même déjà vu.
   const [replayTuto, setReplayTuto] = useState(false);
   // Idem pour l'écran de lancement S3. forceLaunch = aperçu manuel hors date
@@ -267,6 +269,7 @@ export default function App() {
             setReplayLaunch(false);
             setForceLaunch(false);
             setTab("today");
+            setWorkoutOnBonus(false);
             setWorkoutOpen(true);
           }}
           onDone={() => {
@@ -303,11 +306,19 @@ export default function App() {
       <div style={accent}>
         <WorkoutMode
           player={player}
+          players={data.players}
           todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
+          bonus={bonus}
+          leaderboard={gamification?.total ?? null}
+          onClaimBonus={(item) => claim(player.id, item)}
+          startOnBonus={workoutOnBonus}
           onValidate={validateWorkout}
           streak={myStreak}
           onSessionStart={session.markStarted}
-          onClose={() => setWorkoutOpen(false)}
+          onClose={() => {
+            setWorkoutOpen(false);
+            setWorkoutOnBonus(false);
+          }}
           showToast={data.showToast}
         />
         <Toast message={data.toast} />
@@ -340,7 +351,14 @@ export default function App() {
             gamification={gamification}
             bonus={bonus}
             sessionStarted={session.started}
-            onStartWorkout={() => setWorkoutOpen(true)}
+            onStartWorkout={() => {
+              setWorkoutOnBonus(false);
+              setWorkoutOpen(true);
+            }}
+            onPlanBonus={() => {
+              setWorkoutOnBonus(true);
+              setWorkoutOpen(true);
+            }}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
             onShareWeek={shareWeek}

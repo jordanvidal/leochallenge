@@ -29,6 +29,8 @@ type Props = {
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
   onStartWorkout: () => void;
+  /** Ouvre « Ma séance » directement sur l'onglet bonus. */
+  onPlanBonus: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
   onShareWeek: () => void;
@@ -46,6 +48,7 @@ export default function TodayScreen({
   bonus,
   sessionStarted,
   onStartWorkout,
+  onPlanBonus,
   onClaimBonus,
   onUnclaimBonus,
   onShareWeek,
@@ -204,10 +207,13 @@ export default function TodayScreen({
         </div>
       )}
 
-      {/* Ce bouton fait foi : c'est lui qui ouvre la journée. Tant que la
-          séance n'est pas partie, il est l'action principale ; une fois
-          lancée, il redevient discret (relancer un tour de plus). */}
-      {!over && (!perfect || !sessionStarted) && (
+      {/* Ce bouton fait foi : c'est lui qui ouvre la journée. Il a trois
+          états, et n'en a plus aucun où il disparaît — jusqu'ici, une
+          journée bouclée laissait l'écran sans la moindre action.
+            · séance pas partie  → l'action principale, en plein
+            · séance en cours    → discret, un tour de plus
+            · journée bouclée    → discret, et il mène aux bonus */}
+      {!over && (
         <div className="mt-3">
           {!sessionStarted && (
             <p className="mb-2 text-center text-[13px] text-muted">
@@ -215,7 +221,7 @@ export default function TodayScreen({
             </p>
           )}
           <button
-            onClick={onStartWorkout}
+            onClick={perfect && sessionStarted ? onPlanBonus : onStartWorkout}
             className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
             style={
               sessionStarted
@@ -227,7 +233,15 @@ export default function TodayScreen({
                 : { background: player.color, color: "oklch(0.15 0 0)" }
             }
           >
-            <span aria-hidden>▶</span> Lancer ma séance
+            {perfect && sessionStarted ? (
+              <>
+                <span aria-hidden>＋</span> Enchaîner des bonus
+              </>
+            ) : (
+              <>
+                <span aria-hidden>▶</span> Lancer ma séance
+              </>
+            )}
           </button>
         </div>
       )}

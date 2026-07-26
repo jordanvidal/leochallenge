@@ -3,11 +3,19 @@
 // Le mode séance guidée plein écran : config → blocs → repos → fin.
 // Il n'écrit JAMAIS les entrées lui-même : la validation passe par le
 // chemin d'écriture existant (onValidate → upsert optimiste + triggers).
+//
+// L'écran de config a deux onglets : « Le contrat » (100-100-100, le
+// format historique) et « Des bonus » (une séance composée à partir du
+// catalogue). Seul le premier ouvre une séance serveur et coche la
+// journée — l'onglet bonus ne touche que les déclarations.
 
 import { useEffect, useRef, useState } from "react";
 import { useWorkout } from "@/hooks/useWorkout";
 import { parisToday } from "@/lib/challenge";
+import { BonusCatalogItem, BonusState } from "@/lib/bonus";
+import { LeaderboardRow } from "@/lib/gamification";
 import { Entry, entryCount, EXERCISES, Exercise, Player } from "@/lib/types";
+import BonusPlanner, { SeanceTab } from "./BonusPlanner";
 import {
   coveredExos,
   DayBreakdown,
@@ -23,7 +31,15 @@ import { BlockScreen, RestScreen } from "./SessionScreens";
 
 type Props = {
   player: Player;
+  players: Player[];
   todayEntry: Entry | undefined;
+  /** Catalogue + déclarations, pour l'onglet bonus. null = pas chargé,
+      l'onglet ne s'affiche pas. */
+  bonus: BonusState | null;
+  leaderboard: LeaderboardRow[] | null;
+  onClaimBonus: (item: BonusCatalogItem) => void;
+  /** Ouvre directement sur l'onglet bonus (porte « Enchaîner des bonus »). */
+  startOnBonus?: boolean;
   /** Écrit les exos validés par le chemin existant. Résout après l'upsert. */
   onValidate: (exos: Exercise[]) => Promise<boolean>;
   /** Série serveur du joueur. Monte quand rescore() a rechargé le classement,
@@ -37,7 +53,12 @@ type Props = {
 
 export default function WorkoutMode({
   player,
+  players,
   todayEntry,
+  bonus,
+  leaderboard,
+  onClaimBonus,
+  startOnBonus,
   onValidate,
   streak,
   onSessionStart,
@@ -49,6 +70,11 @@ export default function WorkoutMode({
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [breakdown, setBreakdown] = useState<DayBreakdown | null>(null);
   const validated = useRef(false);
+  // L'onglet ouvert suit ce qu'il reste à faire : contrat bouclé, on
+  // arrive sur les bonus — on n'atterrit jamais sur l'onglet inutile.
+  const [tab, setTab] = useState<SeanceTab>(
+    startOnBonus || entryCount(todayEntry) === 3 ? "bonus" : "contrat",
+  );
 
   useEffect(() => {
     fetchPresets(player.id).then(setPresets);
@@ -82,15 +108,31 @@ export default function WorkoutMode({
 
   let content: React.ReactNode;
   if (!w.config || !w.step) {
-    content = (
-      <ConfigScreen
-        player={player}
-        presets={presets}
-        initial={presets.length > 0 ? presetToConfig(presets[0]) : DEFAULT_CONFIG}
-        onLaunch={w.launch}
-        onClose={onClose}
-      />
-    );
+    content =
+      tab === "bonus" && bonus ? (
+        <BonusPlanner
+          player={player}
+          players={players}
+          bonus={bonus}
+          leaderboard={leaderboard}
+          tab={tab}
+          onTab={setTab}
+          onClaim={onClaimBonus}
+          onClose={onClose}
+        />
+      ) : (
+        <ConfigScreen
+          player={player}
+          presets={presets}
+          initial={
+            presets.length > 0 ? presetToConfig(presets[0]) : DEFAULT_CONFIG
+          }
+          tab={bonus ? tab : undefined}
+          onTab={bonus ? setTab : undefined}
+          onLaunch={w.launch}
+          onClose={onClose}
+        />
+      );
   } else if (w.step.kind === "done") {
     content = (
       <DoneScreen
@@ -103,6 +145,16 @@ export default function WorkoutMode({
         )}
         streak={streak}
         breakdown={breakdown}
+        // La deuxième porte vers les bonus, au moment où le corps est
+        // encore chaud. On revient sur la config, onglet bonus.
+        onPlanBonus={
+          bonus
+            ? () => {
+                w.reset();
+                setTab("bonus");
+              }
+            : undefined
+        }
         onClose={() => {
           w.reset();
           onClose();

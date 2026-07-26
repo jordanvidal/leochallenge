@@ -36,6 +36,8 @@ type Props = {
   /** Série serveur. Monte d'elle-même quand rescore() a rechargé. */
   streak: number;
   breakdown: DayBreakdown | null;
+  /** Enchaîner sur une séance de bonus. Absent = pas de catalogue chargé. */
+  onPlanBonus?: () => void;
   onClose: () => void;
 };
 
@@ -56,6 +58,7 @@ export default function DoneScreen({
   missing,
   streak,
   breakdown,
+  onPlanBonus,
   onClose,
 }: Props) {
   const perfect = exosDone === 3;
@@ -138,6 +141,23 @@ export default function DoneScreen({
           </div>
         )}
       </div>
+
+      {/* Le corps est encore chaud : c'est ici que proposer des bonus a du
+          sens, pas dix minutes plus tard depuis l'écran du jour. Discret —
+          la séance est finie, personne n'est obligé d'en remettre. */}
+      {onPlanBonus && (
+        <button
+          onClick={onPlanBonus}
+          className="mb-2 min-h-13 w-full rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+          style={{
+            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+            color: player.color,
+          }}
+        >
+          ＋ Enchaîner des bonus
+        </button>
+      )}
 
       <button
         onClick={onClose}
