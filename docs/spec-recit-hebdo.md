@@ -4,8 +4,8 @@ Pour l'agent qui implémentera. Tout ce qui suit a été vérifié dans le code 
 sur la base de prod le 26/07 ; les points laissés ouverts sont marqués comme
 tels et se tranchent avec Jordan.
 
-**Aucune urgence.** À démarrer après le lancement de la S3 (27/07). Ne touche
-ni au carrousel de lancement, ni à la MEP.
+**Aucune urgence.** Visé pour la **S4**, pas pour la S3. Ne touche ni au
+carrousel de lancement, ni à la MEP.
 
 ---
 
@@ -51,6 +51,44 @@ arrive.
 
 ---
 
+## 2 bis. Le moment de l'émission
+
+**Le bilan porte sur la semaine close et doit arriver à la bascule** — au
+passage de la semaine n-1 à la semaine n, pas dix heures plus tard.
+
+Ce moment est net et il est déjà celui de tout le reste : **dimanche minuit,
+heure de Paris**. C'est là que `duel_results` bascule, que la prime hebdo est
+attribuée, et que les trois gardes (`guard_bonus_claim`, `guard_bonus_delete`,
+`guard_entry_write`) verrouillent la semaine. Après cette seconde, plus une
+coche, plus un décochage : **les chiffres du bilan ne peuvent plus bouger**.
+
+Les deux mécanismes existants ratent cette bascule :
+
+| Mécanisme | Quand il tombe vraiment | Pourquoi ça ne va pas |
+|---|---|---|
+| Cron `weekly-recap` (`0 8 * * 1`) | lundi 10h Paris, ±59 min | dix heures de retard sur la fin de semaine |
+| `/api/moments` | au premier joueur qui coche, souvent lundi 23h | déclenchement imprévisible, et surtout **il envoie un push à chaque moment inséré** — une notification de plus aux six, ce qui se décide avec Jordan |
+
+**Recommandation : un job `pg_cron` le lundi à 00h05 Paris** (22h05 UTC en
+été, 23h05 en hiver — attention au changement d'heure du 25/10, à ne pas
+oublier). Il n'ajoute aucun cron Vercel, ne touche pas à `app/api/cron/`, et
+**n'envoie aucune notification** : il écrit des lignes dans `feed_events`, rien
+d'autre. L'extension est déjà installée et éprouvée sur ce projet — voir
+`docs/mep-s3-applique.sql`, où un job du même genre a porté le bloc B de la MEP
+de la S3, avec garde de date, réessai et désinscription automatique.
+
+**Le partage des rôles qui va avec :** le job SQL **ne rédige pas de français**.
+Il calcule les faits du §4 et les écrit tels quels dans `payload` (JSON) ; c'est
+`eventPhrase()` qui choisit l'angle et écrit la phrase, en TypeScript, là où
+vivent déjà toutes les formulations de l'app. Des gabarits français dans du
+PL/pgSQL seraient illisibles et intestables.
+
+À noter : le job tourne à 00h05 mais **personne ne lit le fil à cette
+heure-là**. L'intérêt n'est pas d'être vu à minuit, c'est que la carte soit
+**déjà là, et juste**, pour le premier qui ouvre l'app — à 7h comme à 23h.
+
+---
+
 ## 3. Ce qui existe déjà — à copier, pas à réinventer
 
 **Le mécanisme complet est déjà en place pour les duels.** Ne rien inventer :
@@ -58,7 +96,7 @@ arrive.
 | Besoin | Où c'est déjà fait |
 |---|---|
 | Écrire un événement persisté, une fois par semaine, dédupliqué | `lib/server/duels.ts` → `runWeeklyDuels()`, l'`upsert` sur `feed_events` avec `onConflict: "player_id,kind,dedupe_key"` |
-| Être appelé le lundi | `app/api/cron/weekly-recap/route.ts`, cron `0 8 * * 1` — **déjà existant, ne pas en ajouter** |
+| Se déclencher tout seul à une heure précise, sans notification | `docs/mep-s3-applique.sql` : un job `pg_cron` avec garde de date, réessai toutes les 5 min et désinscription automatique. L'extension est installée depuis le 26/07 |
 | Déclarer un nouveau type de carte | `lib/feed.ts` : union `FeedKind` (l. 15), `FeedPayload` (l. 30) |
 | Rendre la carte | `lib/feed.ts` → `eventPhrase()` (l. 111), un `case` par kind ; prendre `duel_result` (l. 198) comme modèle |
 | Ajouter une ligne au push du lundi | `runWeeklyDuels()` renvoie `lines: DuelLines`, que le récap embarque dans **sa** notification — un seul push le lundi |
@@ -150,8 +188,11 @@ confettis ; une phrase générée molle, c'est la même chose en texte.
 
 ## 7. Ce qu'on ne fait pas
 
-- **Pas de nouveau cron**, pas de déplacement de cron, pas de notification
-  supplémentaire.
+- **Pas de nouveau cron Vercel**, pas de déplacement de cron existant, et
+  surtout **pas de notification supplémentaire**. C'est la raison de fond pour
+  laquelle on ne passe pas par `/api/moments` : il pousse tout ce qu'il insère.
+  Le job `pg_cron` du §2 bis n'ajoute rien dans `vercel.json` ni dans
+  `app/api/cron/`, et n'envoie rien à personne.
 - **Pas de migration** — sauf si la revue montre que c'est inévitable, et alors
   ça passe par Jordan avant d'écrire une ligne.
 - **Pas d'écran bloquant** ni d'interstitielle hebdomadaire.
@@ -196,3 +237,8 @@ confettis ; une phrase générée molle, c'est la même chose en texte.
 3. **À partir de quelle semaine ?** Rien n'empêche de générer rétroactivement
    les semaines passées, mais ça remplirait le fil d'un coup. Proposition :
    démarrer à la première semaine close après la mise en production.
+4. **Le job `pg_cron` te va-t-il ?** La règle de `CLAUDE.md` sur les crons vise
+   `vercel.json` et `app/api/cron/`, et sa raison est explicite : « un cron de
+   plus, c'est une notification de plus envoyée à six personnes ». Celui-ci
+   n'écrit que des lignes de fil et ne notifie personne, donc la raison ne
+   s'applique pas — mais la décision reste la tienne, pas celle de l'agent.
