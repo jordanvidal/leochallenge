@@ -135,6 +135,20 @@ un podium inattendu ne laisse jamais l'écran muet.
 
 ---
 
+## État
+
+**Bloc A : appliqué le 26/07 à 11h30**, directement depuis ce dépôt — le
+fichier a été récupéré par la base via son URL GitHub figée sur le SHA du
+commit, empreinte `md5` vérifiée des deux côtés avant exécution, de sorte
+qu'aucune ligne de SQL n'est passée par une recopie. Le contrôle §5 a rendu
+zéro écart. Constaté juste après : job armé, 17 puces d'exercice, aucune
+famille posée, pas de 10 km, droits `anon` intacts sur la vue et les trois
+RPC, classement inchangé.
+
+**Bloc B : armé**, premier déclenchement le 27/07 à 00h00 Paris.
+
+---
+
 ## Vérifier
 
 ### Après le bloc A — tout de suite
