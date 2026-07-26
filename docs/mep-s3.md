@@ -58,9 +58,14 @@ Pourquoi le bloc A ne fuite pas, ligne par ligne :
 ### Le fichier
 
 `supabase/mep-s3.sql` fait les deux : il applique le bloc A immédiatement et
-**programme le bloc B** via un job `pg_cron` unique, qui se désinscrit après
-son passage. Un seul copier-coller dans l'éditeur SQL Supabase, et plus rien
-à faire.
+**programme le bloc B** via un job `pg_cron`, qui se désinscrit après son
+passage.
+
+Le job ne tire pas une seule fois : il se présente **toutes les 5 minutes
+entre 00h00 et 02h00** Paris et s'arrête dès qu'il réussit. Son corps est
+idempotent et tient dans une transaction, donc un échec n'applique rien et
+le passage suivant rattrape. Un tir unique qui rate laisserait le carrousel
+annoncer des puces absentes de la feuille jusqu'au réveil de quelqu'un.
 
 Il a été **assemblé mécaniquement** depuis `migration29-bareme-s3.sql` et
 `migration31-bonus-cardio.sql` — aucune ligne de SQL n'a été recopiée à la
@@ -137,7 +142,7 @@ un podium inattendu ne laisse jamais l'écran muet.
 ```sql
 -- (a) Le job de minuit est bien armé.
 select jobname, schedule, active from cron.job where jobname = 'mep-s3-bloc-b';
--- Attendu : une ligne, '5 22 26 7 *', active = true.
+-- Attendu : une ligne, '*/5 22-23 26 7 *', active = true.
 ```
 
 ```sql
@@ -158,8 +163,11 @@ dans le fichier et conditionne le `commit`.
 -- (c) Le job est passé, et il s'est désinscrit.
 select status, return_message, start_time
 from cron.job_run_details where jobname = 'mep-s3-bloc-b'
-order by start_time desc limit 1;
--- Attendu : succeeded. Et `select * from cron.job` ne doit plus le contenir.
+order by start_time desc limit 5;
+-- Attendu : un `succeeded`. D'éventuels `failed` avant lui ne sont pas
+-- inquiétants en soi — le job réessaie toutes les 5 minutes et n'applique
+-- rien tant qu'il échoue — mais leur `return_message` mérite un coup d'œil.
+-- Et `select * from cron.job` ne doit plus contenir le job.
 ```
 
 ```sql

@@ -1268,13 +1268,19 @@ end
 $VERIF$;
 
 -- -------------------------------------------------------------
--- Le reliquat visible, programmé au 27/07 00h05 Paris.
+-- Le reliquat visible, programmé au 27/07 Paris.
 -- Le serveur est en UTC et Paris est à UTC+2 en juillet :
--- 22h05 UTC le 26/07 = 00h05 Paris le 27/07.
--- Le job se désinscrit lui-même en fin de course.
+-- 22h00 UTC le 26/07 = 00h00 Paris le 27/07.
+--
+-- Le job se présente toutes les 5 minutes entre 00h00 et 02h00, et
+-- se désinscrit dès qu'il réussit. Ce n'est pas de la paranoïa : le
+-- corps est idempotent, il tient dans une transaction, donc un échec
+-- n'applique rien du tout et le passage suivant rattrape. Un tir
+-- unique qui rate laisserait le carrousel annoncer des puces
+-- absentes de la feuille jusqu'au réveil de quelqu'un.
 -- -------------------------------------------------------------
 
-select cron.schedule('mep-s3-bloc-b', '5 22 26 7 *', $MEPS3$
+select cron.schedule('mep-s3-bloc-b', '*/5 22-23 26 7 *', $MEPS3$
 do $GUARD$
 begin
   if (now() at time zone 'Europe/Paris')::date < date '2026-07-27' then
