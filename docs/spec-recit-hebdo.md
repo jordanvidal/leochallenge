@@ -101,9 +101,14 @@ heure-là**. L'intérêt n'est pas d'être vu à minuit, c'est que la carte soit
 | Rendre la carte | `lib/feed.ts` → `eventPhrase()` (l. 111), un `case` par kind ; prendre `duel_result` (l. 198) comme modèle |
 | Ajouter une ligne au push du lundi | `runWeeklyDuels()` renvoie `lines: DuelLines`, que le récap embarque dans **sa** notification — un seul push le lundi |
 
-**Zone interdite rappelée** (`CLAUDE.md`) : ne pas ajouter ni déplacer de cron.
-Le rendez-vous du lundi existe, on s'y greffe. Une notification de plus, ça se
-décide avec Jordan, pas ici.
+**Zone interdite rappelée** (`CLAUDE.md`) : ne pas ajouter ni déplacer de cron
+dans `vercel.json` ou `app/api/cron/`. Le job `pg_cron` du §2 bis ne touche ni
+à l'un ni à l'autre et n'envoie aucune notification — mais il reste soumis à
+l'accord de Jordan (§9, point 4), et l'agent ne tranche pas ça tout seul.
+
+Le cron `weekly-recap` du lundi n'est **pas** le porteur de cette carte : il
+arrive dix heures après la bascule. Il n'apparaît ici que pour la ligne de push
+facultative (§9, point 2), qui est un autre sujet.
 
 ---
 
