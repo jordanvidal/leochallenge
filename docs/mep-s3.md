@@ -57,7 +57,14 @@ Pourquoi le bloc A ne fuite pas, ligne par ligne :
 
 ### Le fichier
 
-`supabase/mep-s3.sql` fait les deux : il applique le bloc A immédiatement et
+> **Déjà appliqué le 26/07. Ne pas rejouer.** Il est rangé dans `docs/` et
+> pas dans `supabase/` pour cette raison : ce n'est pas une migration, c'est
+> la trace de ce qui a tourné. Rejoué après le 27/07, son `delete` du
+> `course_10km` et son décalage `sort - 1` supprimeraient le 10 km et
+> feraient glisser d'un cran tous les rangs posés par la migration 31 — le
+> garde `not exists` de la migration 29 ne protège pas de ça.
+
+`docs/mep-s3-applique.sql` fait les deux : il applique le bloc A immédiatement et
 **programme le bloc B** via un job `pg_cron`, qui se désinscrit après son
 passage.
 
