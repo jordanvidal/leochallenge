@@ -95,7 +95,7 @@ heure-là**. L'intérêt n'est pas d'être vu à minuit, c'est que la carte soit
 
 | Besoin | Où c'est déjà fait |
 |---|---|
-| Écrire un événement persisté, une fois par semaine, dédupliqué | `lib/server/duels.ts` → `runWeeklyDuels()`, l'`upsert` sur `feed_events` avec `onConflict: "player_id,kind,dedupe_key"` |
+| Écrire un événement persisté, une fois par semaine, dédupliqué | Le modèle est `lib/server/duels.ts` → `runWeeklyDuels()` : un `upsert` sur `feed_events` avec `onConflict: "player_id,kind,dedupe_key"`. **Attention** : là-bas c'est du TypeScript via `supabase-js` ; ici l'écriture est faite en SQL par le job `pg_cron`, donc un `insert … on conflict (player_id, kind, dedupe_key) do nothing`. La contrainte et la clé de déduplication sont les mêmes, l'outil non |
 | Se déclencher tout seul à une heure précise, sans notification | `docs/mep-s3-applique.sql` : un job `pg_cron` avec garde de date, réessai toutes les 5 min et désinscription automatique. L'extension est installée depuis le 26/07 |
 | Déclarer un nouveau type de carte | `lib/feed.ts` : union `FeedKind` (l. 15), `FeedPayload` (l. 30) |
 | Rendre la carte | `lib/feed.ts` → `eventPhrase()` (l. 111), un `case` par kind ; prendre `duel_result` (l. 198) comme modèle |
@@ -211,11 +211,13 @@ confettis ; une phrase générée molle, c'est la même chose en texte.
 - [ ] Testé sur l'URL de preview Vercel, **sur téléphone**.
 - [ ] Une carte par joueur actif, une seule par semaine, avec
       `dedupe_key = week_monday`.
-- [ ] **Rejouable** : appeler deux fois le cron du lundi n'insère rien la
-      seconde fois. La contrainte existe et a été vérifiée en prod le 26/07 —
+- [ ] **Rejouable** : rejouer le job n'insère rien la seconde fois. La
+      contrainte existe et a été vérifiée en prod le 26/07 —
       `feed_events_player_id_kind_dedupe_key_key UNIQUE (player_id, kind,
-      dedupe_key)` — il reste à vérifier que l'`upsert` s'en sert bien
-      (`ignoreDuplicates: true`, comme `runWeeklyDuels`).
+      dedupe_key)` — il reste à vérifier que l'`insert` s'en sert bien
+      (`on conflict … do nothing`). Le tester pour de vrai, en rejouant le job
+      à la main : c'est ce qui rend un incident de nuit réparable sans réveiller
+      personne.
 - [ ] Un joueur sans aucune coche sur la semaine n'a pas de carte.
 - [ ] Chaque angle a été vu au moins une fois sur des données réelles ou
       forgées, et son texte relu contre les six règles du §6.
