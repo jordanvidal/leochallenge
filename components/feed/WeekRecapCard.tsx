@@ -16,13 +16,13 @@
 import { useEffect, useState } from "react";
 import { addDays, challengeWeeks, mondayOf } from "@/lib/challenge";
 import { fetchWeekLeaderboard, fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
-import { FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
+import { eventPhrase, FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 import Interactions from "./Interactions";
 
 type Props = {
-  events: FeedEvent[]; // les duel_start / duel_result d'un même lundi
+  events: FeedEvent[]; // le récit + les duel_start / duel_result d'une même semaine
   me: Player;
   byId: Map<string, Player>;
   reactions: FeedReaction[];
@@ -65,6 +65,7 @@ export default function WeekRecapCard({
 }: Props) {
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
+  const recit = events.find((e) => e.kind === "recit") ?? null;
 
   // Le lundi qui s'ouvre : porté par les duel_start. Sans eux (dernière
   // semaine du challenge, plus d'appariement) on le déduit des résultats.
@@ -73,7 +74,10 @@ export default function WeekRecapCard({
     (results[0]?.payload.week_monday
       ? addDays(results[0].payload.week_monday, 7)
       : null);
-  const closedMonday = openedMonday ? addDays(openedMonday, -7) : null;
+  // Le récit nomme directement la semaine dont il parle : c'est la source
+  // la plus sûre, et la seule d'une carte rattrapée sans duels.
+  const closedMonday =
+    recit?.payload.week_monday ?? (openedMonday ? addDays(openedMonday, -7) : null);
 
   const weeks = challengeWeeks();
   const closedWeek = closedMonday
@@ -138,7 +142,13 @@ export default function WeekRecapCard({
   fresh.sort((x, y) => mine(x) - mine(y));
   settled.sort((x, y) => mine(x) - mine(y));
 
-  if (fresh.length === 0 && settled.length === 0) return null;
+  if (fresh.length === 0 && settled.length === 0 && !recit) return null;
+
+  // Le récit passe avant le podium : le podium redit le classement, le
+  // récit dit ce qu'il ne montre pas. Prénom réel et non « Toi » — la
+  // phrase est à la troisième personne, comme partout dans le fil.
+  const recitAuthor = recit ? (byId.get(recit.player_id) ?? null) : null;
+  const recitLine = recit ? eventPhrase(recit) : null;
 
   return (
     <li
@@ -149,6 +159,16 @@ export default function WeekRecapCard({
       <p className="text-xs font-bold uppercase tracking-wide text-faint">
         📊 {closedWeek ? `Semaine ${closedWeek.index} bouclée` : "Semaine bouclée"}
       </p>
+
+      {recitAuthor && recitLine && (
+        <p className="mt-2 text-sm leading-snug">
+          <span aria-hidden>{recitLine.emoji}</span>{" "}
+          <span className="font-bold" style={{ color: recitAuthor.color }}>
+            {recitAuthor.name}
+          </span>{" "}
+          {recitLine.text}
+        </p>
+      )}
 
       {/* Le podium de la semaine close. Muet tant qu'il n'est pas chargé —
           mieux vaut une carte plus courte qu'un chiffre faux. */}
