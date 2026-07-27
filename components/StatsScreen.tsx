@@ -106,9 +106,17 @@ export default function StatsScreen({
   const myProfile = profiles?.get(player.id);
   const mySlot = myProfile ? slotLabel(myProfile.hours) : null;
   const myBadges = gamification?.badges.get(player.id) ?? [];
-  const jokerDay = gamification?.total.find(
-    (r) => r.player_id === player.id,
-  )?.joker_day;
+  // Le joker a trois états, pas deux : brûlé, intact, et « on ne sait pas
+  // encore ». Le classement met une seconde à revenir, il ne revient jamais
+  // hors ligne, et `fetchGamification` rend null dès qu'un de ses appels
+  // échoue — sans retry. Traiter ce troisième cas comme « intact », c'est
+  // affirmer le contraire de la vérité à qui a déjà brûlé le sien. Tant
+  // qu'on ne sait pas, on se tait (comme le créneau plus bas).
+  const myRow = gamification?.total.find((r) => r.player_id === player.id);
+  const jokerDay = myRow?.joker_day ?? null;
+  // undefined = ligne absente, ou colonne absente de la RPC (migration 24
+  // pas encore jouée) ; null = joker bel et bien intact.
+  const jokerKnown = myRow?.joker_day !== undefined;
 
   // Les autres, du plus régulier au moins régulier. Pas par points : ce
   // serait le Classement en double, et ce n'est pas la question ici.
@@ -133,17 +141,19 @@ export default function StatsScreen({
         <div className="flex items-center gap-2.5">
           <Avatar name={player.name} color={player.color} size={32} />
           <span className="font-bold">Toi</span>
-          <span
-            className="ml-auto text-base"
-            title={
-              jokerDay
-                ? `Joker brûlé le ${jokerDay}`
-                : "Joker de série disponible"
-            }
-            style={jokerDay ? { opacity: 0.35 } : undefined}
-          >
-            🛟
-          </span>
+          {jokerKnown && (
+            <span
+              className="ml-auto text-base"
+              title={
+                jokerDay
+                  ? `Joker brûlé le ${jokerDay}`
+                  : "Joker de série disponible"
+              }
+              style={jokerDay ? { opacity: 0.35 } : undefined}
+            >
+              🛟
+            </span>
+          )}
         </div>
 
         <div className="mt-3 flex items-baseline gap-2">
@@ -207,7 +217,9 @@ export default function StatsScreen({
             }
             label="jours parfaits"
           />
-          <Fact value="🛟" label={jokerDay ? "joker brûlé" : "joker intact"} />
+          {jokerKnown && (
+            <Fact value="🛟" label={jokerDay ? "joker brûlé" : "joker intact"} />
+          )}
         </div>
 
         {myBadges.length > 0 && <BadgeRow unlocked={myBadges} />}
