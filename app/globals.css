@@ -204,10 +204,20 @@ button {
 }
 
 /* ------------------------------------------------------------------
-   La série qui monte. Trois temps, dans cet ordre : le +1 se pose, un
-   silence, puis le chiffre bascule. Sans le silence au milieu tout
-   bouge en même temps et l'œil ne voit rien — testé, c'était le
-   défaut de la première version.
+   La série qui monte. L'histoire se lit dans cet ordre, et elle n'a de
+   sens que si l'ancien chiffre est vu EN PREMIER :
+
+     0            l'ancien chiffre est seul à l'écran, le fond s'allume,
+                  le +1 monte à côté de lui
+     --streak-hold  le +1 plonge dans le chiffre, qui recule d'un cheveu
+     +130ms       le chiffre bascule sur le nouveau
+     +620ms       rebond d'arrivée
+
+   --streak-hold : c'est LE réglage. Trop court, le chiffre a déjà changé
+   quand l'œil arrive, et on ne voit que le résultat — c'était le défaut
+   signalé sur l'écran de fin de séance, où le bloc entier apparaît au
+   même instant que l'animation démarre. D'où la variante .streak-big,
+   qui laisse presque une seconde avant de toucher au chiffre.
 
    --streak-oh : hauteur d'un cran. La boîte, la cellule et la distance
    de roulement en dépendent toutes les trois : écrites séparément
@@ -215,14 +225,31 @@ button {
 ------------------------------------------------------------------- */
 .streak-count {
   --streak-oh: 1.45em;
+  --streak-hold: 560ms;
   position: relative;
   display: inline-block;
+}
+.streak-count.streak-big {
+  --streak-hold: 900ms;
 }
 .streak-odo {
   display: inline-block;
   height: var(--streak-oh);
   overflow: hidden;
   vertical-align: middle;
+  /* Les bords de la fenêtre s'estompent : le chiffre qui sort et celui
+     qui entre s'effacent au lieu d'être coupés net. Les paliers restent
+     loin du glyphe (centré sur ~25-75 % de la cellule), rien n'est rogné
+     au repos. */
+  --streak-fade: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 12%,
+    #000 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: var(--streak-fade);
+  mask-image: var(--streak-fade);
 }
 .streak-strip {
   display: flex;
@@ -232,16 +259,27 @@ button {
   display: flex;
   height: var(--streak-oh);
   align-items: center;
+  justify-content: center;
   font-variant-numeric: tabular-nums;
 }
 .streak-roll .streak-strip {
-  animation: streak-roll 620ms cubic-bezier(0.34, 1.3, 0.5, 1) 560ms both;
+  animation: streak-roll 640ms linear var(--streak-hold) both;
 }
+/* Le recul avant le saut : le chiffre s'enfonce d'un cheveu avant de
+   monter. C'est ce micro-mouvement qui dit « regarde » — sans lui la
+   bascule démarre déjà à pleine vitesse et l'œil la rate. Le timing est
+   posé par palier : la descente s'amortit, la montée part vite et se
+   dépose. Une seule courbe pour les deux ferait traîner le départ. */
 @keyframes streak-roll {
-  from {
+  0% {
     transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1);
   }
-  to {
+  22% {
+    transform: translateY(calc(var(--streak-oh) * 0.1));
+    animation-timing-function: cubic-bezier(0.3, 0.8, 0.25, 1);
+  }
+  100% {
     transform: translateY(calc(var(--streak-oh) * -1));
   }
 }
@@ -250,7 +288,7 @@ button {
    fenêtre de l'odomètre, il se ferait rogner par son propre overflow. */
 .streak-roll .streak-punch {
   display: inline-block;
-  animation: streak-punch 340ms ease-out 1080ms both;
+  animation: streak-punch 340ms ease-out calc(var(--streak-hold) + 520ms) both;
 }
 @keyframes streak-punch {
   0% {
@@ -264,7 +302,13 @@ button {
   }
 }
 
-/* Le +1 : il monte, il TIENT le temps qu'on le lise, il s'efface. */
+/* Le +1 : il monte à côté de l'ancien chiffre, il TIENT le temps qu'on
+   le lise, puis il plonge DANS le chiffre au moment exact où celui-ci
+   bascule. Deux animations et pas une seule : la montée garde sa durée
+   propre quelle que soit la longueur du maintien, et la plongée se cale
+   sur --streak-hold. La seconde est déclarée en dernier, c'est donc elle
+   qui pilote la transformation dès qu'elle démarre — elle repart de
+   l'état final de la première, la jointure est invisible. */
 .streak-plus {
   position: absolute;
   top: -0.55em;
@@ -272,27 +316,33 @@ button {
   font-weight: 800;
   pointer-events: none;
   white-space: nowrap;
-  animation: streak-plus 1150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation:
+    streak-plus-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    streak-plus-absorb 260ms cubic-bezier(0.6, 0, 0.9, 0.45)
+      var(--streak-hold) both;
 }
-@keyframes streak-plus {
+@keyframes streak-plus-in {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.6);
+    transform: translate(0, 0.4em) scale(0.6);
   }
-  18% {
+  58% {
     opacity: 1;
-    transform: translateY(0) scale(1.15);
+    transform: translate(0, 0) scale(1.16);
   }
-  32% {
-    transform: translateY(0) scale(1);
-  }
-  62% {
+  100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(0, 0) scale(1);
+  }
+}
+@keyframes streak-plus-absorb {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-16px) scale(0.85);
+    transform: translate(-0.7em, 0.45em) scale(0.35);
   }
 }
 
@@ -319,22 +369,30 @@ button {
 }
 
 /* Même beat, version bloc (fin de séance) : plus sourd, le chiffre y
-   est déjà énorme, inutile d'inverser le texte. */
+   est déjà énorme, inutile d'inverser le texte.
+   Il s'allume AVANT que le chiffre bouge — c'est lui qui fait descendre
+   le regard sur le bloc pendant que l'ancien chiffre est encore là — et
+   il ne relâche qu'après le rebond. Sa durée suit donc la séquence
+   longue (--streak-hold à 900 ms + 960 ms de queue). */
 .streak-beat-block {
-  animation: streak-beat-block 1600ms ease-out both;
+  animation: streak-beat-block 1860ms ease-out both;
 }
 @keyframes streak-beat-block {
   0% {
     background: color-mix(in oklch, var(--pc) 9%, var(--color-surface));
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--pc) 0%, transparent);
   }
-  10% {
-    background: color-mix(in oklch, var(--pc) 26%, var(--color-surface));
+  8% {
+    background: color-mix(in oklch, var(--pc) 32%, var(--color-surface));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--pc) 55%, transparent);
   }
-  64% {
-    background: color-mix(in oklch, var(--pc) 26%, var(--color-surface));
+  85% {
+    background: color-mix(in oklch, var(--pc) 32%, var(--color-surface));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--pc) 55%, transparent);
   }
   100% {
     background: color-mix(in oklch, var(--pc) 9%, var(--color-surface));
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--pc) 0%, transparent);
   }
 }
 

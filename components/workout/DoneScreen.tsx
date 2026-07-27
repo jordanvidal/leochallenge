@@ -21,8 +21,9 @@ import { DayBreakdown, formatClock } from "@/lib/workout";
 import { fmtPoints } from "@/lib/gamification";
 import StreakCount from "../StreakCount";
 
-/** Durée du beat de fond, alignée sur .streak-beat-block dans globals.css. */
-const BEAT_MS = 1600;
+/** Durée du beat de fond, alignée sur .streak-beat-block dans globals.css.
+    Il couvre toute la séquence longue de StreakCount, rebond compris. */
+const BEAT_MS = 1860;
 
 type Props = {
   player: Player;
@@ -119,6 +120,7 @@ export default function DoneScreen({
                 <StreakCount
                   value={streak}
                   from={streakBefore}
+                  big
                   onIncrement={onIncrement}
                 />
               ) : (
