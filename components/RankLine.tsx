@@ -15,11 +15,14 @@ import { daysLeft } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
+import { Skeleton } from "./ui";
 
 type Props = {
   player: Player;
   players: Player[];
   gamification: Gamification | null;
+  /** Les reprises sont épuisées : on ne fera plus patienter personne. */
+  enPanne: boolean;
   perfect: boolean; // le 3/3 du jour est-il déjà fait ?
   onGoLeaderboard: () => void;
 };
@@ -42,6 +45,7 @@ export default function RankLine({
   player,
   players,
   gamification,
+  enPanne,
   perfect,
   onGoLeaderboard,
 }: Props) {
@@ -53,7 +57,22 @@ export default function RankLine({
     return () => clearTimeout(t);
   }, [beating]);
 
-  if (!gamification || players.length < 2) return null;
+  if (players.length < 2) return null;
+  // Le classement met ~500 ms à revenir du serveur. Sans rien à cette
+  // place, la ligne surgit après coup et pousse les trois cartes vers le
+  // bas — au moment précis où le pouce descend vers la première.
+  //
+  // En panne, en revanche, on ne fait plus patienter : un bloc qui respire
+  // sans fin promet une ligne qui ne viendra pas. La page perd sa ligne de
+  // statut comme avant, et le Classement, lui, explique et propose de
+  // réessayer — c'est là que la question se pose.
+  if (!gamification)
+    return enPanne ? null : (
+      <div role="status" aria-label="Classement en cours de chargement">
+        <Skeleton className="mt-3" h={41} radius={16} />
+      </div>
+    );
+
   const rows = [...gamification.total].sort((a, b) => a.rank - b.rank);
   const mine = rows.find((r) => r.player_id === player.id);
   if (!mine) return null;

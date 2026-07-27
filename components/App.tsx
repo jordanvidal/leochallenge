@@ -339,6 +339,7 @@ export default function App() {
             entries={data.entries}
             liveChecks={data.liveChecks}
             gamification={gamification}
+            gamificationEnPanne={gamificationEnPanne}
             bonus={bonus}
             sessionStarted={session.started}
             onStartWorkout={() => setWorkoutOpen(true)}
@@ -394,6 +395,7 @@ export default function App() {
             players={data.players}
             entries={data.entries}
             gamification={gamification}
+            gamificationEnPanne={gamificationEnPanne}
             onShareWeek={shareWeek}
           />
         )}

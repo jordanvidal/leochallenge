@@ -15,7 +15,7 @@ import {
 import { BADGES, fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
 import { computeStats, groupTimeline, PlayerStats, TimelineCell } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
-import { Avatar, BigButton } from "./ui";
+import { Avatar, BigButton, Skeleton } from "./ui";
 
 type Props = {
   player: Player;
@@ -245,7 +245,16 @@ export default function BilanScreen({
     return (
       <div className="flex flex-1 flex-col px-5">
         {header}
-        <p className="mt-8 animate-pulse text-muted">Calcul du bilan…</p>
+        <div
+          className="mt-8 flex flex-col gap-3"
+          role="status"
+          aria-label="Bilan en cours de calcul"
+        >
+          <Skeleton h={120} radius={24} />
+          <Skeleton h={60} radius={16} />
+          <Skeleton h={60} radius={16} />
+          <Skeleton h={60} radius={16} />
+        </div>
       </div>
     );
   }
