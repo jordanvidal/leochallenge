@@ -86,7 +86,8 @@ export default function App() {
   }, []);
 
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
-  const { gamification, reloadGamification } = useGamification(!!player);
+  const { gamification, gamificationEnPanne, reloadGamification } =
+    useGamification(!!player);
 
   // Le portier : aucune coche du jour tant que la séance n'est pas lancée.
   const session = useTodaySession(playerId);
@@ -374,6 +375,8 @@ export default function App() {
             players={data.players}
             entries={data.entries}
             gamification={gamification}
+            enPanne={gamificationEnPanne}
+            onRetry={reloadGamification}
           />
         )}
         {effTab === "history" && (

@@ -21,6 +21,10 @@ const REPRISES = [800, 2000, 5000]; // ms
 
 export function useGamification(enabled: boolean) {
   const [data, setData] = useState<Gamification | null>(null);
+  // Vrai quand les reprises sont épuisées et qu'on n'a toujours rien.
+  // Sans ça, l'écran restait sur « Calcul en cours… » — un message qui
+  // ment dès la dernière reprise passée, et qui n'offre aucune sortie.
+  const [enPanne, setEnPanne] = useState(false);
   const inflight = useRef(false);
   // Un rechargement demandé pendant qu'un autre tourne était purement
   // perdu : c'est ce qui faisait rater le +1 de série après une séance
@@ -51,6 +55,10 @@ export function useGamification(enabled: boolean) {
         essai.current = 0;
         if (timer.current) clearTimeout(timer.current);
         timer.current = null;
+        // Une tentative fraîche efface le constat de panne : le temps
+        // qu'elle tourne, l'écran remontre « Calcul en cours… » plutôt
+        // que de garder un message d'échec périmé sous les yeux.
+        setEnPanne(false);
       }
 
       inflight.current = true;
@@ -67,6 +75,7 @@ export function useGamification(enabled: boolean) {
       if (g) {
         essai.current = 0;
         setData(g);
+        setEnPanne(false);
       }
 
       // Une demande arrivée pendant ce chargement passe devant la reprise :
@@ -79,7 +88,10 @@ export function useGamification(enabled: boolean) {
 
       if (!g) {
         const attente = REPRISES[essai.current];
-        if (attente === undefined) return; // on a assez insisté
+        if (attente === undefined) {
+          setEnPanne(true); // on a assez insisté : l'écran prend le relais
+          return;
+        }
         essai.current += 1;
         timer.current = setTimeout(() => void load(true), attente);
       }
@@ -107,5 +119,9 @@ export function useGamification(enabled: boolean) {
     };
   }, [enabled, reload]);
 
-  return { gamification: data, reloadGamification: reload };
+  return {
+    gamification: data,
+    gamificationEnPanne: enPanne,
+    reloadGamification: reload,
+  };
 }

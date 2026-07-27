@@ -23,7 +23,9 @@ export type LeaderboardRow = {
 export type Gamification = {
   total: LeaderboardRow[];
   week: LeaderboardRow[];
-  lastWeekRanks: Map<string, number>; // rang au dimanche précédent
+  // Les rangs du dimanche précédent ne sont PAS ici : ils ne servent qu'aux
+  // flèches ↑↓ de l'onglet Général, et coûtent un appel complet à
+  // `leaderboard()`. Voir `fetchLastWeekRanks`, tiré par l'écran.
   badges: Map<string, string[]>; // player_id → badges débloqués
   duels: Duel[]; // tous les appariements (table minuscule)
 };
@@ -54,28 +56,17 @@ export function fmtPoints(p: number): string {
 export async function fetchGamification(): Promise<Gamification | null> {
   const today = parisToday();
   const monday = mondayOf(today);
-  const lastSunday = addDays(monday, -1);
 
-  const [total, week, lastWeek, badges, duels] = await Promise.all([
+  const [total, week, badges, duels] = await Promise.all([
     supabase.rpc("leaderboard"),
     supabase.rpc("leaderboard", { p_from: monday }),
-    supabase.rpc("leaderboard", { p_until: lastSunday }),
     supabase.from("player_badges").select("player_id, badge"),
     supabase.from("duels").select("week_monday, player_a, player_b"),
   ]);
-  if (total.error || week.error || lastWeek.error || badges.error) return null;
+  if (total.error || week.error || badges.error) return null;
   // duels tolère l'erreur (table absente tant que la migration 14 n'est
   // pas jouée) : le classement vaut mieux qu'un écran vide.
 
-  // Semaine 1 : personne n'avait de points dimanche dernier, la variation
-  // n'a pas de sens — on ne l'affiche pas plutôt que d'afficher du faux.
-  const lastWeekRows = lastWeek.data as LeaderboardRow[];
-  const lastWeekMeaningful = lastWeekRows.some((r) => Number(r.points) > 0);
-  const lastWeekRanks = new Map(
-    lastWeekMeaningful
-      ? lastWeekRows.map((r) => [r.player_id, Number(r.rank)] as [string, number])
-      : [],
-  );
   const badgeMap = new Map<string, string[]>();
   for (const row of badges.data as { player_id: string; badge: string }[]) {
     badgeMap.set(row.player_id, [...(badgeMap.get(row.player_id) ?? []), row.badge]);
@@ -83,10 +74,36 @@ export async function fetchGamification(): Promise<Gamification | null> {
   return {
     total: (total.data as LeaderboardRow[]).map(numify),
     week: (week.data as LeaderboardRow[]).map(numify),
-    lastWeekRanks,
     badges: badgeMap,
     duels: duels.error ? [] : (duels.data as Duel[]),
   };
+}
+
+/**
+ * Les rangs au dimanche dernier — uniquement les flèches ↑↓ de l'onglet
+ * « Général ».
+ *
+ * C'est un troisième appel à `leaderboard()`, la RPC la plus chère de
+ * l'app, et il partait à chaque ouverture alors que l'onglet par défaut
+ * est « Semaine » : le plus souvent on payait un recalcul complet du
+ * challenge pour une colonne que personne ne regardait. Il est maintenant
+ * tiré par l'écran, quand la vue Général s'ouvre pour de vrai.
+ *
+ * Rend `null` si l'appel échoue — l'écran retentera en revenant sur
+ * l'onglet, exactement comme pour l'historique des semaines closes.
+ */
+export async function fetchLastWeekRanks(): Promise<Map<string, number> | null> {
+  const lastSunday = addDays(mondayOf(parisToday()), -1);
+  const { data, error } = await supabase.rpc("leaderboard", {
+    p_until: lastSunday,
+  });
+  if (error || !data) return null;
+
+  // Semaine 1 : personne n'avait de points dimanche dernier, la variation
+  // n'a pas de sens — on ne l'affiche pas plutôt que d'afficher du faux.
+  const rows = data as LeaderboardRow[];
+  if (!rows.some((r) => Number(r.points) > 0)) return new Map();
+  return new Map(rows.map((r) => [r.player_id, Number(r.rank)]));
 }
 
 // --- Bilan des saisons 1 et 2, pour l'écran de lancement de la S3 -----
