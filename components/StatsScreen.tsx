@@ -32,6 +32,9 @@ type Props = {
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  /** Reprises épuisées : la tuile joker se tait plutôt que de faire
+      respirer un loader qui n'aboutira pas. */
+  gamificationEnPanne: boolean;
   onShareWeek: () => void;
 };
 
@@ -94,11 +97,16 @@ export default function StatsScreen({
   players,
   entries,
   gamification,
+  gamificationEnPanne,
   onShareWeek,
 }: Props) {
   const [profiles, setProfiles] = useState<Map<string, Profile> | null>(null);
   useEffect(() => {
-    fetchProfiles().then(setProfiles);
+    // Un rejet laisserait `profiles` à null pour toujours, donc des blocs
+    // gris qui respirent sans fin. La map vide, elle, dit « rien à montrer ».
+    fetchProfiles()
+      .then(setProfiles)
+      .catch(() => setProfiles(new Map()));
   }, []);
 
   const elapsed = elapsedDays().length;
@@ -232,7 +240,7 @@ export default function StatsScreen({
           {/* Le joker : une tuile grise pendant que le classement arrive,
               plutôt qu'un trou qui se remplit après coup. Ligne absente
               une fois chargé (jamais joué) : rien, comme avant. */}
-          {gamification === null ? (
+          {gamification === null && !gamificationEnPanne ? (
             <Skeleton className="flex-1" h={56} />
           ) : (
             jokerKnown && (

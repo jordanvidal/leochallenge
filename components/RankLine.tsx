@@ -21,6 +21,8 @@ type Props = {
   player: Player;
   players: Player[];
   gamification: Gamification | null;
+  /** Les reprises sont épuisées : on ne fera plus patienter personne. */
+  enPanne: boolean;
   perfect: boolean; // le 3/3 du jour est-il déjà fait ?
   onGoLeaderboard: () => void;
 };
@@ -43,6 +45,7 @@ export default function RankLine({
   player,
   players,
   gamification,
+  enPanne,
   perfect,
   onGoLeaderboard,
 }: Props) {
@@ -58,8 +61,13 @@ export default function RankLine({
   // Le classement met ~500 ms à revenir du serveur. Sans rien à cette
   // place, la ligne surgit après coup et pousse les trois cartes vers le
   // bas — au moment précis où le pouce descend vers la première.
+  //
+  // En panne, en revanche, on ne fait plus patienter : un bloc qui respire
+  // sans fin promet une ligne qui ne viendra pas. La page perd sa ligne de
+  // statut comme avant, et le Classement, lui, explique et propose de
+  // réessayer — c'est là que la question se pose.
   if (!gamification)
-    return (
+    return enPanne ? null : (
       <div role="status" aria-label="Classement en cours de chargement">
         <Skeleton className="mt-3" h={41} radius={16} />
       </div>

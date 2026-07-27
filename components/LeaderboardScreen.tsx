@@ -16,6 +16,7 @@ import {
   parisToday,
 } from "@/lib/challenge";
 import {
+  fetchLastWeekRanks,
   fetchWeekLeaderboard,
   fmtPoints,
   frenchRank,
@@ -32,6 +33,10 @@ type Props = {
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  /** Les reprises automatiques ont abandonné : on le dit, au lieu de
+      laisser « Calcul en cours… » tourner dans le vide. */
+  enPanne: boolean;
+  onRetry: () => void;
 };
 
 /** ↑2 / ↓1 / = depuis la semaine dernière. */
@@ -77,7 +82,14 @@ function ClassementEnAttente({ lignes }: { lignes: number }) {
   );
 }
 
-export default function LeaderboardScreen({ player, players, entries, gamification }: Props) {
+export default function LeaderboardScreen({
+  player,
+  players,
+  entries,
+  gamification,
+  enPanne,
+  onRetry,
+}: Props) {
   const [view, setView] = useState<"total" | "week">("week");
   const weeks = challengeWeeks();
   const currentWeek = weeks.find((w) => w.current) ?? null;
@@ -90,6 +102,12 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
   );
   // Joueur dont on regarde le détail des points (overlay), null = fermé.
   const [detail, setDetail] = useState<LeaderboardRow | null>(null);
+  // Rangs au dimanche dernier : uniquement les flèches ↑↓ du Général, donc
+  // chargés à l'ouverture de cet onglet et pas avant. undefined = pas encore
+  // demandé, null = échec (retenté en revenant sur l'onglet).
+  const [lastWeekRanks, setLastWeekRanks] = useState<
+    Map<string, number> | null | undefined
+  >(undefined);
 
   const selectedWeek: ChallengeWeek | null =
     view === "week"
@@ -111,13 +129,45 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedWeek?.index]);
 
+  // Les flèches ↑↓ n'existent que dans le Général : on ne paie l'appel
+  // qu'en y entrant. `null` (échec) est retenté au retour sur l'onglet.
+  useEffect(() => {
+    if (view !== "total" || lastWeekRanks) return;
+    let cancelled = false;
+    fetchLastWeekRanks().then((m) => {
+      if (!cancelled) setLastWeekRanks(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, lastWeekRanks]);
+
   const byId = new Map(players.map((p) => [p.id, p]));
 
   if (!gamification) {
     return (
       <div className="flex flex-1 flex-col px-5 pt-safe">
         <h1 className="mt-4 text-2xl font-bold">Classement</h1>
-        <ClassementEnAttente lignes={Math.max(players.length, 3)} />
+        {enPanne ? (
+          <>
+            <p className="mt-4 text-muted">
+              Impossible de charger le classement. Tes coches sont bien
+              enregistrées — c&apos;est l&apos;affichage qui coince.
+            </p>
+            <button
+              onClick={onRetry}
+              className="mt-4 min-h-11 self-start rounded-xl px-6 font-bold"
+              style={{
+                background: "var(--color-raised)",
+                color: "var(--color-ink)",
+              }}
+            >
+              Réessayer
+            </button>
+          </>
+        ) : (
+          <ClassementEnAttente lignes={Math.max(players.length, 3)} />
+        )}
       </div>
     );
   }
@@ -144,7 +194,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
 
   const variation = (r: LeaderboardRow): number | null => {
     if (view !== "total") return null;
-    const old = gamification.lastWeekRanks.get(r.player_id);
+    const old = lastWeekRanks?.get(r.player_id);
     if (old === undefined) return null;
     return old - r.rank;
   };

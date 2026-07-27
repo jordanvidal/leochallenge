@@ -25,6 +25,9 @@ type Props = {
   entries: Map<string, Entry>;
   liveChecks: Map<string, number>; // joueur → dernière coche reçue en direct (ms)
   gamification: Gamification | null;
+  /** Le classement a renoncé (reprises épuisées) : la ligne de statut se
+      tait au lieu de faire respirer un loader qui n'aboutira pas. */
+  gamificationEnPanne: boolean;
   bonus: BonusState | null;
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
@@ -43,6 +46,7 @@ export default function TodayScreen({
   entries,
   liveChecks,
   gamification,
+  gamificationEnPanne,
   bonus,
   sessionStarted,
   onStartWorkout,
@@ -130,6 +134,7 @@ export default function TodayScreen({
           player={player}
           players={players}
           gamification={gamification}
+          enPanne={gamificationEnPanne}
           perfect={perfect}
           onGoLeaderboard={onGoLeaderboard}
         />
