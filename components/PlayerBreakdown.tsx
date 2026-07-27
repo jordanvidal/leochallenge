@@ -53,16 +53,55 @@ function DayRow({ d, color }: { d: DayPoints; color: string }) {
   );
 }
 
-/** Une ligne de source : emoji, libellé, fréquence, points. */
-function SourceRow({ r, color }: { r: BreakdownRow; color: string }) {
+/** Une ligne de source : emoji, libellé, note, fréquence, points.
+
+    La note est la seule chose qui ne se déduit pas du chiffre : d'où
+    sort un « 7 » de bonus de série, quelle part d'un « 8 » vient d'un
+    jour 🎲. Sans elle, l'écran donne des résultats et laisse le calcul
+    au lecteur — c'est précisément ce qu'on lui reprochait. */
+function SourceRow({
+  r,
+  color,
+  note,
+}: {
+  r: BreakdownRow;
+  color: string;
+  note?: string;
+}) {
+  // Toute la ligne doublée : le badge ×2 suffit et se lit d'un œil.
+  // Doublée en partie (déclarée trois fois, doublée une seule), un
+  // badge mentirait — c'est la note qui le dit, en points.
+  const toutDouble = r.doubled > 0 && Math.abs(r.points - r.doubled * 2) < 0.05;
+  const partiel = r.doubled > 0 && !toutDouble;
+  const sousTitre =
+    note ?? (partiel ? `dont ${fmtPoints(r.doubled)} doublés 🎲` : undefined);
+
   return (
     <li className="flex items-center gap-3 py-2">
       <span className="text-lg" aria-hidden>
         {r.emoji}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm">{r.label}</span>
-      {r.cnt > 1 && (
-        <span className="text-xs text-faint">×{r.cnt}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm">{r.label}</span>
+        {sousTitre && (
+          <span className="block truncate text-xs text-faint">{sousTitre}</span>
+        )}
+      </span>
+      {toutDouble && (
+        <span
+          className="num-display shrink-0 rounded-full px-2 py-0.5 text-xs font-bold"
+          style={{
+            background: "var(--color-surface)",
+            boxShadow: "inset 0 0 0 1px var(--color-line)",
+          }}
+        >
+          ×2
+        </span>
+      )}
+      {/* Le compteur sort toujours dans la base : « Journées parfaites 4 »
+          sans lui laisse croire à 4 journées à 1 pt. */}
+      {(r.cnt > 1 || r.category === "base") && (
+        <span className="shrink-0 text-xs text-faint">×{r.cnt}</span>
       )}
       <span className="num-display w-12 text-right text-base" style={{ color }}>
         {fmtPoints(r.points)}
@@ -93,6 +132,17 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
   const basePct =
     data && total > 0 ? Math.round((data.baseTotal / total) * 100) : 0;
 
+  // « Bonus de série : 7 » est le seul chiffre de l'écran qu'aucun
+  // barème n'explique — c'est le surplus du multiplicateur sur la base,
+  // pas un bonus qu'on gagne. On nomme donc le facteur, lu sur les jours
+  // de la fenêtre. Facteurs mélangés (×1,5 puis ×2) : on n'en cite aucun
+  // plutôt que d'en choisir un au hasard.
+  const facteurs = [...new Set((days ?? []).filter((d) => d.multiplier > 1).map((d) => d.multiplier))];
+  const noteSerie =
+    facteurs.length === 1
+      ? `ce que ta série ×${fmtPoints(facteurs[0])} ajoute à ta base`
+      : "ce que ta série ajoute à ta base";
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-bg px-5 pt-safe pb-safe">
       {/* En-tête : retour + identité + total */}
@@ -113,7 +163,13 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
         <Avatar name={player.name} color={player.color} size={52} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-bold">{player.name}</p>
-          <p className="text-sm text-muted">{frenchRank(row.rank)} au classement</p>
+          {/* Le rang est celui de la fenêtre affichée. « 1er au classement »
+              sur une semaine, quand on est 3e au général, c'est un écran
+              qui se trompe de sujet — il dit alors sur quoi il compte. */}
+          <p className="text-sm text-muted">
+            {frenchRank(row.rank)}{" "}
+            {from || until ? label.toLowerCase() : "au classement"}
+          </p>
         </div>
         <span
           className="num-display text-4xl"
@@ -171,7 +227,12 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
           <h2 className="mt-7 text-sm font-bold text-faint">La base</h2>
           <ul className="mt-1 divide-y divide-line/60">
             {data.base.map((r) => (
-              <SourceRow key={r.item_key} r={r} color={player.color} />
+              <SourceRow
+                key={r.item_key}
+                r={r}
+                color={player.color}
+                note={r.item_key === "streak" ? noteSerie : undefined}
+              />
             ))}
           </ul>
 
@@ -262,9 +323,10 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
                   <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
                   <dd>
                     exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
-                    ta coche <b>et</b> tes paliers déclarés compter double ce
-                    jour-là. La coche double à sa valeur du jour, série
-                    comprise
+                    ta coche <b>et</b> tous tes bonus qui le travaillent
+                    compter double ce jour-là. La coche double à sa valeur du
+                    jour, série comprise ; les bonus doublés portent un ×2
+                    au-dessus
                   </dd>
                 </div>
               ) : (

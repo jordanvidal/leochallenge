@@ -12,6 +12,10 @@ export type BreakdownRow = {
   label: string;
   cnt: number;
   points: number;
+  // Part de la ligne qui vient d'un jour 🎲 (migration 34). Une puce
+  // doublée porte ses points doublés : « +100 squats » affiche 8 et
+  // non 4, et cette colonne dit lesquels des 8 sont le doublement.
+  doubled: number;
 };
 
 export type Breakdown = {
@@ -23,6 +27,18 @@ export type Breakdown = {
 
 // Ordre d'affichage de la base : socle → parfait → série.
 const BASE_ORDER = ["exos", "perfect", "streak"];
+
+// Les jours 🎲 doublent deux choses : la coche de l'exo tiré, et les
+// puces déclarées qui le travaillent. Depuis la migration 34 chaque
+// puce porte ses propres points ; la ligne de l'événement ne garde que
+// la coche. Son libellé de catalogue (« Les squats comptent double
+// aujourd'hui ») annonçait donc plus que ce qu'elle contient — il sert
+// au bandeau du jour, pas à un bilan. Le français vit ici, pas en base.
+const LIBELLE_COCHE: Record<string, string> = {
+  pompes_double: "Coche pompes doublée",
+  abdos_double: "Coche abdos doublée",
+  squats_double: "Coche squats doublée",
+};
 
 /** Charge le détail d'un joueur sur la fenêtre demandée (null = tout). */
 export async function fetchBreakdown(
@@ -41,6 +57,11 @@ export async function fetchBreakdown(
     ...r,
     cnt: Number(r.cnt),
     points: Number(r.points),
+    // `doubled` est absente tant que la migration 34 n'est pas passée :
+    // 0 par défaut, et l'écran se contente d'afficher des points justes
+    // sans badge ×2 — c'est exactement l'écran d'avant.
+    doubled: Number(r.doubled ?? 0),
+    label: LIBELLE_COCHE[r.item_key] ?? r.label,
   }));
 
   const base = rows
