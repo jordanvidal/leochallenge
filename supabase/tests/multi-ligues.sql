@@ -358,6 +358,29 @@ begin
           (now() at time zone 'Europe/Paris')::date, true, false, false);
   raise notice 'OK 8 — hors fenêtre refusé, dans la fenêtre accepté';
 
+  -- 8ter. La durée d'une ligue tient entre 1 et 6 semaines — et c'est un
+  -- trigger, donc la phase 5 pourra le mettre en sommeil pour importer les
+  -- 50 jours du challenge d'origine.
+  ok := false;
+  begin
+    insert into app.leagues (slug, name, invite_code, start_day, end_day)
+    values ('trop-longue', 'Trop longue', 'TROP01', '2026-09-07', '2026-10-26');
+  exception when others then
+    if sqlerrm like 'DUREE_INVALIDE%' then ok := true; else raise; end if;
+  end;
+  if not ok then
+    raise exception 'ASSERTION 8ter ECHOUEE : une ligue de plus de 6 semaines est passée';
+  end if;
+  -- Pile 6 semaines : ça passe.
+  insert into app.leagues (slug, name, invite_code, start_day, end_day)
+  values ('pile-six', 'Pile six semaines', 'PILE06', '2026-09-07', '2026-10-18');
+  -- Et le sommeil du trigger laisse entrer les 50 jours de l'origine.
+  alter table app.leagues disable trigger user;
+  insert into app.leagues (slug, name, invite_code, start_day, end_day)
+  values ('origine', 'Le challenge d''origine', 'ORIG50', '2026-07-13', '2026-08-31');
+  alter table app.leagues enable trigger user;
+  raise notice 'OK 8ter — 6 semaines max, et la ligue de 50 jours de la phase 5 reste importable';
+
   -- 8bis. Un duel ne traverse pas deux ligues.
   ok := false;
   begin

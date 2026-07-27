@@ -82,6 +82,36 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Durée d'une ligue — 1 à 6 semaines
+-- ---------------------------------------------------------------------------
+-- Un trigger et non un CHECK, pour une raison précise : le challenge d'origine
+-- dure 50 jours (13/07 → 31/08) et dépasse donc le plafond de 42. Un CHECK
+-- rendrait la phase 5 impossible sans toucher au schéma le jour même de la
+-- migration. Ici l'import de la phase 5 met le trigger en sommeil le temps de
+-- la recopie, comme le font déjà les fixtures de test.
+--
+-- La règle vaut à la création ET à la modification : le créateur peut décaler
+-- les dates avant le début, pas les étirer au-delà de 6 semaines.
+
+create or replace function app.guard_league_insert()
+returns trigger
+language plpgsql
+set search_path = app
+as $$
+begin
+  if new.end_day < new.start_day then
+    raise exception 'DUREE_INVALIDE: une ligue ne finit pas avant de commencer';
+  end if;
+  -- 41 jours d'écart = 42 jours bornes comprises = 6 semaines.
+  if new.end_day > new.start_day + 41 then
+    raise exception 'DUREE_INVALIDE: une ligue dure entre 1 et 6 semaines (% jours demandés)',
+      new.end_day - new.start_day + 1;
+  end if;
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Joueurs
 -- ---------------------------------------------------------------------------
 
@@ -595,6 +625,9 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Les triggers
 -- ---------------------------------------------------------------------------
+
+create trigger trg_leagues_duree before insert or update on app.leagues
+  for each row execute function app.guard_league_insert();
 
 create trigger trg_players_insert before insert on app.players
   for each row execute function app.guard_player_insert();

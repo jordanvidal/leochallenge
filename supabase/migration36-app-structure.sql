@@ -72,10 +72,9 @@ create table app.leagues (
   constraint leagues_name_check check (
     char_length(trim(name)) between 1 and 40
   ),
-  -- 1 à 6 semaines. 41 jours d'écart = 42 jours bornes comprises.
-  constraint duree_valide check (
-    end_day >= start_day and end_day <= start_day + 41
-  )
+  -- Une ligue ne part pas à l'envers. La borne HAUTE (1 à 6 semaines) est un
+  -- trigger, pas un CHECK — voir migration37, `guard_league_insert`.
+  constraint duree_valide check (end_day >= start_day)
 );
 
 -- ---------------------------------------------------------------------------
