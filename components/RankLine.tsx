@@ -15,6 +15,7 @@ import { daysLeft } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
+import { Skeleton } from "./ui";
 
 type Props = {
   player: Player;
@@ -53,7 +54,17 @@ export default function RankLine({
     return () => clearTimeout(t);
   }, [beating]);
 
-  if (!gamification || players.length < 2) return null;
+  if (players.length < 2) return null;
+  // Le classement met ~500 ms à revenir du serveur. Sans rien à cette
+  // place, la ligne surgit après coup et pousse les trois cartes vers le
+  // bas — au moment précis où le pouce descend vers la première.
+  if (!gamification)
+    return (
+      <div role="status" aria-label="Classement en cours de chargement">
+        <Skeleton className="mt-3" h={41} radius={16} />
+      </div>
+    );
+
   const rows = [...gamification.total].sort((a, b) => a.rank - b.rank);
   const mine = rows.find((r) => r.player_id === player.id);
   if (!mine) return null;

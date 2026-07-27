@@ -25,7 +25,7 @@ import {
 } from "@/lib/profile";
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
-import { Avatar } from "./ui";
+import { Avatar, Skeleton } from "./ui";
 
 type Props = {
   player: Player;
@@ -174,8 +174,19 @@ export default function StatsScreen({
           </span>
         </div>
 
-        {/* Le créneau : muet tant que le chargement n'a rien rendu, et
-            définitivement absent pour qui n'a jamais bouclé une journée. */}
+        {/* Le créneau : la place est tenue pendant le chargement (sinon la
+            carte grandit d'un coup sous le doigt), puis définitivement
+            absente pour qui n'a jamais bouclé une journée. */}
+        {profiles === null && (
+          <div
+            className="mt-3.5"
+            role="status"
+            aria-label="Ton créneau se charge"
+          >
+            <Skeleton w={110} h={12} radius={6} />
+            <Skeleton className="mt-2" h={26} radius={6} />
+          </div>
+        )}
         {mySlot && myProfile && (
           <div className="mt-3.5">
             <div className="flex items-baseline justify-between text-[11px] font-semibold text-muted">
@@ -202,6 +213,7 @@ export default function StatsScreen({
         )}
 
         <div className="mt-3.5 flex gap-2">
+          {profiles === null && <Skeleton className="flex-1" h={56} />}
           {myProfile?.fastestSeconds != null && (
             <Fact
               value={clockOf(myProfile.fastestSeconds)}
@@ -217,8 +229,18 @@ export default function StatsScreen({
             }
             label="jours parfaits"
           />
-          {jokerKnown && (
-            <Fact value="🛟" label={jokerDay ? "joker brûlé" : "joker intact"} />
+          {/* Le joker : une tuile grise pendant que le classement arrive,
+              plutôt qu'un trou qui se remplit après coup. Ligne absente
+              une fois chargé (jamais joué) : rien, comme avant. */}
+          {gamification === null ? (
+            <Skeleton className="flex-1" h={56} />
+          ) : (
+            jokerKnown && (
+              <Fact
+                value="🛟"
+                label={jokerDay ? "joker brûlé" : "joker intact"}
+              />
+            )
           )}
         </div>
 
@@ -233,6 +255,10 @@ export default function StatsScreen({
         {others.map(({ p, s }) => {
           const prof = profiles?.get(p.id);
           const active = !!prof && prof.hours.length > 0;
+          // Tant que les profils ne sont pas là, on ne sait rien : écrire
+          // « pas encore de séance » à tout le monde pendant une seconde,
+          // c'est accuser à tort ceux qui ont coché ce matin.
+          const chargement = profiles === null;
           return (
             <li
               key={p.id}
@@ -240,11 +266,24 @@ export default function StatsScreen({
             >
               <span
                 className="w-16 shrink-0 truncate text-sm font-bold"
-                style={{ color: active ? p.color : "var(--color-faint)" }}
+                style={{
+                  color: chargement
+                    ? "var(--color-muted)"
+                    : active
+                      ? p.color
+                      : "var(--color-faint)",
+                }}
               >
                 {p.name}
               </span>
-              {active ? (
+              {chargement ? (
+                <>
+                  <div className="min-w-0 flex-1">
+                    <Skeleton h={14} radius={4} />
+                  </div>
+                  <Skeleton className="shrink-0" w={36} h={18} radius={6} />
+                </>
+              ) : active ? (
                 <>
                   <div className="min-w-0 flex-1">
                     <HourStrip hours={prof.hours} color={p.color} height={14} />

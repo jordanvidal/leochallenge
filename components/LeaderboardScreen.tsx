@@ -25,7 +25,7 @@ import {
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
 import PlayerBreakdown from "./PlayerBreakdown";
-import { Avatar } from "./ui";
+import { Avatar, Skeleton } from "./ui";
 
 type Props = {
   player: Player;
@@ -48,6 +48,32 @@ function Variation({ delta }: { delta: number | null }) {
     >
       {label}
     </span>
+  );
+}
+
+/** Le classement pendant le calcul : le podium et les lignes à leur place
+    exacte. Trois RPC tournent derrière, ça se compte en centaines de ms —
+    autant montrer la forme de la page plutôt qu'une phrase qui bouge. */
+function ClassementEnAttente({ lignes }: { lignes: number }) {
+  return (
+    <div role="status" aria-label="Classement en cours de calcul">
+      <div className="mt-5 flex items-end justify-center gap-6">
+        {[48, 64, 48].map((taille, i) => (
+          <div key={i} className="flex flex-col items-center gap-1 p-1">
+            <Skeleton w={taille} h={taille} radius={taille / 2} />
+            <Skeleton w={taille} h={14} radius={7} />
+            <Skeleton w={taille - 12} h={taille === 64 ? 32 : 22} radius={8} />
+          </div>
+        ))}
+      </div>
+      <ul className="mt-6 flex flex-col gap-2 pb-4">
+        {Array.from({ length: lignes }, (_, i) => (
+          <li key={i}>
+            <Skeleton h={60} radius={16} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -91,7 +117,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
     return (
       <div className="flex flex-1 flex-col px-5 pt-safe">
         <h1 className="mt-4 text-2xl font-bold">Classement</h1>
-        <p className="mt-4 animate-pulse text-muted">Calcul en cours…</p>
+        <ClassementEnAttente lignes={Math.max(players.length, 3)} />
       </div>
     );
   }
@@ -201,7 +227,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
       )}
 
       {isPastWeek && rawRows === undefined && (
-        <p className="mt-6 animate-pulse text-muted">Calcul en cours…</p>
+        <ClassementEnAttente lignes={Math.max(players.length, 3)} />
       )}
       {isPastWeek && rawRows === null && (
         <p className="mt-6 text-muted">

@@ -16,7 +16,7 @@ import {
 } from "@/lib/breakdown";
 import { fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
 import { Player } from "@/lib/types";
-import { Avatar } from "./ui";
+import { Avatar, Skeleton } from "./ui";
 
 type Props = {
   player: Player;
@@ -183,8 +183,28 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
         <p className="mt-8 text-muted">Impossible de charger le détail. Réessaie.</p>
       )}
 
+      {/* Le détail se calcule ligne à ligne côté serveur : la forme de la
+          page tient la place, l'en-tête (nom, rang, total) est déjà juste. */}
       {!data && !failed && (
-        <p className="mt-8 animate-pulse text-muted">Calcul en cours…</p>
+        <div
+          className="mt-6"
+          role="status"
+          aria-label="Détail des points en cours de calcul"
+        >
+          <Skeleton h={10} radius={999} />
+          <div className="mt-2 flex justify-between">
+            <Skeleton w={72} h={12} radius={6} />
+            <Skeleton w={72} h={12} radius={6} />
+          </div>
+          <Skeleton className="mt-7" w={70} h={14} radius={7} />
+          <ul className="mt-3 flex flex-col gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i}>
+                <Skeleton h={22} radius={6} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {data && total === 0 && (

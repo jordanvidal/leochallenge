@@ -10,6 +10,7 @@ import { dayLabel, FeedEvent, parisDayOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import FeedItem from "./FeedItem";
 import WeekRecapCard from "./WeekRecapCard";
+import { Skeleton } from "../ui";
 
 type Props = {
   player: Player;
@@ -117,7 +118,16 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
       <h1 className="mt-4 text-2xl font-bold">Feed</h1>
 
       {feed.events === null && (
-        <p className="mt-4 animate-pulse text-muted">Chargement…</p>
+        <div role="status" aria-label="Fil en cours de chargement">
+          <Skeleton className="mt-5" w={110} h={16} radius={8} />
+          <ul className="mt-2 flex flex-col gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i}>
+                <Skeleton h={72} radius={16} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {feed.events !== null && feed.events.length === 0 && (

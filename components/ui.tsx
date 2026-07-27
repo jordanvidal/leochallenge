@@ -66,6 +66,34 @@ export function ExoDots({
   );
 }
 
+/**
+ * Le bloc d'attente : la forme de ce qui arrive, à sa place définitive.
+ * Une seule pièce pour toute l'app — un écran qui charge se reconnaît
+ * partout pareil, et personne n'invente son propre « Chargement… ».
+ *
+ * Le comportement (retard de 250 ms puis respiration) vit dans .skeleton,
+ * côté CSS : pas de minuteur JS, donc pas de re-rendu pour faire patienter.
+ */
+export function Skeleton({
+  h = 16,
+  w = "100%",
+  radius = 12,
+  className = "",
+}: {
+  h?: number | string;
+  w?: number | string;
+  radius?: number;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={`skeleton block ${className}`}
+      style={{ height: h, width: w, borderRadius: radius }}
+    />
+  );
+}
+
 /** Toast en bas d'écran : erreurs d'écriture, confirmations de copie. */
 export function Toast({ message }: { message: string | null }) {
   if (!message) return null;
