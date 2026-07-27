@@ -425,8 +425,13 @@ function BonusSheet({
                           valeur à côté des points. Sur le bord, c'est une
                           étiquette collée sur la puce — elle qualifie la
                           puce entière, et elle survit à la coche. */}
+                        {/* Il ne déborde que par le haut : la liste des
+                          groupes est en overflow-y-auto, ce qui fait passer
+                          overflow-x de visible à auto. Un badge qui dépasse
+                          à droite d'une puce en bout de rangée se ferait
+                          rogner, ou ouvrirait un défilement horizontal. */}
                         {x2 && (
-                          <span className="num-display bg-x2 text-bg absolute -top-2 -right-1 rounded-full px-1.5 py-0.5 text-[11px] font-bold">
+                          <span className="num-display bg-x2 text-bg absolute -top-2 right-1 rounded-full px-1.5 py-0.5 text-[11px] font-bold">
                             ×2
                           </span>
                         )}
