@@ -13,6 +13,13 @@
   --color-faint: oklch(0.45 0 0);
   --color-line: oklch(0.27 0 0);
   --color-danger: oklch(0.68 0.19 25);
+  /* Le doublement du jour, seul accent non-joueur de l'app (27/07). Un
+     tirage n'appartient à personne : il ne peut pas emprunter la couleur
+     d'un joueur sans se confondre avec « déjà déclaré », et en gris il ne
+     se voyait pas — donc il n'incitait personne. Hue 88, entre l'ambre et
+     le jaune de la palette, mais toujours porté par un badge plein à
+     texte sombre : aucune puce joueur ne prend jamais cette forme. */
+  --color-x2: oklch(0.85 0.17 88);
 
   --font-body: var(--font-space), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-anton), var(--font-space), sans-serif;
@@ -370,6 +377,25 @@ button {
   animation: toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Le halo des puces doublées : une seule onde à l'ouverture de la feuille,
+   décalée d'une puce à l'autre pour que l'œil descende la liste. Une fois,
+   jamais en boucle — un clignotement permanent serait une décoration.
+
+   Il vit sur un calque à lui, posé sur la puce : l'anneau de la puce est un
+   style inline, et une animation de box-shadow sur le bouton l'écraserait
+   pendant toute sa durée. */
+@keyframes x2-halo {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-x2) 60%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 9px color-mix(in oklch, var(--color-x2) 0%, transparent);
+  }
+}
+.x2-halo {
+  animation: x2-halo 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Zones sûres (encoche, barre home) en mode installé */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
@@ -406,6 +432,7 @@ button {
   .check-pop,
   .rise-in,
   .toast-in,
+  .x2-halo,
   .reel-land,
   .live-pulse,
   .shake,

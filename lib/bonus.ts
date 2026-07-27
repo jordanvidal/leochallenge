@@ -196,6 +196,38 @@ export function doubledToday(
   return !!item.double_event && item.double_event === state.event?.key;
 }
 
+/** Ce que la puce rapporte réellement aujourd'hui. Le facteur est
+    exactement 2, et c'est vérifié en base : la vue ajoute les points des
+    puces doublées une seconde fois (migration 33), sans les faire passer
+    par le multiplicateur de série — la série ne touche pas aux bonus.
+    Afficher le montant doublé n'est donc pas une approximation. */
+export function pointsToday(
+  state: BonusState,
+  item: BonusCatalogItem,
+): number {
+  return doubledToday(state, item) ? item.points * 2 : item.points;
+}
+
+/** Total réel des puces déclarées aujourd'hui par un joueur, doublement
+    compris. Sans ça, le rang « Déclarer un bonus » annonce moins que ce
+    que la feuille vient de promettre juste au-dessus : la puce dit +2, le
+    rang dit +1, et l'écart se lit comme un bug. Les points stockés dans
+    la déclaration sont ceux du catalogue — le doublement vit dans le
+    calcul du score, pas dans la ligne. */
+export function todayClaimPoints(
+  state: BonusState,
+  playerId: string,
+): number {
+  const byKey = new Map(state.catalog.map((c) => [c.key, c]));
+  return state.todayClaims
+    .filter((c) => c.player_id === playerId)
+    .reduce((sum, c) => {
+      const item = byKey.get(c.bonus_key);
+      const x2 = !!item && doubledToday(state, item);
+      return sum + (x2 ? c.points * 2 : c.points);
+    }, 0);
+}
+
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
 export function weekBonusPoints(state: BonusState, playerId: string): number {
   const exerciseKeys = new Set(

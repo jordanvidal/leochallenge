@@ -14,6 +14,8 @@ import {
   claimableGroups,
   doubledToday,
   movementLocked,
+  pointsToday,
+  todayClaimPoints,
   weekBonusPoints,
 } from "@/lib/bonus";
 import { fmtPoints } from "@/lib/gamification";
@@ -36,7 +38,9 @@ export default function BonusSection({
   if (!bonus) return null;
 
   const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
-  const minePtsToday = mineToday.reduce((sum, c) => sum + c.points, 0);
+  // Doublement compris : ce rang est lu juste sous la feuille qui promet
+  // le double, il doit annoncer la même somme.
+  const minePtsToday = todayClaimPoints(bonus, player.id);
   const emojiByKey = new Map(bonus.catalog.map((c) => [c.key, c.emoji]));
 
   // Le boss du dimanche se déclare directement dans son bandeau.
@@ -84,7 +88,11 @@ export default function BonusSection({
             // leur montant de catalogue (1) est un rouage interne, pas une
             // promesse. Affiché tel quel, « +1 » annonçait au groupe un
             // point unique là où la journée entière compte double.
-            <span className="num-display shrink-0 text-xl text-muted">×2</span>
+            //
+            // En or, comme les puces qu'il double : c'est le même sujet sur
+            // deux écrans, et le bandeau est le seul endroit où le joueur
+            // apprend la nouvelle avant d'ouvrir la feuille.
+            <span className="num-display text-x2 shrink-0 text-xl">×2</span>
           ) : (
             <span className="num-display shrink-0 text-xl text-muted">
               +{fmtPoints(bonus.event.points)}
@@ -250,7 +258,18 @@ function BonusSheet({
   // Le bandeau de l'événement est derrière la feuille : sans cette
   // ligne, les puces ×2 arriveraient sans personne pour les annoncer.
   // Une seule phrase, et seulement les jours de doublement.
-  const doubleDay = groups.some((g) => g.items.some((i) => doubledToday(bonus, i)));
+  //
+  // L'ordre sert aussi au halo : les puces doublées s'allument de haut en
+  // bas plutôt que toutes ensemble, l'œil suit la liste au lieu de choisir.
+  const x2Order = new Map<string, number>();
+  for (const g of groups) {
+    for (const item of g.items) {
+      if (doubledToday(bonus, item) && !x2Order.has(item.key)) {
+        x2Order.set(item.key, x2Order.size);
+      }
+    }
+  }
+  const doubleDay = x2Order.size > 0;
 
   return (
     <div
@@ -313,7 +332,14 @@ function BonusSheet({
                     {g.title}
                   </h3>
                 )}
-                <div className="flex flex-wrap content-start gap-2">
+                {/* Le badge ×2 déborde en haut de la puce : les jours de
+                  doublement, la rangée respire un cran de plus, sinon il
+                  vient buter contre la puce du dessus. */}
+                <div
+                  className={`flex flex-wrap content-start gap-2 ${
+                    doubleDay ? "gap-y-4 pt-1.5" : ""
+                  }`}
+                >
                   {g.items.map((item) => {
                     const claimed = mineToday.some(
                       (c) => c.bonus_key === item.key,
@@ -339,7 +365,7 @@ function BonusSheet({
                           if (claimed) onUnclaim(item);
                           else onClaim(item);
                         }}
-                        className="flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
+                        className="relative flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
                         style={
                           claimed
                             ? {
@@ -348,17 +374,33 @@ function BonusSheet({
                                 color: player.color,
                               }
                             : {
-                                background: "var(--color-surface)",
-                                // Le trait, pas la couleur : l'événement est
-                                // le même pour tout le groupe, il n'appartient
-                                // à aucun joueur.
+                                // L'or, pas la couleur joueur : l'événement
+                                // est le même pour tout le groupe, il
+                                // n'appartient à personne. Le trait seul ne
+                                // se voyait pas — une puce doublée doit
+                                // sortir de la liste, c'est tout son intérêt.
+                                background: x2
+                                  ? "color-mix(in oklch, var(--color-x2) 14%, var(--color-surface))"
+                                  : "var(--color-surface)",
                                 boxShadow: x2
-                                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--color-ink) 45%, transparent)"
+                                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--color-x2) 70%, transparent)"
                                   : "inset 0 0 0 1px var(--color-line)",
                                 color: "var(--color-ink)",
                               }
                         }
                       >
+                        {/* Une onde, une fois, au moment où la feuille
+                          s'ouvre. Éteinte sur une puce déjà déclarée ou
+                          hors plafond : elle appellerait un tap impossible. */}
+                        {x2 && !off && !claimed && (
+                          <span
+                            className="x2-halo pointer-events-none absolute inset-0 rounded-full"
+                            style={{
+                              animationDelay: `${260 + 70 * (x2Order.get(item.key) ?? 0)}ms`,
+                            }}
+                            aria-hidden
+                          />
+                        )}
                         <span aria-hidden>{item.emoji}</span>
                         {item.label}
                         <span
@@ -367,16 +409,27 @@ function BonusSheet({
                             color: claimed
                               ? player.color
                               : x2
-                                ? "var(--color-ink)"
+                                ? "var(--color-x2)"
                                 : "var(--color-faint)",
                           }}
                         >
-                          +{fmtPoints(item.points)}
+                          {/* Le montant déjà doublé : « +1 ×2 » laissait la
+                            multiplication au joueur, et un bonus qu'on doit
+                            calculer n'attire personne. Facteur exact 2,
+                            vérifié en base (migration 33). */}
+                          +{fmtPoints(pointsToday(bonus, item))}
                         </span>
-                        {x2 && (
-                          <span className="num-display font-bold">×2</span>
-                        )}
                         {claimed && <span aria-hidden>✓</span>}
+                        {/* Le ×2 est posé sur le contour, pas dans la ligne :
+                          au milieu du texte il se lisait comme une deuxième
+                          valeur à côté des points. Sur le bord, c'est une
+                          étiquette collée sur la puce — elle qualifie la
+                          puce entière, et elle survit à la coche. */}
+                        {x2 && (
+                          <span className="num-display bg-x2 text-bg absolute -top-2 -right-1 rounded-full px-1.5 py-0.5 text-[11px] font-bold">
+                            ×2
+                          </span>
+                        )}
                       </button>
                     );
                   })}
