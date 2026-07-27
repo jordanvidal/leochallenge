@@ -645,10 +645,18 @@ $$;
 -- ---------------------------------------------------------------------------
 -- app.player_badges — les badges, cadrés par ligue
 -- ---------------------------------------------------------------------------
--- Les seuils restent ceux d'aujourd'hui (7 / 14 / 30 / 100). Les rendre
--- proportionnels à la durée de la ligue est la PHASE 2 — pas ici.
--- Seul changement de fond : `finisseur` se déclenche sur `leagues.end_day` au
--- lieu du 2026-08-31 en dur, et la fenêtre des jours écoulés suit la ligue.
+-- Les 8 badges de `public`, à l'identique. Les seuils restent ceux
+-- d'aujourd'hui (7 / 14 / 30 / 100) : les rendre proportionnels à la durée de
+-- la ligue est la PHASE 2, pas ici.
+--
+-- Deux changements de fond, et deux seulement :
+--   * `finisseur` se déclenche sur `leagues.end_day` au lieu du 2026-08-31 en
+--     dur, et la fenêtre des jours écoulés suit la ligue ;
+--   * `premier_de_la_classe` (n°1 pendant 7 jours d'affilée) classait les
+--     joueurs avec un `rank() over (partition by day order by cum_pts desc)`
+--     SANS filtre de groupe. C'est la troisième fuite inter-ligues du moteur,
+--     après le jour miroir et la prime hebdo : le n°1 se serait mesuré contre
+--     toute la base. Le classement est désormais partitionné par ligue.
 
 create or replace view app.player_badges
 with (security_invoker = true) as
@@ -664,36 +672,93 @@ e as (
          en.pushups and en.abs and en.squats as perfect
   from app.entries en join pl on pl.player_id = en.player_id
 ),
-islands as (
-  select e.player_id, e.day,
-         e.day - row_number() over (partition by e.player_id order by e.day)::int as island
-  from e where e.perfect
+-- Les jours écoulés DE CHAQUE LIGUE, sur sa propre fenêtre.
+elapsed as (
+  select l.id as league_id, d.d::date as day
+  from app.leagues l, paris,
+       lateral generate_series(
+         l.start_day::timestamptz,
+         least(paris.today, l.end_day)::timestamptz,
+         interval '1 day') d(d)
 ),
+-- Longueur de chaque série de jours parfaits. Par joueur : pas de fuite ici.
 runs as (
-  select i.player_id, count(*) as longueur
-  from islands i
-  group by i.player_id, i.island
+  select t.player_id, count(*) as len
+  from (
+    select e.player_id, e.day,
+           e.day - row_number() over (partition by e.player_id order by e.day)::int as island
+    from e where e.perfect
+  ) t
+  group by t.player_id, t.island
 ),
-totaux as (
-  select pl.player_id, pl.league_id, pl.end_day,
-         coalesce(sum(e.exos), 0) as exos_total,
-         coalesce(count(*) filter (where e.perfect), 0) as jours_parfaits,
-         coalesce(max(r.longueur), 0) as meilleure_serie
+-- Le classement cumulé jour après jour, DANS SA LIGUE.
+grid as (
+  select pl.player_id, pl.league_id, el.day, coalesce(dp.points, 0::numeric) as pts
   from pl
-  left join e on e.player_id = pl.player_id
-  left join runs r on r.player_id = pl.player_id
-  group by pl.player_id, pl.league_id, pl.end_day
+  join elapsed el on el.league_id = pl.league_id
+  left join app.daily_points dp on dp.player_id = pl.player_id and dp.day = el.day
+),
+dayrank as (
+  select c.player_id, c.league_id, c.day,
+         rank() over (partition by c.league_id, c.day order by c.cum_pts desc) as r
+  from (
+    select grid.player_id, grid.league_id, grid.day,
+           sum(grid.pts) over (partition by grid.player_id order by grid.day) as cum_pts
+    from grid
+  ) c
+),
+top_runs as (
+  select t.player_id, count(*) as len
+  from (
+    select dayrank.player_id, dayrank.day,
+           dayrank.day - row_number() over (partition by dayrank.player_id order by dayrank.day)::int as island
+    from dayrank where dayrank.r = 1
+  ) t
+  group by t.player_id, t.island
+),
+gagnes as (
+  select runs.player_id, 'premiere_semaine'::text as badge
+  from runs group by runs.player_id having max(runs.len) >= 7
+  union all
+  select runs.player_id, 'machine'::text
+  from runs group by runs.player_id having max(runs.len) >= 14
+  union all
+  select runs.player_id, 'increvable'::text
+  from runs group by runs.player_id having max(runs.len) >= 30
+  union all
+  -- Sans faute : aucun jour écoulé de SA ligue sans un 3/3.
+  select p.player_id, 'sans_faute'::text
+  from pl p
+  where exists (select 1 from e where e.player_id = p.player_id and e.perfect)
+    and not exists (
+      select 1 from elapsed d
+      where d.league_id = p.league_id
+        and d.day < (select paris.today from paris)
+        and not exists (
+          select 1 from e
+          where e.player_id = p.player_id and e.day = d.day and e.perfect
+        )
+    )
+  union all
+  -- Retour de flamme : deux séries de 5 jours ou plus.
+  select runs.player_id, 'retour_de_flamme'::text
+  from runs where runs.len >= 5
+  group by runs.player_id having count(*) >= 2
+  union all
+  select top_runs.player_id, 'premier_de_la_classe'::text
+  from top_runs group by top_runs.player_id having max(top_runs.len) >= 7
+  union all
+  -- Le finisseur : 3/3 le dernier jour de SA ligue.
+  select e.player_id, 'finisseur'::text
+  from e join pl on pl.player_id = e.player_id
+  where e.day = pl.end_day and e.perfect
+  union all
+  select e.player_id, 'centurion'::text
+  from e group by e.player_id having sum(e.exos) >= 100
 )
-select t.player_id, t.league_id, b.badge
-from totaux t
-cross join lateral (values
-  ('premiere_semaine', t.meilleure_serie >= 7),
-  ('machine',          t.meilleure_serie >= 14),
-  ('increvable',       t.meilleure_serie >= 30),
-  ('centurion',        t.exos_total >= 100),
-  ('finisseur',        (select paris.today from paris) > t.end_day and t.jours_parfaits > 0)
-) as b(badge, gagne)
-where b.gagne;
+select g.player_id, pl.league_id, g.badge
+from gagnes g
+join pl on pl.player_id = g.player_id;
 
 -- ---------------------------------------------------------------------------
 -- app.get_daily_event — le tirage du jour, global

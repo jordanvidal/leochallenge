@@ -77,9 +77,15 @@ select 'a2222222-0000-0000-0000-000000000002', d::date,
        case when extract(day from d)::int % 2 = 0 then (d::date + time '20:00') at time zone 'Europe/Paris' end
 from generate_series('2026-05-04'::date, '2026-06-14'::date, interval '1 day') d;
 
+-- Carla : deux séries de 5 jours ou plus, séparées par un trou — c'est le
+-- profil qui décroche « retour de flamme ».
 insert into app.entries (player_id, day, pushups, abs, squats, completed_at)
 select 'a3333333-0000-0000-0000-000000000003', d::date, true, true, true, (d::date + time '19:00') at time zone 'Europe/Paris'
 from generate_series('2026-05-04'::date, '2026-05-13'::date, interval '1 day') d;
+
+insert into app.entries (player_id, day, pushups, abs, squats, completed_at)
+select 'a3333333-0000-0000-0000-000000000003', d::date, true, true, true, (d::date + time '19:00') at time zone 'Europe/Paris'
+from generate_series('2026-05-20'::date, '2026-05-26'::date, interval '1 day') d;
 
 insert into app.entries (player_id, day, pushups, abs, squats, completed_at)
 select 'a4444444-0000-0000-0000-000000000004', d::date, true, true, true, (d::date + time '18:00') at time zone 'Europe/Paris'
@@ -416,9 +422,51 @@ begin
     raise exception 'ASSERTION 9 ECHOUEE : Fred n''apparaît pas au classement (points = %)', v;
   end if;
   raise notice 'OK 9 — arrivée au jour 38 : Fred démarre à zéro, personne ne bouge';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Assertion 10 : les 8 badges, et le n°1 mesuré dans SA ligue
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  n int;
+  manquants text;
+begin
+  -- Les 8 badges du catalogue client (lib/gamification.ts) sont tous
+  -- atteignables. Un badge qui n'apparaît jamais est un badge mort.
+  select string_agg(b, ', ') into manquants
+  from unnest(array['premiere_semaine', 'machine', 'increvable', 'sans_faute',
+                    'retour_de_flamme', 'premier_de_la_classe', 'finisseur',
+                    'centurion']) b
+  where not exists (select 1 from app.player_badges pb where pb.badge = b);
+  if manquants is not null then
+    raise exception 'ASSERTION 10 ECHOUEE : badge(s) jamais décerné(s) : %', manquants;
+  end if;
+
+  -- Chaque badge est rattaché à la ligue de son joueur.
+  select count(*) into n
+  from app.player_badges pb
+  join app.players p on p.id = pb.player_id
+  where pb.league_id is distinct from p.league_id;
+  if n <> 0 then
+    raise exception 'ASSERTION 10 ECHOUEE : % badge(s) rattaché(s) à la mauvaise ligue', n;
+  end if;
+
+  -- LE point sensible : « premier de la classe » (n°1 pendant 7 jours
+  -- d'affilée) se mesurait avec un rank() sur TOUTE la base. Les joueurs de la
+  -- ligue B, écrasés par le cumul d'Ana, n'auraient jamais pu l'obtenir.
+  -- Il doit exister dans les deux ligues.
+  select count(distinct pb.league_id) into n
+  from app.player_badges pb
+  where pb.badge = 'premier_de_la_classe';
+  if n <> 2 then
+    raise exception 'ASSERTION 10 ECHOUEE : « premier de la classe » n''existe que dans % ligue(s) — le classement fuit', n;
+  end if;
+  raise notice 'OK 10 — les 8 badges sont vivants, et le n°1 se mesure dans sa ligue';
 
   raise notice '';
-  raise notice '=== 9 assertions au vert — deux ligues aux dates chevauchantes, étanches ===';
+  raise notice '=== 10 assertions au vert — deux ligues aux dates chevauchantes, étanches ===';
 end $$;
 
 rollback;
