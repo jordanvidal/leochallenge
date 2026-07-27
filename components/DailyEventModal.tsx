@@ -26,14 +26,20 @@ const DECOYS = 12;
 /** Copie soignée par événement : ce qu'il faut faire, aujourd'hui. Le
     montant, lui, reste lu au catalogue (source de vérité). */
 const COPY: Record<string, { howto: string }> = {
+  // Le doublement porte sur la coche ET sur les bonus de l'exo déclarés
+  // dans la journée. Le dire : c'est là que se gagnent les gros points,
+  // et la feuille de déclaration marque les puces concernées d'un ×2.
   pompes_double: {
-    howto: "Aujourd'hui, tes pompes comptent double. Fais ta séance pour en profiter.",
+    howto:
+      "Aujourd'hui, tes pompes comptent double : la coche, et chaque bonus de pompes que tu déclares.",
   },
   abdos_double: {
-    howto: "Aujourd'hui, tes abdos comptent double. Fais ta séance pour en profiter.",
+    howto:
+      "Aujourd'hui, tes abdos comptent double : la coche, et chaque bonus d'abdos que tu déclares.",
   },
   squats_double: {
-    howto: "Aujourd'hui, tes squats comptent double. Fais ta séance pour en profiter.",
+    howto:
+      "Aujourd'hui, tes squats comptent double : la coche, et chaque bonus de squats que tu déclares.",
   },
   happy_hour: {
     howto: "Termine ta séance entre 18h et 20h pour empocher le bonus.",
