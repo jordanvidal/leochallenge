@@ -12,6 +12,7 @@ import {
   BonusCatalogItem,
   BonusState,
   claimableGroups,
+  doubledToday,
   movementLocked,
   weekBonusPoints,
 } from "@/lib/bonus";
@@ -78,8 +79,11 @@ export default function BonusSection({
                 ? "Fait ✓"
                 : `Je l'ai fait +${fmtPoints(boss.points)}`}
             </button>
-          ) : bonus.event.key === "quitte_ou_double" ? (
-            // Valeur dynamique (la base du jour ×2) : on montre le facteur, pas +0.
+          ) : bonus.event.key.endsWith("_double") ? (
+            // Quitte ou double et les trois doublements d'exo multiplient :
+            // leur montant de catalogue (1) est un rouage interne, pas une
+            // promesse. Affiché tel quel, « +1 » annonçait au groupe un
+            // point unique là où la journée entière compte double.
             <span className="num-display shrink-0 text-xl text-muted">×2</span>
           ) : (
             <span className="num-display shrink-0 text-xl text-muted">
@@ -243,6 +247,11 @@ function BonusSheet({
     ),
   );
 
+  // Le bandeau de l'événement est derrière la feuille : sans cette
+  // ligne, les puces ×2 arriveraient sans personne pour les annoncer.
+  // Une seule phrase, et seulement les jours de doublement.
+  const doubleDay = groups.some((g) => g.items.some((i) => doubledToday(bonus, i)));
+
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60"
@@ -286,6 +295,12 @@ function BonusSheet({
                 </span>
               )}
             </div>
+            {doubleDay && bonus.event && (
+              <p className="mb-3 text-[13px] font-medium text-muted">
+                <span aria-hidden>🎲 </span>
+                {bonus.event.label} — les puces ×2 rapportent le double.
+              </p>
+            )}
           </div>
 
           {/* Vingt-trois pastilles à plat, c'était un mur. Quatre paquets
@@ -303,6 +318,11 @@ function BonusSheet({
                     const claimed = mineToday.some(
                       (c) => c.bonus_key === item.key,
                     );
+                    // Doublée par le tirage du jour : la puce le dit, et
+                    // le dit avant le tap. Pas de réordonnancement — on
+                    // vise une pastille connue, la déplacer coûterait
+                    // plus de secondes que le ×2 n'en fait gagner.
+                    const x2 = doubledToday(bonus, item);
                     // Deux raisons d'éteindre une puce : les plafonds, et
                     // l'exclusion de déplacement. Seule la seconde s'explique
                     // sous les groupes — l'autre est déjà lisible au compteur.
@@ -329,7 +349,12 @@ function BonusSheet({
                               }
                             : {
                                 background: "var(--color-surface)",
-                                boxShadow: "inset 0 0 0 1px var(--color-line)",
+                                // Le trait, pas la couleur : l'événement est
+                                // le même pour tout le groupe, il n'appartient
+                                // à aucun joueur.
+                                boxShadow: x2
+                                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--color-ink) 45%, transparent)"
+                                  : "inset 0 0 0 1px var(--color-line)",
                                 color: "var(--color-ink)",
                               }
                         }
@@ -341,11 +366,16 @@ function BonusSheet({
                           style={{
                             color: claimed
                               ? player.color
-                              : "var(--color-faint)",
+                              : x2
+                                ? "var(--color-ink)"
+                                : "var(--color-faint)",
                           }}
                         >
                           +{fmtPoints(item.points)}
                         </span>
+                        {x2 && (
+                          <span className="num-display font-bold">×2</span>
+                        )}
                         {claimed && <span aria-hidden>✓</span>}
                       </button>
                     );

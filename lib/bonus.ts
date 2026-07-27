@@ -27,6 +27,12 @@ export type BonusCatalogItem = {
   // Famille d'affichage (migration 31). null pour les bonus non
   // déclarables, et pour toute ligne ajoutée sans famille.
   family: BonusFamily | null;
+  // Le tirage qui paie cette puce double (migration 33) : la clé d'un
+  // événement du catalogue, ou null si aucun ne la double. La base lit
+  // la même colonne pour payer — l'appli ne recopie pas la règle, elle
+  // la lit. Optionnelle dans le type : tant que la migration n'est pas
+  // appliquée, la colonne n'existe pas et rien n'est mis en avant.
+  double_event?: string | null;
 };
 
 export type BonusClaim = {
@@ -170,6 +176,24 @@ export function movementLocked(
   return state.todayClaims.some(
     (c) => c.player_id === playerId && others.has(c.bonus_key),
   );
+}
+
+// --- Ce que le tirage du jour double --------------------------------
+// « Les squats comptent double » ne double pas que la coche : depuis le
+// 27/07, les puces déclarées de l'exo tiré sont payées une seconde fois.
+// Encore faut-il le savoir AVANT de choisir sa puce — sinon le ×2
+// récompense ceux qui avaient déjà prévu de faire des squats, et
+// n'incite personne.
+
+/** Cette puce est-elle payée double aujourd'hui ? Vrai seulement si le
+    tirage du jour est celui que la puce nomme. Faux tant que la
+    migration 33 n'est pas passée : la colonne est alors absente, donc
+    la feuille ressemble exactement à ce qu'elle était. */
+export function doubledToday(
+  state: BonusState,
+  item: BonusCatalogItem,
+): boolean {
+  return !!item.double_event && item.double_event === state.event?.key;
 }
 
 /** Points de bonus d'exercice déjà déclarés par un joueur sur 7 jours. */
