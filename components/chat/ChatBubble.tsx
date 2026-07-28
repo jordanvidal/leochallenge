@@ -97,7 +97,6 @@ type Props = {
   flash: boolean;
   onOpenMenu: (m: ChatMessage) => void;
   onReply: (m: ChatMessage) => void;
-  onToggleReaction: (messageId: string, emoji: string) => void;
   onJumpTo: (id: string) => void;
 };
 
@@ -118,7 +117,6 @@ export default function ChatBubble({
   flash,
   onOpenMenu,
   onReply,
-  onToggleReaction,
   onJumpTo,
 }: Props) {
   const [dx, setDx] = useState(0);
@@ -174,15 +172,14 @@ export default function ChatBubble({
     depart.current = null;
   }
 
-  const mesEmojis = new Set(
-    reactions.filter((r) => r.player_id === myId).map((r) => r.emoji),
-  );
-  // Une pastille par emoji présent, comptée en personnes.
-  const parEmoji = [...new Set(reactions.map((r) => r.emoji))].map((emoji) => ({
-    emoji,
-    count: reactions.filter((r) => r.emoji === emoji).length,
-    mine: mesEmojis.has(emoji),
-  }));
+  // Les emojis distincts, dans l'ordre où ils sont tombés. Trois au plus :
+  // au-delà, la pastille devient plus large que le message qu'elle
+  // commente, et c'est la conversation qu'on n'arrive plus à lire.
+  const emojis = [...new Set(reactions.map((r) => r.emoji))].slice(0, 3);
+  const jyAiReagi = reactions.some((r) => r.player_id === myId);
+  // Le compte ne s'affiche que s'il apporte quelque chose : deux emojis
+  // différents disent déjà « deux personnes », le chiffre serait du bruit.
+  const compteUtile = reactions.length > emojis.length ? reactions.length : 0;
 
   return (
     <li
@@ -238,7 +235,12 @@ export default function ChatBubble({
       )}
 
       <div
-        className="max-w-[78%] rounded-2xl px-3.5 py-2"
+        // La marge du haut réserve la place que la pastille prend en
+        // débordant : sans elle, elle irait mordre le message précédent.
+        className={`relative max-w-[78%] ${emojis.length > 0 ? "mt-5" : ""}`}
+      >
+      <div
+        className="rounded-2xl px-3.5 py-2"
         style={{
           background: supprime
             ? "transparent"
@@ -290,34 +292,55 @@ export default function ChatBubble({
                 ),
               )}
         </p>
-      </div>
-
-      {parEmoji.length > 0 && (
-        <div className={`mt-1 flex gap-1 ${isMine ? "mr-1" : "ml-1"}`}>
-          {parEmoji.map(({ emoji, count, mine }) => (
-            <button
-              key={emoji}
-              onClick={() => onToggleReaction(message.id, emoji)}
-              aria-pressed={mine}
-              aria-label={`${emoji} ${count}`}
-              className="flex min-h-8 items-center gap-1 rounded-full px-2 text-xs"
-              style={{
-                background: mine
-                  ? "color-mix(in oklch, var(--pc) 20%, var(--color-surface))"
-                  : "var(--color-surface)",
-                boxShadow: mine
-                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)"
-                  : undefined,
-              }}
-            >
-              <span>{emoji}</span>
-              {count > 1 && (
-                <span className="font-bold text-muted">{count}</span>
-              )}
-            </button>
-          ))}
         </div>
-      )}
+
+        {emojis.length > 0 && (
+          // Le tapback : posé SUR la bulle, du côté opposé à son auteur —
+          // à droite d'une bulle de gauche, à gauche d'une bulle de
+          // droite. C'est là que se trouve la place libre, et c'est ce qui
+          // fait que la pastille n'écrase jamais le début d'une phrase.
+          //
+          // Posée et non empilée dessous, elle ne pousse plus rien vers le
+          // bas : réagir à un vieux message ne fait plus sauter la
+          // conversation sous le pouce de celui qui est en train de lire.
+          <button
+            onClick={() => onOpenMenu(message)}
+            aria-label={`Réactions : ${emojis.join(" ")}${
+              compteUtile ? `, ${compteUtile} en tout` : ""
+            }`}
+            // -top-5 pour une pastille haute de 24 px : elle ne déborde
+            // sur la bulle que de 4 px, soit moins que ses 8 px de marge
+            // intérieure. Elle en effleure donc le coin arrondi et ne
+            // touche jamais le texte — c'était le défaut du premier
+            // réglage, où elle se posait en plein sur le premier mot.
+            className={`absolute -top-5 flex min-h-6 items-center gap-0.5 rounded-full px-1.5 ${
+              isMine ? "-left-1.5" : "-right-1.5"
+            }`}
+            style={{
+              background: jyAiReagi
+                ? "color-mix(in oklch, var(--pc) 22%, var(--color-raised))"
+                : "var(--color-raised)",
+              // Le détourage à la couleur du fond détache la pastille de la
+              // bulle sur laquelle elle mord. Sans lui, les deux formes se
+              // touchent et la pastille a l'air d'une excroissance.
+              boxShadow: jyAiReagi
+                ? "0 0 0 2px var(--color-bg), inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 60%, transparent)"
+                : "0 0 0 2px var(--color-bg)",
+            }}
+          >
+            {emojis.map((e) => (
+              <span key={e} className="text-[13px] leading-none">
+                {e}
+              </span>
+            ))}
+            {compteUtile > 0 && (
+              <span className="ml-0.5 text-[11px] font-bold text-muted">
+                {compteUtile}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
 
       {showTime && !enVol && (
         <span className={`mt-0.5 text-[10px] text-faint ${isMine ? "mr-1" : "ml-1"}`}>

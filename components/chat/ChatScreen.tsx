@@ -236,7 +236,6 @@ export default function ChatScreen({
                   flash={flash === row.message.id}
                   onOpenMenu={setMenu}
                   onReply={setReply}
-                  onToggleReaction={toggleReaction}
                   onJumpTo={rejoindre}
                 />
               ),
@@ -290,6 +289,9 @@ export default function ChatScreen({
         <MessageSheet
           mine={menu.player_id === player.id}
           supprime={menu.deleted_at !== null}
+          reactions={chat.reactions.get(menu.id) ?? []}
+          byId={byId}
+          myId={player.id}
           onReact={(e) => toggleReaction(menu.id, e)}
           onReply={() => setReply(menu)}
           onDelete={() => remove(menu.id)}
