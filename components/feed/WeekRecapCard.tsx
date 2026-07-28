@@ -28,7 +28,7 @@ type Props = {
   reactions: FeedReaction[];
   comments: FeedComment[];
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
-  onAddComment: (event: FeedEvent, body: string) => void;
+  onDiscuss: (events: FeedEvent[]) => void;
   onGoLeaderboard: () => void;
 };
 
@@ -60,7 +60,7 @@ export default function WeekRecapCard({
   reactions,
   comments,
   onToggleReaction,
-  onAddComment,
+  onDiscuss,
   onGoLeaderboard,
 }: Props) {
   const starts = events.filter((e) => e.kind === "duel_start");
@@ -267,7 +267,7 @@ export default function WeekRecapCard({
           reactions={reactions}
           comments={comments}
           onToggleReaction={onToggleReaction}
-          onAddComment={onAddComment}
+          onDiscuss={onDiscuss}
           pillBg="var(--color-surface)"
         />
       </div>

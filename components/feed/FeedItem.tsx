@@ -30,7 +30,7 @@ type Props = {
   reactions: FeedReaction[]; // du groupe entier
   comments: FeedComment[]; // du groupe entier
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
-  onAddComment: (event: FeedEvent, body: string) => void;
+  onDiscuss: (events: FeedEvent[]) => void;
 };
 
 export default function FeedItem({
@@ -40,7 +40,7 @@ export default function FeedItem({
   reactions,
   comments,
   onToggleReaction,
-  onAddComment,
+  onDiscuss,
 }: Props) {
   const anchor = events[0];
   const author = byId.get(anchor.player_id);
@@ -80,7 +80,7 @@ export default function FeedItem({
           reactions={reactions}
           comments={comments}
           onToggleReaction={onToggleReaction}
-          onAddComment={onAddComment}
+          onDiscuss={onDiscuss}
         />
       </div>
     </li>

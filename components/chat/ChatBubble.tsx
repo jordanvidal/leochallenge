@@ -13,8 +13,53 @@
 
 import { useRef, useState } from "react";
 import { apercu, ChatMessage, ChatReaction } from "@/lib/chat";
-import { timeOf } from "@/lib/feed";
+import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
+
+/**
+ * Le bloc cité, en tête d'une bulle : soit un message auquel on répond,
+ * soit le moment du fil dont on est venu parler.
+ *
+ * Un aplat plus sombre et un prénom coloré. Surtout pas de liseré
+ * latéral : c'est le réflexe pour « citation », et un aplat le dit
+ * mieux sans ajouter de trait dans un écran qui en a déjà assez.
+ */
+function Cite({
+  titre,
+  couleur,
+  texte,
+  surAccent,
+  onClick,
+}: {
+  titre: string;
+  couleur: string;
+  texte: string;
+  /** Posé sur ma bulle : les contrastes se calculent sur du clair. */
+  surAccent: boolean;
+  onClick?: () => void;
+}) {
+  const Balise = onClick ? "button" : "div";
+  return (
+    <Balise
+      onClick={onClick}
+      className="mb-1.5 block w-full rounded-lg px-2 py-1 text-left"
+      style={{ background: surAccent ? "oklch(0.15 0 0 / 0.16)" : "var(--color-bg)" }}
+    >
+      <span
+        className="block text-[11px] font-bold"
+        style={{ color: surAccent ? "oklch(0.15 0 0 / 0.75)" : couleur }}
+      >
+        {titre}
+      </span>
+      <span
+        className="block truncate text-xs"
+        style={{ color: surAccent ? "oklch(0.15 0 0 / 0.7)" : "var(--color-muted)" }}
+      >
+        {texte}
+      </span>
+    </Balise>
+  );
+}
 
 /** Au-delà, le geste est une réponse et pas un défilement. */
 const SWIPE_PX = 56;
@@ -27,6 +72,9 @@ type Props = {
   showTime: boolean;
   parent: ChatMessage | undefined;
   parentAuthor: Player | undefined;
+  /** Le moment du fil d'où vient la conversation (« En parler »). */
+  feedEvent: FeedEvent | undefined;
+  feedEventAuthor: Player | undefined;
   reactions: ChatReaction[];
   myId: string;
   /** On vient de le rejoindre depuis une citation : il s'allume une fois. */
@@ -45,6 +93,8 @@ export default function ChatBubble({
   showTime,
   parent,
   parentAuthor,
+  feedEvent,
+  feedEventAuthor,
   reactions,
   myId,
   flash,
@@ -160,35 +210,25 @@ export default function ChatBubble({
         }}
       >
         {parent && (
-          // La citation : un fond plus sombre et un prénom coloré. Pas de
-          // liseré latéral — c'est le réflexe, et il n'apporte rien qu'un
-          // aplat ne dise mieux.
-          <button
+          <Cite
+            titre={parentAuthor?.name ?? "Message"}
+            couleur={parentAuthor?.color ?? "var(--color-muted)"}
+            texte={parent.deleted_at ? "Message supprimé" : apercu(parent.body)}
+            surAccent={isMine}
             onClick={() => onJumpTo(parent.id)}
-            className="mb-1.5 block w-full rounded-lg px-2 py-1 text-left"
-            style={{
-              background: isMine ? "oklch(0.15 0 0 / 0.16)" : "var(--color-bg)",
-            }}
-          >
-            <span
-              className="block text-[11px] font-bold"
-              style={{
-                color: isMine
-                  ? "oklch(0.15 0 0 / 0.75)"
-                  : (parentAuthor?.color ?? "var(--color-muted)"),
-              }}
-            >
-              {parentAuthor?.name ?? "Message"}
-            </span>
-            <span
-              className="block truncate text-xs"
-              style={{
-                color: isMine ? "oklch(0.15 0 0 / 0.7)" : "var(--color-muted)",
-              }}
-            >
-              {parent.deleted_at ? "Message supprimé" : apercu(parent.body)}
-            </span>
-          </button>
+          />
+        )}
+
+        {feedEvent && (
+          // La phrase du moment est fabriquée par eventPhrase(), la même
+          // qui rend la carte dans le fil : la citation dit exactement ce
+          // qu'on a lu là-bas, jamais une reformulation qui diverge.
+          <Cite
+            titre={`${eventPhrase(feedEvent).emoji} ${feedEventAuthor?.name ?? "Le fil"}`}
+            couleur={feedEventAuthor?.color ?? "var(--color-muted)"}
+            texte={apercu(eventPhrase(feedEvent).text, 70)}
+            surAccent={isMine}
+          />
         )}
 
         <p

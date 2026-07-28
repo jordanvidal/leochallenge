@@ -9,26 +9,28 @@
 // de toute façon) et la barre monte avec lui.
 
 import { useEffect, useRef, useState } from "react";
-import { apercu, CHAT_BODY_MAX, ChatMessage } from "@/lib/chat";
-import { Player } from "@/lib/types";
+import { CHAT_BODY_MAX } from "@/lib/chat";
 
 /** Quatre lignes puis on défile : au-delà, la saisie mange la
     conversation qu'on est en train de commenter. */
 const LIGNES_MAX = 4;
 
+/** Ce à quoi le message qu'on écrit se rattache : une réponse à un
+    message, ou un moment du fil qu'on vient commenter. La saisie ne sait
+    pas lequel des deux c'est, et n'a aucune raison de le savoir. */
+export type Citation = {
+  titre: string;
+  couleur: string;
+  texte: string;
+  onCancel: () => void;
+};
+
 type Props = {
-  reply: ChatMessage | null;
-  replyAuthor: Player | undefined;
-  onCancelReply: () => void;
+  citation: Citation | null;
   onSend: (body: string) => void;
 };
 
-export default function ChatComposer({
-  reply,
-  replyAuthor,
-  onCancelReply,
-  onSend,
-}: Props) {
+export default function ChatComposer({ citation, onSend }: Props) {
   const [draft, setDraft] = useState("");
   const zone = useRef<HTMLTextAreaElement>(null);
 
@@ -41,11 +43,11 @@ export default function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, ligne * LIGNES_MAX + 16)}px`;
   }, [draft]);
 
-  // Répondre place le curseur dans la saisie : sans ça, le geste demande
-  // un tap de plus pour rien.
+  // Citer place le curseur dans la saisie : sans ça, répondre ou arriver
+  // du fil demande un tap de plus pour rien.
   useEffect(() => {
-    if (reply) zone.current?.focus();
-  }, [reply]);
+    if (citation) zone.current?.focus();
+  }, [citation]);
 
   function envoyer() {
     const texte = draft.trim();
@@ -71,22 +73,22 @@ export default function ChatComposer({
       className="sticky z-20 -mx-5 border-t border-line bg-bg/95 px-5 pt-2 pb-2 backdrop-blur"
       style={{ bottom: "max(var(--tabbar-h), var(--kb))" }}
     >
-      {reply && (
+      {citation && (
         <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2">
           <span className="min-w-0 flex-1">
             <span
               className="block text-[11px] font-bold"
-              style={{ color: replyAuthor?.color ?? "var(--color-muted)" }}
+              style={{ color: citation.couleur }}
             >
-              Réponse à {replyAuthor?.name ?? "un message"}
+              {citation.titre}
             </span>
             <span className="block truncate text-xs text-muted">
-              {reply.deleted_at ? "Message supprimé" : apercu(reply.body, 70)}
+              {citation.texte}
             </span>
           </span>
           <button
-            onClick={onCancelReply}
-            aria-label="Annuler la réponse"
+            onClick={citation.onCancel}
+            aria-label="Retirer la citation"
             className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>

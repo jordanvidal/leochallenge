@@ -11,10 +11,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chat } from "@/hooks/useChat";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
-import { buildRows, ChatMessage } from "@/lib/chat";
+import { apercu, buildRows, ChatMessage } from "@/lib/chat";
+import { eventPhrase, FeedEvent } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import ChatBubble from "./ChatBubble";
-import ChatComposer from "./ChatComposer";
+import ChatComposer, { Citation } from "./ChatComposer";
 import { MessageSheet, NotifySheet } from "./ChatSheets";
 import { Skeleton } from "../ui";
 
@@ -28,9 +29,20 @@ type Props = {
   players: Player[];
   chat: Chat;
   onGoFeed: () => void;
+  /** Le moment du fil sur lequel on vient d'appuyer « En parler ». Il
+      attend dans la saisie, cité, jusqu'à l'envoi ou l'annulation. */
+  seed: FeedEvent | null;
+  onSeedUsed: () => void;
 };
 
-export default function ChatScreen({ player, players, chat, onGoFeed }: Props) {
+export default function ChatScreen({
+  player,
+  players,
+  chat,
+  onGoFeed,
+  seed,
+  onSeedUsed,
+}: Props) {
   useKeyboardInset(true);
 
   const byId = new Map(players.map((p) => [p.id, p]));
@@ -104,6 +116,28 @@ export default function ChatScreen({ player, players, chat, onGoFeed }: Props) {
   }
 
   const rows = messages ? buildRows(messages) : [];
+
+  // Une seule citation à la fois dans la saisie. Répondre l'emporte sur
+  // le moment venu du fil : c'est le geste le plus récent, et empiler
+  // les deux donnerait une bulle qui cite deux choses sans qu'on sache
+  // à laquelle elle répond.
+  const seedAuthor = seed ? byId.get(seed.player_id) : undefined;
+  const replyAuthor = reply ? byId.get(reply.player_id) : undefined;
+  const citation: Citation | null = reply
+    ? {
+        titre: `Réponse à ${replyAuthor?.name ?? "un message"}`,
+        couleur: replyAuthor?.color ?? "var(--color-muted)",
+        texte: reply.deleted_at ? "Message supprimé" : apercu(reply.body, 70),
+        onCancel: () => setReply(null),
+      }
+    : seed
+      ? {
+          titre: `${eventPhrase(seed).emoji} ${seedAuthor?.name ?? "Le fil"}`,
+          couleur: seedAuthor?.color ?? "var(--color-muted)",
+          texte: apercu(eventPhrase(seed).text, 70),
+          onCancel: onSeedUsed,
+        }
+      : null;
 
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
@@ -189,6 +223,10 @@ export default function ChatScreen({ player, players, chat, onGoFeed }: Props) {
                   parentAuthor={byId.get(
                     messageById(row.message.reply_to)?.player_id ?? "",
                   )}
+                  feedEvent={chat.feedEventById(row.message.feed_event_id)}
+                  feedEventAuthor={byId.get(
+                    chat.feedEventById(row.message.feed_event_id)?.player_id ?? "",
+                  )}
                   reactions={chat.reactions.get(row.message.id) ?? []}
                   myId={player.id}
                   flash={flash === row.message.id}
@@ -211,12 +249,14 @@ export default function ChatScreen({ player, players, chat, onGoFeed }: Props) {
       <div aria-hidden className="flex-1" />
 
       <ChatComposer
-        reply={reply}
-        replyAuthor={reply ? byId.get(reply.player_id) : undefined}
-        onCancelReply={() => setReply(null)}
+        citation={citation}
         onSend={(body) => {
-          send(body, { replyTo: reply?.id ?? null });
+          send(body, {
+            replyTo: reply?.id ?? null,
+            feedEventId: reply ? null : (seed?.id ?? null),
+          });
           setReply(null);
+          onSeedUsed();
         }}
       />
 

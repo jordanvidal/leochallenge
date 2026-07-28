@@ -17,6 +17,10 @@ type Props = {
   players: Player[];
   feed: Feed;
   onGoLeaderboard: () => void;
+  /** « En parler » : emmène le moment dans le tchat, cité. C'est ce
+      rebond qui donne au salon de la matière dès le premier jour —
+      personne n'a jamais à décider d'ouvrir une conversation. */
+  onDiscuss: (events: FeedEvent[]) => void;
 };
 
 /** Les lignes de bascule d'une semaine à l'autre : les duels, écrits par
@@ -104,7 +108,13 @@ function blocksOf(items: FeedEvent[]): Block[] {
   return blocks.sort((a, b) => (a.at > b.at ? -1 : 1));
 }
 
-export default function FeedScreen({ player, players, feed, onGoLeaderboard }: Props) {
+export default function FeedScreen({
+  player,
+  players,
+  feed,
+  onGoLeaderboard,
+  onDiscuss,
+}: Props) {
   const byId = new Map(players.map((p) => [p.id, p]));
 
   // L'onglet est ouvert : tout est vu, la pastille s'éteint.
@@ -154,7 +164,7 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
                     reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
                     comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
                     onToggleReaction={feed.toggleReaction}
-                    onAddComment={feed.addComment}
+                    onDiscuss={onDiscuss}
                     onGoLeaderboard={onGoLeaderboard}
                   />
                 ) : (
@@ -168,7 +178,7 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
                     reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
                     comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
                     onToggleReaction={feed.toggleReaction}
-                    onAddComment={feed.addComment}
+                    onDiscuss={onDiscuss}
                   />
                 ),
               )}

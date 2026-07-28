@@ -23,6 +23,7 @@ import {
   deleteMessage,
   fetchChatPage,
   fetchChatReactions,
+  fetchCitedFeedEvents,
   fetchLastRead,
   fetchMessages,
   fetchNotifyPref,
@@ -34,6 +35,7 @@ import {
   NotifyPref,
   setNotifyPref,
 } from "@/lib/chat";
+import { FeedEvent } from "@/lib/feed";
 import { supabase } from "@/lib/supabase";
 
 /** Le rythme du battement de présence. Le serveur tolère 90 s, soit
@@ -269,6 +271,35 @@ export function useChat(
     });
   }, [messages, parents]);
 
+  /** Les moments du fil cités par « En parler ». Chargés à part des
+      messages : un même moment est souvent cité plusieurs fois, et il
+      n'a aucune raison d'être relu à chaque page. */
+  const [citations, setCitations] = useState<Map<string, FeedEvent>>(new Map());
+  useEffect(() => {
+    if (!messages) return;
+    const manquants = [
+      ...new Set(
+        messages
+          .map((m) => m.feed_event_id)
+          .filter((id): id is string => !!id && !citations.has(id)),
+      ),
+    ];
+    if (manquants.length === 0) return;
+    fetchCitedFeedEvents(manquants).then((rows) => {
+      if (!rows) return;
+      setCitations((prev) => {
+        const next = new Map(prev);
+        for (const r of rows) next.set(r.id, r);
+        return next;
+      });
+    });
+  }, [messages, citations]);
+
+  const feedEventById = useCallback(
+    (id: string | null) => (id ? citations.get(id) : undefined),
+    [citations],
+  );
+
   /** Retrouve un message cité, qu'il soit dans la page ou hors d'elle. */
   const messageById = useCallback(
     (id: string | null): ChatMessage | undefined => {
@@ -394,6 +425,7 @@ export function useChat(
       pref,
       loadMore,
       messageById,
+      feedEventById,
       send,
       remove,
       toggleReaction,
@@ -408,6 +440,7 @@ export function useChat(
       pref,
       loadMore,
       messageById,
+      feedEventById,
       send,
       remove,
       toggleReaction,

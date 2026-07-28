@@ -18,6 +18,7 @@ import {
   SAISON3_START,
   saison3Started,
 } from "@/lib/challenge";
+import { FeedEvent } from "@/lib/feed";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -74,6 +75,9 @@ export default function App() {
   // Modale « événement du jour » : montrée une fois par jour si un
   // événement a été tiré (pas les jours « rien »).
   const [showEventModal, setShowEventModal] = useState(false);
+  // « En parler » : le moment du fil qui attend dans la saisie du tchat.
+  // Il vit ici et pas dans le tchat parce qu'il naît sur un autre écran.
+  const [chatSeed, setChatSeed] = useState<FeedEvent | null>(null);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -394,6 +398,12 @@ export default function App() {
             players={data.players}
             feed={feed}
             onGoLeaderboard={() => setTab("leaderboard")}
+            onDiscuss={(events) => {
+              // events[0] est l'ancre de la salve : c'est la ligne que le
+              // fil affiche en tête, donc celle qu'on cite.
+              setChatSeed(events[0]);
+              setTab("chat");
+            }}
           />
         )}
         {effTab === "chat" && (
@@ -402,6 +412,8 @@ export default function App() {
             players={data.players}
             chat={chat}
             onGoFeed={() => setTab("feed")}
+            seed={chatSeed}
+            onSeedUsed={() => setChatSeed(null)}
           />
         )}
         {effTab === "leaderboard" && (
