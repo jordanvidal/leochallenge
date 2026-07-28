@@ -133,6 +133,7 @@ export default function TodayScreen({
         <RankLine
           player={player}
           players={players}
+          entries={entries}
           gamification={gamification}
           enPanne={gamificationEnPanne}
           perfect={perfect}

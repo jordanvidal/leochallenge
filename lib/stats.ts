@@ -1,7 +1,13 @@
 // Calculs de stats par joueur. Rien de plus que les 3 métriques de la phase 1,
 // plus, pour le bilan de clôture, la meilleure série et les jours à zéro.
 
-import { addDays, allChallengeDays, elapsedDays, parisToday } from "./challenge";
+import {
+  addDays,
+  allChallengeDays,
+  CHALLENGE_START,
+  elapsedDays,
+  parisToday,
+} from "./challenge";
 import { Entry, entryCount, entryKey, Player } from "./types";
 
 export type PlayerStats = {
@@ -62,6 +68,60 @@ export function computeStats(
     cursor = addDays(cursor, -1);
   }
   return { perfectDays, completion, streak, bestStreak, zeroDays };
+}
+
+/**
+ * La série en sursis : ce que le serveur ne peut pas encore dire.
+ *
+ * Le joker est dérivé de l'historique (migration 24) et ne peut se
+ * déclencher qu'une fois le retour joué — un joker qui ne recolle rien
+ * n'existe pas. Conséquence : le matin qui suit le trou, `leaderboard()`
+ * rend encore `current_streak = 0` et `joker_day = null`. L'app annonce
+ * donc à celui qui vient de casser une série de 14 que tout est perdu ET
+ * que son joker est intact, deux phrases qu'un 3/3 dans la journée rendra
+ * fausses. C'est le moment de décrochage que le joker existe pour couvrir,
+ * et le seul où il est invisible.
+ *
+ * Cette fonction rend le nombre de jours en sursis, 0 s'il n'y a rien à
+ * sauver. Elle recopie les trois conditions de la CTE `joker` : joker
+ * jamais brûlé, exactement un jour manqué (hier), au moins 3 jours
+ * parfaits juste avant lui. Copie assumée et bornée — elle annonce, elle
+ * n'accorde rien. Le serveur reste seul à décider ce soir si le joker
+ * part ; au pire cette phrase aura promis un filet qui tombe quand même,
+ * jamais l'inverse.
+ */
+export function streakEnSursis(
+  playerId: string,
+  entries: Map<string, Entry>,
+  jokerDay: string | null | undefined,
+  today: string,
+): number {
+  // undefined = on ne sait pas encore (ligne ou colonne absente) ; une date
+  // = déjà brûlé. Dans les deux cas on se tait, comme la tuile des Stats.
+  if (jokerDay !== null) return 0;
+
+  const isPerfect = (d: string) =>
+    entryCount(entries.get(entryKey(playerId, d))) === 3;
+
+  // Le 3/3 est fait : le serveur a repris la main, il dit la vérité.
+  if (isPerfect(today)) return 0;
+
+  // Le trou, c'est hier — et hier seulement. Deux jours ratés d'affilée et
+  // la série tombe pour de bon, joker ou pas.
+  const trou = addDays(today, -1);
+  if (trou < CHALLENGE_START || isPerfect(trou)) return 0;
+
+  let sursis = 0;
+  for (
+    let d = addDays(trou, -1);
+    d >= CHALLENGE_START && isPerfect(d);
+    d = addDays(d, -1)
+  ) {
+    sursis++;
+  }
+  // Sous 3 jours parfaits, le joker ne part pas : il n'y a rien à sauver et
+  // le brûler serait du gâchis. Même seuil que le ×1,5.
+  return sursis >= 3 ? sursis : 0;
 }
 
 /**
