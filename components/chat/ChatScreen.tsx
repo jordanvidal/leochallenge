@@ -250,7 +250,10 @@ export default function ChatScreen({
           naturelle — donc au milieu du vide, juste sous l'état vide.
           Ce vide-là prend toute la hauteur restante et l'y pousse. Quand
           la conversation est longue, il retombe à zéro tout seul. */}
-      <div aria-hidden className="flex-1" />
+      {/* `min-h` et pas `h` : quand la conversation déborde, le ressort
+          retombe à sa hauteur minimale et laisse quand même respirer le
+          dernier horodatage, qui sinon touche la bordure de la saisie. */}
+      <div aria-hidden className="min-h-2 flex-1" />
 
       <ChatComposer
         citation={citation}

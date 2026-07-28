@@ -17,46 +17,57 @@ import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 
 /**
- * Le bloc cité, en tête d'une bulle : soit un message auquel on répond,
- * soit le moment du fil dont on est venu parler.
+ * Le message cité, posé AU-DESSUS de la réponse et non dedans.
  *
- * Un aplat plus sombre et un prénom coloré. Surtout pas de liseré
- * latéral : c'est le réflexe pour « citation », et un aplat le dit
- * mieux sans ajouter de trait dans un écran qui en a déjà assez.
+ * C'est le geste iMessage, et il dit quelque chose que la citation
+ * enfermée dans la bulle ne disait pas : les deux messages sont de même
+ * nature. Un bloc encastré ressemble à une pièce jointe ; deux bulles
+ * empilées ressemblent à une conversation.
+ *
+ * Trois réglages font tout le travail, et ils vont ensemble :
+ *  · la bulle citée garde le style de SON auteur (accent si c'est moi,
+ *    neutre sinon) — c'est ce qui permet de savoir à qui on répond sans
+ *    lire le prénom ;
+ *  · elle est plus petite, estompée, et rentrée d'un cran du côté aligné,
+ *    donc elle passe manifestement au second plan ;
+ *  · l'espace qui la sépare de la réponse est plus serré que celui entre
+ *    deux messages, ce qui les fait lire comme un seul bloc.
  */
-function Cite({
-  titre,
+function BulleCitee({
+  auteur,
   couleur,
   texte,
-  surAccent,
+  deSonAuteur,
+  aDroite,
   onClick,
 }: {
-  titre: string;
+  auteur: string;
   couleur: string;
   texte: string;
-  /** Posé sur ma bulle : les contrastes se calculent sur du clair. */
-  surAccent: boolean;
+  /** La citation appartient au joueur courant : elle prend l'accent. */
+  deSonAuteur: boolean;
+  /** Alignée à droite, comme la réponse qu'elle précède. */
+  aDroite: boolean;
   onClick?: () => void;
 }) {
   const Balise = onClick ? "button" : "div";
   return (
     <Balise
       onClick={onClick}
-      className="mb-1.5 block w-full rounded-lg px-2 py-1 text-left"
-      style={{ background: surAccent ? "oklch(0.15 0 0 / 0.16)" : "var(--color-bg)" }}
+      className={`-mb-0.5 max-w-[72%] rounded-2xl px-3 py-1.5 text-left ${
+        aDroite ? "mr-3" : "ml-3"
+      }`}
+      style={{
+        background: deSonAuteur
+          ? "color-mix(in oklch, var(--pc) 26%, var(--color-bg))"
+          : "var(--color-surface)",
+        opacity: 0.72,
+      }}
     >
-      <span
-        className="block text-[11px] font-bold"
-        style={{ color: surAccent ? "oklch(0.15 0 0 / 0.75)" : couleur }}
-      >
-        {titre}
+      <span className="block text-[11px] font-bold" style={{ color: couleur }}>
+        {auteur}
       </span>
-      <span
-        className="block truncate text-xs"
-        style={{ color: surAccent ? "oklch(0.15 0 0 / 0.7)" : "var(--color-muted)" }}
-      >
-        {texte}
-      </span>
+      <span className="line-clamp-2 block text-xs text-muted">{texte}</span>
     </Balise>
   );
 }
@@ -190,6 +201,33 @@ export default function ChatBubble({
       onPointerLeave={onPointerUp}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {/* La citation vient AVANT le prénom de l'auteur de la réponse :
+          au-dessus, le prénom se lirait comme l'étiquette de la citation
+          et non comme celle de la réponse. */}
+      {parent && (
+        <BulleCitee
+          auteur={parentAuthor?.name ?? "Message"}
+          couleur={parentAuthor?.color ?? "var(--color-muted)"}
+          texte={parent.deleted_at ? "Message supprimé" : apercu(parent.body, 120)}
+          deSonAuteur={parent.player_id === myId}
+          aDroite={isMine}
+          onClick={() => onJumpTo(parent.id)}
+        />
+      )}
+
+      {feedEvent && (
+        // Le moment du fil suit le même traitement : c'est aussi « ce
+        // message parle de ça ». La phrase vient d'eventPhrase(), la même
+        // qui rend la carte dans le fil — jamais une reformulation.
+        <BulleCitee
+          auteur={`${eventPhrase(feedEvent).emoji} ${feedEventAuthor?.name ?? "Le fil"}`}
+          couleur={feedEventAuthor?.color ?? "var(--color-muted)"}
+          texte={apercu(eventPhrase(feedEvent).text, 120)}
+          deSonAuteur={feedEvent.player_id === myId}
+          aDroite={isMine}
+        />
+      )}
+
       {showAuthor && !isMine && (
         <span
           className="mb-0.5 ml-1 text-xs font-bold"
@@ -216,28 +254,6 @@ export default function ChatBubble({
           opacity: enVol ? 0.6 : 1,
         }}
       >
-        {parent && (
-          <Cite
-            titre={parentAuthor?.name ?? "Message"}
-            couleur={parentAuthor?.color ?? "var(--color-muted)"}
-            texte={parent.deleted_at ? "Message supprimé" : apercu(parent.body)}
-            surAccent={isMine}
-            onClick={() => onJumpTo(parent.id)}
-          />
-        )}
-
-        {feedEvent && (
-          // La phrase du moment est fabriquée par eventPhrase(), la même
-          // qui rend la carte dans le fil : la citation dit exactement ce
-          // qu'on a lu là-bas, jamais une reformulation qui diverge.
-          <Cite
-            titre={`${eventPhrase(feedEvent).emoji} ${feedEventAuthor?.name ?? "Le fil"}`}
-            couleur={feedEventAuthor?.color ?? "var(--color-muted)"}
-            texte={apercu(eventPhrase(feedEvent).text, 70)}
-            surAccent={isMine}
-          />
-        )}
-
         <p
           className={`text-[15px] leading-snug break-words whitespace-pre-wrap ${
             supprime ? "italic" : ""
