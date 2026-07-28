@@ -7,11 +7,24 @@
 // duplique la règle pour l'affichage live — même précédent assumé
 // que le CTE `active` recopié dans reminders.ts.
 
-import { addDays, CHALLENGE_START, mondayOf } from "./challenge";
+import { addDays, CHALLENGE_START, FENETRE_ENV, Fenetre, mondayOf } from "./challenge";
 import { Entry, entryCount, entryKey } from "./types";
 
-/** Premier lundi de duels : la 2e semaine du challenge (le 20/07 ici).
-    La semaine 1 sert à établir un classement à apparier. */
+/**
+ * Premier lundi de duels d'une ligue : sa 2e semaine. La semaine 1 sert à
+ * établir un classement à apparier — sans elle, on apparierait au hasard.
+ *
+ * Conséquence à connaître : une ligue d'une ou deux semaines n'aura jamais de
+ * duel, puisqu'il faut une semaine PLEINE après la première. Ce n'est pas un
+ * oubli, c'est la règle appliquée telle quelle à une ligue courte. S'il faut
+ * ouvrir les duels dès la semaine 1 sur les formats sprint, c'est une décision
+ * produit, pas un ajustement de constante.
+ */
+export function duelsFrom(f: Fenetre = FENETRE_ENV): string {
+  return addDays(mondayOf(f.start), 7);
+}
+
+/** Premier lundi de duels du challenge d'origine (le 20/07). */
 export const DUELS_FROM = addDays(mondayOf(CHALLENGE_START), 7);
 
 /** Montant du transfert, miroir de bonus_catalog('duel_hebdo'). */

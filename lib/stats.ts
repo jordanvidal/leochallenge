@@ -1,7 +1,14 @@
 // Calculs de stats par joueur. Rien de plus que les 3 métriques de la phase 1,
 // plus, pour le bilan de clôture, la meilleure série et les jours à zéro.
 
-import { addDays, allChallengeDays, elapsedDays, parisToday } from "./challenge";
+import {
+  addDays,
+  allChallengeDays,
+  elapsedDays,
+  FENETRE_ENV,
+  Fenetre,
+  parisToday,
+} from "./challenge";
 import { Entry, entryCount, entryKey, Player } from "./types";
 
 export type PlayerStats = {
@@ -16,15 +23,16 @@ export type PlayerStats = {
 export type TimelineCell = { day: string; perfect: number };
 
 /**
- * Stats d'un joueur sur l'ensemble des jours écoulés du challenge.
+ * Stats d'un joueur sur l'ensemble des jours écoulés de sa ligue.
  * La série tolère un aujourd'hui incomplet : elle compte depuis hier
  * si le jour courant n'est pas (encore) parfait.
  */
 export function computeStats(
   playerId: string,
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): PlayerStats {
-  const days = elapsedDays(); // du plus récent au plus ancien
+  const days = elapsedDays(f); // du plus récent au plus ancien
   if (days.length === 0)
     return { perfectDays: 0, completion: 0, streak: 0, bestStreak: 0, zeroDays: 0 };
 
@@ -65,14 +73,15 @@ export function computeStats(
 }
 
 /**
- * La ligne du temps du groupe : pour chacun des 50 jours, combien de joueurs
- * ont été parfaits. Tout se calcule sur les entries déjà chargées.
+ * La ligne du temps du groupe : pour chaque jour de la ligue, combien de
+ * joueurs ont été parfaits. Tout se calcule sur les entries déjà chargées.
  */
 export function groupTimeline(
   players: Player[],
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): TimelineCell[] {
-  return allChallengeDays().map((day) => {
+  return allChallengeDays(f).map((day) => {
     let perfect = 0;
     for (const p of players) {
       if (entryCount(entries.get(entryKey(p.id, day))) === 3) perfect++;
