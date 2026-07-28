@@ -9,7 +9,14 @@
 // de toute façon) et la barre monte avec lui.
 
 import { useEffect, useRef, useState } from "react";
-import { CHAT_BODY_MAX } from "@/lib/chat";
+import {
+  CHAT_BODY_MAX,
+  insertMention,
+  mentionQuery,
+  nameStartsWith,
+} from "@/lib/chat";
+import { Player } from "@/lib/types";
+import { Avatar } from "../ui";
 
 /** Quatre lignes puis on défile : au-delà, la saisie mange la
     conversation qu'on est en train de commenter. */
@@ -27,11 +34,26 @@ export type Citation = {
 
 type Props = {
   citation: Citation | null;
+  /** Les potes proposés au `@`. Moi exclu par l'appelant : se mentionner
+      soi-même ne prévient personne et n'informe personne. */
+  mentionnables: Player[];
   onSend: (body: string) => void;
 };
 
-export default function ChatComposer({ citation, onSend }: Props) {
+export default function ChatComposer({
+  citation,
+  mentionnables,
+  onSend,
+}: Props) {
   const [draft, setDraft] = useState("");
+  // La position du curseur, suivie à la main : c'est elle qui dit si on
+  // est en train de taper une mention, et où l'insérer.
+  const [caret, setCaret] = useState(0);
+  // Le curseur à reposer après une insertion. React réécrit la valeur du
+  // textarea au rendu suivant et remet le curseur à la fin ; sans ce
+  // report, insérer « @Léo » au milieu d'une phrase renvoie la frappe
+  // tout au bout.
+  const aReplacer = useRef<number | null>(null);
   const zone = useRef<HTMLTextAreaElement>(null);
 
   // La hauteur suit le contenu, jusqu'à quatre lignes.
@@ -41,6 +63,14 @@ export default function ChatComposer({ citation, onSend }: Props) {
     el.style.height = "auto";
     const ligne = parseFloat(getComputedStyle(el).lineHeight) || 22;
     el.style.height = `${Math.min(el.scrollHeight, ligne * LIGNES_MAX + 16)}px`;
+  }, [draft]);
+
+  useEffect(() => {
+    const pos = aReplacer.current;
+    if (pos === null || !zone.current) return;
+    aReplacer.current = null;
+    zone.current.setSelectionRange(pos, pos);
+    zone.current.focus();
   }, [draft]);
 
   // Citer place le curseur dans la saisie : sans ça, répondre ou arriver
@@ -54,6 +84,25 @@ export default function ChatComposer({ citation, onSend }: Props) {
     if (!texte) return;
     onSend(texte);
     setDraft("");
+    setCaret(0);
+  }
+
+  /** Suit le curseur à chaque événement qui peut le déplacer. */
+  function suivreCurseur(e: { currentTarget: HTMLTextAreaElement }) {
+    setCaret(e.currentTarget.selectionStart ?? 0);
+  }
+
+  const requete = mentionQuery(draft, caret);
+  const suggestions = requete
+    ? mentionnables.filter((p) => nameStartsWith(p.name, requete.terme))
+    : [];
+
+  function choisir(p: Player) {
+    const next = insertMention(draft, caret, p.name);
+    aReplacer.current = next.caret;
+    setDraft(next.body);
+    setCaret(next.caret);
+    navigator.vibrate?.(8);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -73,6 +122,29 @@ export default function ChatComposer({ citation, onSend }: Props) {
       className="sticky z-20 -mx-5 border-t border-line bg-bg/95 px-5 pt-2 pb-2 backdrop-blur"
       style={{ bottom: "max(var(--tabbar-h), var(--kb))" }}
     >
+      {suggestions.length > 0 && (
+        // Au-dessus de la saisie, pas en dessous : en dessous, la liste
+        // naît sous le clavier et personne ne la voit jamais.
+        <ul
+          className="mb-2 max-h-52 overflow-y-auto rounded-2xl bg-raised"
+          aria-label="Mentionner un pote"
+        >
+          {suggestions.map((p) => (
+            <li key={p.id}>
+              <button
+                onClick={() => choisir(p)}
+                className="flex min-h-13 w-full items-center gap-2.5 border-b border-line px-3 py-2 text-left last:border-b-0"
+              >
+                <Avatar name={p.name} color={p.color} size={28} />
+                <span className="font-bold" style={{ color: p.color }}>
+                  {p.name}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {citation && (
         <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2">
           <span className="min-w-0 flex-1">
@@ -108,7 +180,13 @@ export default function ChatComposer({ citation, onSend }: Props) {
           ref={zone}
           rows={1}
           value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, CHAT_BODY_MAX))}
+          onChange={(e) => {
+            setDraft(e.target.value.slice(0, CHAT_BODY_MAX));
+            suivreCurseur(e);
+          }}
+          onSelect={suivreCurseur}
+          onClick={suivreCurseur}
+          onKeyUp={suivreCurseur}
           onKeyDown={onKeyDown}
           maxLength={CHAT_BODY_MAX}
           placeholder="Écrire un message"

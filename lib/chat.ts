@@ -61,50 +61,152 @@ export function humanChatError(message: string): string {
 
 // ---- Logique pure (testée dans tests/tchat.test.ts) ----
 
-/** Sans accents et en minuscules : « Léo » et « leo » doivent
-    s'attraper l'un l'autre dans une mention. */
-function plat(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
+const ALPHANUM = /[\p{L}\p{N}]/u;
 
 /**
- * Les joueurs mentionnés par `@prénom` dans un message.
+ * Sans accents et en minuscules : « Léo » et « leo » doivent s'attraper
+ * l'un l'autre dans une mention.
  *
- * Sert au réglage « mentions » : c'est la seule chose qui traverse un
- * mute partiel, donc la détection doit être stricte des deux côtés.
- * Elle ne l'est pas sur les accents ni la casse (personne ne tape
- * « @Léo » avec l'accent à 23h), elle l'est sur les bords : « @leon »
- * ne mentionne pas Léo, et « mail@leo » non plus — un `@` collé à
- * une lettre n'ouvre pas une mention.
+ * Le repliement est fait caractère par caractère, et pas par un
+ * `normalize("NFD")` sur toute la chaîne, pour UNE raison : il doit
+ * conserver la longueur. Une décomposition globale transforme « é » en
+ * deux unités, donc tous les index d'après glissent — et depuis le
+ * 28/07 ces index servent à surligner la mention dans la bulle, pas
+ * seulement à répondre oui ou non. Un décalage d'une unité, et c'est la
+ * lettre d'à côté qui se colore.
+ *
+ * Deux garde-fous : on ne remplace un caractère que si sa décomposition
+ * commence bien par une lettre (sinon un emoji, qui tient sur deux
+ * unités UTF-16, se ferait couper en deux), et on annule le
+ * remplacement s'il change la longueur (cas rares comme « İ »).
  */
+function plat(s: string): string {
+  let out = "";
+  for (const ch of s) {
+    const d = ch.normalize("NFD");
+    const base = d.length > 1 && /\p{L}/u.test(d[0]) ? d[0] : ch;
+    const rep = base.toLowerCase();
+    out += rep.length === ch.length ? rep : ch;
+  }
+  return out;
+}
+
+export type MentionSpan = {
+  /** Index du « @ » dans le corps d'origine. */
+  start: number;
+  /** Index de fin, exclu. */
+  end: number;
+  playerId: string;
+};
+
+/**
+ * Où sont les mentions dans un message, et qui elles désignent.
+ *
+ * Source unique de vérité : la notification (qui traverse un mute) et le
+ * surlignage dans la bulle lisent la MÊME fonction. Deux implémentations
+ * auraient fini par diverger, et le jour où elles divergent, l'app
+ * colore un prénom sans prévenir la personne — ou l'inverse.
+ *
+ * Les bords sont stricts : « @leon » ne mentionne pas Léo, et
+ * « mail@leo » ne mentionne personne (un `@` collé à une lettre n'ouvre
+ * pas une mention). Les prénoms sont essayés du plus long au plus court,
+ * pour que « @Leon » désigne Leon même quand Léo existe aussi.
+ */
+export function findMentions(
+  body: string,
+  players: { id: string; name: string }[],
+): MentionSpan[] {
+  const parLongueur = [...players].sort((a, b) => b.name.length - a.name.length);
+  const spans: MentionSpan[] = [];
+  const bas = plat(body);
+
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] !== "@") continue;
+    // Un « @ » précédé d'une lettre ou d'un chiffre est une adresse.
+    if (i > 0 && ALPHANUM.test(body[i - 1])) continue;
+    for (const p of parLongueur) {
+      const nom = plat(p.name);
+      const fin = i + 1 + nom.length;
+      if (bas.slice(i + 1, fin) !== nom) continue;
+      // Ce qui suit ne doit pas être une lettre : sinon c'est un autre
+      // prénom qui commence pareil.
+      if (fin < body.length && ALPHANUM.test(body[fin])) continue;
+      spans.push({ start: i, end: fin, playerId: p.id });
+      i = fin - 1; // on reprend après la mention
+      break;
+    }
+  }
+  return spans;
+}
+
+/** Les joueurs mentionnés, sans doublon. C'est ce que lit la route de
+    notification pour le réglage « mentions ». */
 export function mentionedPlayerIds(
   body: string,
   players: { id: string; name: string }[],
 ): string[] {
-  const hay = plat(body);
-  const found: string[] = [];
-  for (const p of players) {
-    const needle = `@${plat(p.name)}`;
-    let from = 0;
-    for (;;) {
-      const at = hay.indexOf(needle, from);
-      if (at < 0) break;
-      const avant = at === 0 ? "" : hay[at - 1];
-      const apres = hay[at + needle.length] ?? "";
-      // Le caractère d'avant ne doit pas être alphanumérique (sinon
-      // c'est une adresse mail), celui d'après non plus (sinon c'est
-      // un autre prénom qui commence pareil).
-      if (!/[\p{L}\p{N}]/u.test(avant) && !/[\p{L}\p{N}]/u.test(apres)) {
-        found.push(p.id);
-        break;
-      }
-      from = at + 1;
-    }
+  return [...new Set(findMentions(body, players).map((m) => m.playerId))];
+}
+
+/** Un morceau de message à rendre : du texte, ou une mention à colorer. */
+export type Segment = { texte: string; playerId?: string };
+
+/** Découpe un message en texte et mentions, pour le rendu de la bulle. */
+export function segmentsOf(
+  body: string,
+  players: { id: string; name: string }[],
+): Segment[] {
+  const spans = findMentions(body, players);
+  if (spans.length === 0) return [{ texte: body }];
+  const out: Segment[] = [];
+  let curseur = 0;
+  for (const s of spans) {
+    if (s.start > curseur) out.push({ texte: body.slice(curseur, s.start) });
+    out.push({ texte: body.slice(s.start, s.end), playerId: s.playerId });
+    curseur = s.end;
   }
-  return found;
+  if (curseur < body.length) out.push({ texte: body.slice(curseur) });
+  return out;
+}
+
+/**
+ * La mention en cours de frappe, s'il y en a une : le « @ » ouvert le
+ * plus proche à gauche du curseur, et ce qui a été tapé depuis.
+ *
+ * Rend null dès qu'un espace ou un retour à la ligne sépare le curseur
+ * du « @ » : passé le premier mot, on écrit une phrase, pas un prénom.
+ * Sans cette borne, la liste des potes resterait ouverte tout le message.
+ */
+export function mentionQuery(
+  body: string,
+  caret: number,
+): { start: number; terme: string } | null {
+  for (let i = caret - 1; i >= 0; i--) {
+    const c = body[i];
+    if (c === "@") {
+      if (i > 0 && ALPHANUM.test(body[i - 1])) return null;
+      return { start: i, terme: body.slice(i + 1, caret) };
+    }
+    if (/\s/.test(c)) return null;
+  }
+  return null;
+}
+
+/** Remplace la mention en cours de frappe par le prénom choisi, et rend
+    la position où poser le curseur (après l'espace qui suit). */
+export function insertMention(
+  body: string,
+  caret: number,
+  name: string,
+): { body: string; caret: number } {
+  const q = mentionQuery(body, caret);
+  if (!q) return { body, caret };
+  const avant = body.slice(0, q.start);
+  const apres = body.slice(caret);
+  // L'espace évite que le mot suivant se colle au prénom et casse la
+  // mention qu'on vient tout juste d'insérer.
+  const insere = `@${name} `;
+  return { body: avant + insere + apres, caret: avant.length + insere.length };
 }
 
 /** Une ligne de l'écran : un séparateur de jour, ou un message avec
@@ -167,6 +269,12 @@ function memeSalve(
   const ecart =
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   return ecart >= 0 && ecart <= GROUPE_MS;
+}
+
+/** Le prénom commence-t-il par ce qui vient d'être tapé ? Insensible à
+    la casse et aux accents, comme la détection. */
+export function nameStartsWith(name: string, terme: string): boolean {
+  return plat(name).startsWith(plat(terme));
 }
 
 /** Le texte d'une réponse citée, coupé pour tenir sur une ligne. */

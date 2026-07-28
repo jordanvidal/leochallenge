@@ -9,7 +9,16 @@
 // quelqu'un qui a demandé le silence, un faux négatif rate l'appel.
 
 import { describe, expect, it } from "vitest";
-import { apercu, buildRows, ChatMessage, mentionedPlayerIds } from "@/lib/chat";
+import {
+  apercu,
+  buildRows,
+  ChatMessage,
+  findMentions,
+  insertMention,
+  mentionedPlayerIds,
+  mentionQuery,
+  segmentsOf,
+} from "@/lib/chat";
 
 const JOUEURS = [
   { id: "leo", name: "Léo" },
@@ -168,6 +177,116 @@ describe("mentionedPlayerIds — ce qui traverse un mute", () => {
 
   it("ne mentionne personne sans arobase", () => {
     expect(mentionedPlayerIds("Jordan a fini premier", JOUEURS)).toEqual([]);
+  });
+});
+
+describe("findMentions — les positions, pas seulement le oui/non", () => {
+  it("rend la position exacte de la mention", () => {
+    const [m] = findMentions("salut @Jordan ça va", JOUEURS);
+    expect(m.start).toBe(6);
+    expect(m.end).toBe(13);
+    expect(m.playerId).toBe("jordan");
+  });
+
+  it("ne décale pas les index à cause des accents", () => {
+    // LE test de ce module. Un `normalize("NFD")` global transforme « é »
+    // en deux unités : tous les index d'après glissent, et c'est la
+    // lettre d'à côté qui se colore dans la bulle.
+    const corps = "héhé @Jordan";
+    const [m] = findMentions(corps, JOUEURS);
+    expect(corps.slice(m.start, m.end)).toBe("@Jordan");
+  });
+
+  it("ne décale pas les index à cause d'un emoji", () => {
+    const corps = "🔥🔥 @Jordan";
+    const [m] = findMentions(corps, JOUEURS);
+    expect(corps.slice(m.start, m.end)).toBe("@Jordan");
+  });
+
+  it("préfère le prénom le plus long quand deux commencent pareil", () => {
+    const [m] = findMentions("@Leon salut", JOUEURS);
+    expect(m.playerId).toBe("leon");
+    expect(m.end).toBe(5);
+  });
+
+  it("trouve deux mentions collées", () => {
+    const spans = findMentions("@Léo @Jordan", JOUEURS);
+    expect(spans.map((s) => s.playerId)).toEqual(["leo", "jordan"]);
+  });
+});
+
+describe("segmentsOf — le découpage pour la bulle", () => {
+  it("rend le message entier quand il n'y a pas de mention", () => {
+    expect(segmentsOf("rien à signaler", JOUEURS)).toEqual([
+      { texte: "rien à signaler" },
+    ]);
+  });
+
+  it("sépare texte et mention", () => {
+    expect(segmentsOf("salut @Jordan !", JOUEURS)).toEqual([
+      { texte: "salut " },
+      { texte: "@Jordan", playerId: "jordan" },
+      { texte: " !" },
+    ]);
+  });
+
+  it("recolle exactement le message d'origine", () => {
+    // Garantie de non-perte : quoi qu'il arrive au découpage, l'utilisateur
+    // doit lire ce qu'il a écrit, au caractère près.
+    const corps = "héhé @Léo et @Jordan 🔥 ok";
+    expect(segmentsOf(corps, JOUEURS).map((s) => s.texte).join("")).toBe(corps);
+  });
+
+  it("gère une mention en tout début de message", () => {
+    expect(segmentsOf("@Jordan", JOUEURS)).toEqual([
+      { texte: "@Jordan", playerId: "jordan" },
+    ]);
+  });
+});
+
+describe("mentionQuery — ce qu'on est en train de taper", () => {
+  it("rend le terme partiel après l'arobase", () => {
+    expect(mentionQuery("salut @jo", 9)).toEqual({ start: 6, terme: "jo" });
+  });
+
+  it("rend un terme vide juste après l'arobase", () => {
+    expect(mentionQuery("salut @", 7)).toEqual({ start: 6, terme: "" });
+  });
+
+  it("se ferme dès qu'un espace sépare le curseur de l'arobase", () => {
+    // Sans cette borne, la liste des potes resterait ouverte tout le message.
+    expect(mentionQuery("salut @jo rd", 12)).toBeNull();
+  });
+
+  it("ignore une arobase d'adresse mail", () => {
+    expect(mentionQuery("jordan@leo", 10)).toBeNull();
+  });
+
+  it("ne regarde que ce qui est à gauche du curseur", () => {
+    expect(mentionQuery("salut @jordan ok", 5)).toBeNull();
+  });
+});
+
+describe("insertMention — l'insertion au curseur", () => {
+  it("remplace le terme partiel et ajoute l'espace", () => {
+    expect(insertMention("salut @jo", 9, "Jordan")).toEqual({
+      body: "salut @Jordan ",
+      caret: 14,
+    });
+  });
+
+  it("insère au milieu sans toucher à la fin", () => {
+    const out = insertMention("salut @jo ça va", 9, "Jordan");
+    expect(out.body).toBe("salut @Jordan  ça va");
+    // Le curseur se pose après l'espace inséré, pas à la fin du message.
+    expect(out.caret).toBe(14);
+  });
+
+  it("ne fait rien s'il n'y a pas de mention en cours", () => {
+    expect(insertMention("salut", 5, "Jordan")).toEqual({
+      body: "salut",
+      caret: 5,
+    });
   });
 });
 
