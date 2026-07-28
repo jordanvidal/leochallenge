@@ -25,6 +25,7 @@ import {
 } from "@/lib/profile";
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
+import HistoryGrid from "./HistoryGrid";
 import { Avatar, Skeleton } from "./ui";
 
 type Props = {
@@ -36,6 +37,8 @@ type Props = {
       respirer un loader qui n'aboutira pas. */
   gamificationEnPanne: boolean;
   onShareWeek: () => void;
+  /** Passé à la grille d'historique : ses cases expliquent au tap. */
+  showToast: (msg: string) => void;
 };
 
 /**
@@ -99,6 +102,7 @@ export default function StatsScreen({
   gamification,
   gamificationEnPanne,
   onShareWeek,
+  showToast,
 }: Props) {
   const [profiles, setProfiles] = useState<Map<string, Profile> | null>(null);
   useEffect(() => {
@@ -259,7 +263,10 @@ export default function StatsScreen({
       <h2 className="mt-5 mb-1 text-xs font-bold tracking-wide text-faint uppercase">
         Les autres · meilleure série
       </h2>
-      <ul className="flex flex-1 flex-col">
+      {/* Plus de `flex-1` ici : il servait à pousser le bouton de partage tout
+          en bas quand la liste finissait l'écran. Il y a maintenant la grille
+          derrière, et l'étirement ne ferait qu'un trou au milieu. */}
+      <ul className="flex flex-col">
         {others.map(({ p, s }) => {
           const prof = profiles?.get(p.id);
           const active = !!prof && prof.hours.length > 0;
@@ -322,10 +329,22 @@ export default function StatsScreen({
 
       <button
         onClick={onShareWeek}
-        className="mt-4 mb-3 min-h-12 w-full rounded-2xl bg-surface text-sm font-bold"
+        className="mt-4 min-h-12 w-full shrink-0 rounded-2xl bg-surface text-sm font-bold"
       >
         Partager ma semaine 💬
       </button>
+
+      {/* La grille en dernier : c'est l'archive, on descend la chercher. Le
+          bouton de partage reste au-dessus d'elle — placé après 2 500 px de
+          tableau, plus personne ne l'atteindrait. */}
+      <HistoryGrid
+        player={player}
+        players={players}
+        entries={entries}
+        gamification={gamification}
+        showToast={showToast}
+      />
+      <div className="h-3 shrink-0" />
     </div>
   );
 }

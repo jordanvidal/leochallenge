@@ -28,7 +28,6 @@ import { Exercise, Player, entryKey } from "@/lib/types";
 import BilanScreen from "./BilanScreen";
 import DailyEventModal from "./DailyEventModal";
 import FeedScreen from "./feed/FeedScreen";
-import HistoryScreen from "./HistoryScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
 import InstallScreen from "./InstallScreen";
 import PasswordGate from "./PasswordGate";
@@ -359,7 +358,7 @@ export default function App() {
             gamification={gamification}
             onShareFinal={shareFinal}
             onRematch={rematch}
-            onGoHistory={() => setTab("history")}
+            onGoHistory={() => setTab("stats")}
           />
         )}
         {effTab === "feed" && (
@@ -380,15 +379,6 @@ export default function App() {
             onRetry={reloadGamification}
           />
         )}
-        {effTab === "history" && (
-          <HistoryScreen
-            player={player}
-            players={data.players}
-            entries={data.entries}
-            gamification={gamification}
-            showToast={data.showToast}
-          />
-        )}
         {effTab === "stats" && (
           <StatsScreen
             player={player}
@@ -397,6 +387,7 @@ export default function App() {
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             onShareWeek={shareWeek}
+            showToast={data.showToast}
           />
         )}
       </div>

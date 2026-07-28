@@ -3,8 +3,12 @@
 // Les onglets en bas, pouce-friendly. Pas de burger, pas de sidebar.
 // Cinq onglets, c'est le maximum absolu : au sixième, on fusionne.
 // « Aujourd'hui » et « Bilan » se partagent le premier slot selon la date.
+//
+// La règle a été appliquée pour de vrai le 28/07 : le tchat réclamait un
+// slot, « Historique » est descendu dans Stats (components/HistoryGrid.tsx).
+// Les deux regardaient le passé, aucun n'était sur le chemin d'une coche.
 
-export type Tab = "today" | "bilan" | "feed" | "leaderboard" | "history" | "stats";
+export type Tab = "today" | "bilan" | "feed" | "leaderboard" | "stats";
 
 function IconTrophy() {
   return (
@@ -39,27 +43,6 @@ function IconToday() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function IconHistory() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      {[4, 10.5, 17].flatMap((x) =>
-        [4, 10.5, 17].map((y) => (
-          <rect
-            key={`${x}-${y}`}
-            x={x}
-            y={y}
-            width="4"
-            height="4"
-            rx="1.2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        )),
-      )}
     </svg>
   );
 }
@@ -110,7 +93,6 @@ const BILAN_TAB = { key: "bilan" as Tab, label: "Bilan", icon: IconBilan };
 const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "feed", label: "Feed", icon: IconFeed },
   { key: "leaderboard", label: "Classement", icon: IconTrophy },
-  { key: "history", label: "Historique", icon: IconHistory },
   { key: "stats", label: "Stats", icon: IconStats },
 ];
 
