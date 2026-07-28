@@ -107,12 +107,33 @@ function pushAutorise(): boolean {
 }
 
 /**
+ * La charge d'une notification.
+ *
+ * `tag` et `url` sont facultatifs, et leur absence garde EXACTEMENT le
+ * comportement d'avant le 28/07 : le service worker retombe sur « lc100 »
+ * et sur la racine. C'est la condition pour que l'ajout du tchat ne
+ * change rien aux sept notifications déjà en production.
+ *
+ * `tag` : deux notifications de même tag se remplacent au lieu de
+ * s'empiler. C'est ce qui rend « chaque message notifie » vivable — et
+ * c'est aussi pourquoi le tchat a besoin d'un tag À LUI. Avec le tag
+ * unique d'avant, une vanne à 22h effaçait le rappel « ta série est en
+ * jeu » arrivé une minute plus tôt.
+ */
+export type PushPayload = {
+  title: string;
+  body: string;
+  tag?: string;
+  url?: string;
+};
+
+/**
  * Envoie une notification aux joueurs donnés (toutes leurs subscriptions).
  * Retourne le nombre d'envois réussis.
  */
 export async function sendToPlayers(
   playerIds: string[],
-  payload: { title: string; body: string },
+  payload: PushPayload,
 ): Promise<number> {
   if (playerIds.length === 0) return 0;
   if (!pushAutorise()) {

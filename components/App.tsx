@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
+import { useChat } from "@/hooks/useChat";
 import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
@@ -26,6 +27,7 @@ import {
 } from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
 import BilanScreen from "./BilanScreen";
+import ChatScreen from "./chat/ChatScreen";
 import DailyEventModal from "./DailyEventModal";
 import FeedScreen from "./feed/FeedScreen";
 import LeaderboardScreen from "./LeaderboardScreen";
@@ -79,9 +81,28 @@ export default function App() {
   );
 
   useEffect(() => {
-    setForceLaunch(
-      new URLSearchParams(window.location.search).get("lancement") === "1",
-    );
+    const params = new URLSearchParams(window.location.search);
+    setForceLaunch(params.get("lancement") === "1");
+    // `?tab=chat` : c'est par là qu'arrive un tap sur une notification de
+    // tchat quand l'app était fermée.
+    if (params.get("tab") === "chat") setTab("chat");
+  }, []);
+
+  // App déjà ouverte au moment du tap : le service worker ne peut pas la
+  // recharger sans perdre son état, il lui dit où aller. Sans ça, une
+  // notification de tchat retombe sur l'accueil et il faut retrouver
+  // l'onglet soi-même.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (e: MessageEvent) => {
+      const msg = e.data as { type?: string; url?: string } | null;
+      if (msg?.type !== "navigate" || !msg.url) return;
+      const cible = new URL(msg.url, window.location.origin).searchParams.get("tab");
+      if (cible === "chat") setTab("chat");
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", onMessage);
   }, []);
 
   // Gamification (phase 2) : chargée seulement une fois le joueur connu.
@@ -94,6 +115,12 @@ export default function App() {
   // Le fil : événements générés, réactions, commentaires, non-lus.
   const feed = useFeed(!!player, playerId, data.showToast);
   const { reload: reloadFeed } = feed;
+
+  // Le tchat. Le premier argument est le seul qui compte : hors de
+  // l'onglet, le hook ne charge que le compteur de la pastille, pas une
+  // ligne de message. Ouvrir l'app pour cocher ne traîne pas un salon
+  // derrière elle (docs/spec-tchat.md §3).
+  const chat = useChat(effTab === "chat", playerId, data.showToast);
 
   /** Après toute écriture qui compte : classement rechargé, moments
       détectés côté serveur (/api/moments), puis fil rafraîchi. */
@@ -369,6 +396,14 @@ export default function App() {
             onGoLeaderboard={() => setTab("leaderboard")}
           />
         )}
+        {effTab === "chat" && (
+          <ChatScreen
+            player={player}
+            players={data.players}
+            chat={chat}
+            onGoFeed={() => setTab("feed")}
+          />
+        )}
         {effTab === "leaderboard" && (
           <LeaderboardScreen
             player={player}
@@ -391,7 +426,15 @@ export default function App() {
           />
         )}
       </div>
-      <div className="flex items-center justify-center gap-4 px-5 pb-1">
+      {/* Masqué sur le tchat : la barre de saisie est collée juste
+          au-dessus des onglets, et ces trois liens se glisseraient entre
+          les deux. Une conversation n'est de toute façon pas l'endroit
+          où l'on revoit les règles. */}
+      <div
+        className={`items-center justify-center gap-4 px-5 pb-1 ${
+          effTab === "chat" ? "hidden" : "flex"
+        }`}
+      >
         <button
           onClick={() => setReplayTuto(true)}
           className="min-h-8 text-[11px] text-faint"
@@ -425,6 +468,7 @@ export default function App() {
         tab={effTab}
         onChange={setTab}
         feedUnread={feed.unread}
+        chatUnread={chat.unread}
         over={over}
       />
       <Toast message={data.toast} />
