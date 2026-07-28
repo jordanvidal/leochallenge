@@ -150,7 +150,16 @@ export function useFeed(
     [annex.reactions, myId, patchReaction, showToast],
   );
 
-  /** Poste un commentaire. Optimiste, rollback visible si refus. */
+  /**
+   * Poste un commentaire. Optimiste, rollback visible si refus.
+   *
+   * PLUS BRANCHÉ DEPUIS LE 28/07 : « Commenter » est devenu « En parler »,
+   * qui emmène le moment dans le tchat (docs/spec-tchat.md §9). Rien n'est
+   * supprimé — ni les commentaires existants, ni la policy d'insertion en
+   * base, ni cette fonction. Le tchat a un critère de sortie à trois
+   * semaines ; s'il ne prend pas, rebrancher `onAddComment` dans
+   * Interactions.tsx suffit à tout retrouver.
+   */
   const addComment = useCallback(
     async (event: FeedEvent, body: string) => {
       const text = body.trim();

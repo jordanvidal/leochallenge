@@ -9,7 +9,7 @@
 //
 // Le fil raconte, le tchat discute. Le tchat ne compte aucun point.
 
-import { dayLabel, parisDayOf } from "./feed";
+import { dayLabel, FeedEvent, parisDayOf } from "./feed";
 import { supabase } from "./supabase";
 
 export const CHAT_PAGE_SIZE = 50;
@@ -217,6 +217,20 @@ export async function fetchMessages(
     .select(CHAT_COLS)
     .in("id", ids);
   return error ? null : (data as ChatMessage[]);
+}
+
+/** Les moments du fil cités par des messages. Le tchat lit `feed_events`
+    en lecture seule : il ne l'écrit jamais, c'est le rôle des triggers
+    et de /api/moments. */
+export async function fetchCitedFeedEvents(
+  ids: string[],
+): Promise<FeedEvent[] | null> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("feed_events")
+    .select("id, player_id, kind, payload, created_at")
+    .in("id", ids);
+  return error ? null : (data as FeedEvent[]);
 }
 
 // ---- Écriture ----
