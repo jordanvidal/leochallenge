@@ -12,7 +12,7 @@
 // salon lisible en diagonale.
 
 import { useRef, useState } from "react";
-import { apercu, ChatMessage, ChatReaction } from "@/lib/chat";
+import { apercu, ChatMessage, ChatReaction, segmentsOf } from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 
@@ -77,6 +77,11 @@ type Props = {
   feedEventAuthor: Player | undefined;
   reactions: ChatReaction[];
   myId: string;
+  /** Pour repérer et colorer les mentions. Le rendu lit la MÊME fonction
+      que la route de notification : ce qui est surligné est ce qui a
+      prévenu quelqu'un, jamais autre chose. */
+  players: Player[];
+  byId: Map<string, Player>;
   /** On vient de le rejoindre depuis une citation : il s'allume une fois. */
   flash: boolean;
   onOpenMenu: (m: ChatMessage) => void;
@@ -97,6 +102,8 @@ export default function ChatBubble({
   feedEventAuthor,
   reactions,
   myId,
+  players,
+  byId,
   flash,
   onOpenMenu,
   onReply,
@@ -236,7 +243,36 @@ export default function ChatBubble({
             supprime ? "italic" : ""
           }`}
         >
-          {supprime ? "Message supprimé" : message.body}
+          {supprime
+            ? "Message supprimé"
+            : segmentsOf(message.body, players).map((seg, i) =>
+                seg.playerId ? (
+                  // La mention devient une étiquette : c'est ce qui la
+                  // distingue d'un prénom écrit au fil de la phrase, et
+                  // donc ce qui dit « celui-là a été prévenu ».
+                  <span
+                    key={i}
+                    className="rounded px-0.5 font-bold"
+                    style={
+                      isMine
+                        ? {
+                            color: "oklch(0.15 0 0)",
+                            background: "oklch(0.15 0 0 / 0.14)",
+                          }
+                        : {
+                            color: byId.get(seg.playerId)?.color ?? "inherit",
+                            background: `color-mix(in oklch, ${
+                              byId.get(seg.playerId)?.color ?? "transparent"
+                            } 16%, transparent)`,
+                          }
+                    }
+                  >
+                    {seg.texte}
+                  </span>
+                ) : (
+                  <span key={i}>{seg.texte}</span>
+                ),
+              )}
         </p>
       </div>
 

@@ -46,6 +46,8 @@ export default function ChatScreen({
   useKeyboardInset(true);
 
   const byId = new Map(players.map((p) => [p.id, p]));
+  // Se mentionner soi-même ne prévient personne : on ne se propose pas.
+  const autres = players.filter((p) => p.id !== player.id);
   const [reply, setReply] = useState<ChatMessage | null>(null);
   const [menu, setMenu] = useState<ChatMessage | null>(null);
   const [reglages, setReglages] = useState(false);
@@ -229,6 +231,8 @@ export default function ChatScreen({
                   )}
                   reactions={chat.reactions.get(row.message.id) ?? []}
                   myId={player.id}
+                  players={players}
+                  byId={byId}
                   flash={flash === row.message.id}
                   onOpenMenu={setMenu}
                   onReply={setReply}
@@ -250,6 +254,7 @@ export default function ChatScreen({
 
       <ChatComposer
         citation={citation}
+        mentionnables={autres}
         onSend={(body) => {
           send(body, {
             replyTo: reply?.id ?? null,
