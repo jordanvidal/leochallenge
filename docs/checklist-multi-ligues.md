@@ -9,14 +9,23 @@ Rappel de la contrainte qui commande tout : **tout se construit dans le schéma
 après le 31 août.
 
 > **Ce que veut dire une case cochée ici : livré en PR draft, testé, en attente
-> de review.** Rien n'est mergé, et **aucune migration n'est appliquée** — ni en
-> prod, ni sur une branche Supabase. Le schéma `app` n'existe aujourd'hui que
-> sur un cluster PostgreSQL 17 local. Une case cochée ne décrit donc pas l'état
-> de la prod, qui n'a pas bougé d'un octet.
+> de review.** Le code n'est pas mergé — `main` ne l'a pas encore.
 >
-> État au 28/07 : phases 1 et 2 livrées, phase 3 entamée puis **bloquée** — les
-> écrans ont besoin que le schéma `app` existe quelque part pour être testables
-> sur une preview.
+> **Le SQL, lui, est appliqué.** Le 28/07, avec l'accord de Jordan, les
+> migrations 36, 37, 38 et 42 ont été jouées sur le projet Supabase de prod
+> (`fnvayegsjhlesczpfshx`). Elles sont **purement additives** : elles créent le
+> schéma `app` et rien d'autre — aucun `drop`, aucun `alter` sur un objet
+> existant. Vérifié par une empreinte md5 de tous les objets de `public`,
+> identique avant et après (`31a30556…`, 50 objets). Le rollback tient en une
+> commande : `drop schema app cascade`.
+>
+> **`public` ne bouge pas, et rien ne lit `app`** tant que
+> `NEXT_PUBLIC_SUPABASE_SCHEMA` n'est pas posée côté Vercel. Les 9 joueurs du
+> groupe d'origine continuent de jouer sur `public` sans rien voir — une entrée
+> a d'ailleurs été cochée pendant l'opération.
+>
+> État au 28/07 : phases 1 et 2 livrées, phase 3 **débloquée** par cette
+> application — les écrans peuvent désormais être testés sur une preview.
 
 ---
 
@@ -91,6 +100,12 @@ après le 31 août.
 - [x] Non-régression du barème : même jeu de données dans `public.daily_points`
       et `app.daily_points` → 145 lignes identiques
 - [x] `npx tsc --noEmit` + `npm run build` OK
+- [x] **Appliqué en prod le 28/07** — 15 tables, 5 vues, 28 fonctions, 23
+      triggers, 46 bonus au catalogue, 0 ligue. Test de fumée sans résidu : le
+      trigger de durée refuse bien une ligue d'un an, et les six vues et
+      fonctions de scoring s'exécutent à vide sans erreur.
+- [x] `migration42` : `app.code_court()` fige son `search_path`, seule des 28
+      fonctions à ne pas le faire — repéré par le linter Supabase après coup.
 
 ---
 
@@ -125,11 +140,10 @@ après le 31 août.
 
 ## Phase 3 — Création & invitation *(3-4 soirées)* — **entamée, puis bloquée**
 
-⛔ **Les écrans attendent que le schéma `app` existe quelque part.** Aujourd'hui
-il n'existe ni en prod, ni sur une branche Supabase : aucun écran de cette phase
-ne peut être testé sur une preview Vercel, ce que le workflow exige avant review.
-**Ce qui débloque : appliquer 36→38 sur une branche Supabase** (la prod ne bouge
-pas), ou accepter de construire sans test de preview.
+✅ **Débloquée le 28/07** : le schéma `app` existe maintenant sur le projet
+Supabase de prod, vide et sans lecteur. Les écrans de cette phase peuvent donc
+être écrits **et testés sur une preview Vercel**, en posant
+`NEXT_PUBLIC_SUPABASE_SCHEMA=app` sur les déploiements de preview uniquement.
 
 **Fait — la plomberie, qui ne dépend pas de la base**
 
@@ -235,9 +249,10 @@ pas), ou accepter de construire sans test de preview.
 
 Sorties du code en chemin. Aucune n'est urgente, aucune n'est tranchée.
 
-- [ ] **Débloquer la phase 3** : appliquer `migration36→38` sur une branche
-      Supabase (la prod ne bouge pas), ou construire les écrans sans preview.
-      C'est le seul point qui bloque réellement l'avancement.
+- [x] ~~**Débloquer la phase 3**~~ — fait le 28/07 : 36, 37, 38 et 42 appliquées
+      sur le projet de prod, `public` prouvé inchangé. Reste à poser
+      `NEXT_PUBLIC_SUPABASE_SCHEMA=app` **sur les previews Vercel seulement** —
+      surtout pas en production, tant que la phase 5 n'a pas tourné.
 - [ ] **Duels sur les ligues courtes.** Le premier appariement tombe au lundi de
       la 2ᵉ semaine — il faut un classement de S1 pour apparier. Conséquence :
       **une ligue d'une ou deux semaines n'aura jamais de duel.** Règle actuelle
