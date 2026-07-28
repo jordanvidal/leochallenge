@@ -11,15 +11,18 @@
 // l'arrivée de la nouvelle valeur serveur — voir StreakCount.
 
 import { useCallback, useEffect, useState } from "react";
-import { daysLeft } from "@/lib/challenge";
+import { daysLeft, parisToday } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
-import { Player } from "@/lib/types";
+import { streakEnSursis } from "@/lib/stats";
+import { Entry, Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
 import { Skeleton } from "./ui";
 
 type Props = {
   player: Player;
   players: Player[];
+  /** Pour la série en sursis : le serveur ne la connaît pas encore. */
+  entries: Map<string, Entry>;
   gamification: Gamification | null;
   /** Les reprises sont épuisées : on ne fera plus patienter personne. */
   enPanne: boolean;
@@ -44,6 +47,7 @@ function fmtMult(m: number): string {
 export default function RankLine({
   player,
   players,
+  entries,
   gamification,
   enPanne,
   perfect,
@@ -81,10 +85,28 @@ export default function RankLine({
   // le dernier jour parfait est hier (la série ne casse qu'à minuit).
   const streak = mine.current_streak;
 
+  // La série que le joker peut encore rattraper. Nulle sauf le lendemain
+  // d'un trou unique, joker intact — voir streakEnSursis.
+  const sursis =
+    !perfect && streak === 0
+      ? streakEnSursis(player.id, entries, mine.joker_day, parisToday())
+      : 0;
+
   let emoji: string;
   let body: React.ReactNode;
 
-  if (!perfect && streak > 0) {
+  if (sursis > 0) {
+    // Le seul moment où cette ligne parle du joker : celui où il peut
+    // encore servir. Le reste du temps son état vit au Classement.
+    //
+    // La phrase nomme le prix (le joker part) en même temps que le gain :
+    // une règle qui touche au score et qu'on découvre après coup passe
+    // pour de la triche, c'est la raison d'être de la migration 24. Elle
+    // ne promet rien de faux — si le 3/3 ne vient pas, rien ne se déclenche
+    // et la série tombe, ce qu'elle faisait déjà en silence.
+    emoji = "🛟";
+    body = `Série de ${sursis} j en sursis — ton joker la sauve si tu fais ton 3/3`;
+  } else if (!perfect && streak > 0) {
     // La série est en jeu : la phrase du soir, celle qui fait cocher.
     // Rien n'a encore bougé, donc pas de compteur animé ici.
     emoji = "🔥";
