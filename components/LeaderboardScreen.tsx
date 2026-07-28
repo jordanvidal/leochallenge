@@ -361,7 +361,11 @@ export default function LeaderboardScreen({
                                 : "Joker de série disponible"
                             }
                           >
-                            🛡️{" · "}
+                            {/* 🛟 et pas 🛡️ : c'est la bouée qu'affichent les
+                                Stats, l'Historique, le fil et les règles du
+                                jeu. Un joueur qui cherche « son 🛟 » ne doit
+                                pas trouver un bouclier au Classement. */}
+                            🛟{" · "}
                           </span>
                         )}
                         {completion}% de complétion

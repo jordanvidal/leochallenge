@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fenetre, FENETRE_ENV } from "../lib/challenge";
 import { duelsFrom, DUELS_FROM } from "../lib/duels";
 import { buildFinalShare, buildWeekShare } from "../lib/share";
-import { computeStats, groupTimeline } from "../lib/stats";
+import { computeStats, groupTimeline, streakEnSursis } from "../lib/stats";
 import { Entry, entryKey, Player } from "../lib/types";
 
 function onEstLe(jour: string) {
@@ -76,6 +76,35 @@ describe("computeStats", () => {
     expect(computeStats(LEO.id, entries)).toEqual(
       computeStats(LEO.id, entries, FENETRE_ENV),
     );
+  });
+});
+
+describe("streakEnSursis", () => {
+  // Arrivée par main (#61) pendant que cette branche vivait, cette fonction
+  // bornait sa remontée à CHALLENGE_START — une dixième fermeture sur la
+  // fenêtre, à paramétrer comme les neuf autres. `tests/joker-sursis.test.ts`
+  // couvre la règle du joker ; ici on ne vérifie que la borne.
+  it("remonte jusqu'au début de SA ligue, pas du challenge d'origine", () => {
+    // Parfait du 2 au 7 mars, trou le 8, on est le 9 — hors fenêtre du sprint,
+    // donc on prend une ligue qui va jusqu'au 9.
+    const ligue = fenetre("2026-03-02", "2026-03-09");
+    const entries = parfaitSur([
+      "2026-03-02", "2026-03-03", "2026-03-04",
+      "2026-03-05", "2026-03-06", "2026-03-07",
+    ]);
+    // 6 jours parfaits avant le trou du 8 : il y a de quoi brûler le joker.
+    expect(streakEnSursis(LEO.id, entries, null, "2026-03-09", ligue)).toBe(6);
+  });
+
+  it("ne remonte pas avant le premier jour de la ligue", () => {
+    // Même donnée, mais la ligue ne commence que le 5 : seuls 3 jours parfaits
+    // la précèdent, le reste appartient à l'avant-ligue et ne compte pas.
+    const tardive = fenetre("2026-03-05", "2026-03-09");
+    const entries = parfaitSur([
+      "2026-03-02", "2026-03-03", "2026-03-04",
+      "2026-03-05", "2026-03-06", "2026-03-07",
+    ]);
+    expect(streakEnSursis(LEO.id, entries, null, "2026-03-09", tardive)).toBe(3);
   });
 });
 
