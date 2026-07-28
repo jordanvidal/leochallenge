@@ -8,7 +8,8 @@
 // découpe, et il faut viser au pouce dans le noir. Une feuille arrive
 // par le bas, là où le pouce est déjà.
 
-import { CHAT_EMOJIS, NotifyPref } from "@/lib/chat";
+import { CHAT_EMOJIS, ChatReaction, NotifyPref } from "@/lib/chat";
+import { Player } from "@/lib/types";
 
 /** Le châssis commun : voile, panneau bas, fermeture au tap dehors. */
 function Sheet({
@@ -44,6 +45,9 @@ function Sheet({
 export function MessageSheet({
   mine,
   supprime,
+  reactions,
+  byId,
+  myId,
   onReact,
   onReply,
   onDelete,
@@ -51,29 +55,79 @@ export function MessageSheet({
 }: {
   mine: boolean;
   supprime: boolean;
+  reactions: ChatReaction[];
+  byId: Map<string, Player>;
+  myId: string;
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const mesEmojis = new Set(
+    reactions.filter((r) => r.player_id === myId).map((r) => r.emoji),
+  );
+  // Qui a mis quoi. C'est ce que le tapback ne peut pas dire : posé sur la
+  // bulle, il montre les emojis mais pas les gens. Cette feuille est donc
+  // l'endroit où l'on apprend qui, et c'est pour ça qu'un tap dessus
+  // l'ouvre.
+  const parEmoji = [...new Set(reactions.map((r) => r.emoji))].map((emoji) => ({
+    emoji,
+    qui: reactions
+      .filter((r) => r.emoji === emoji)
+      .map((r) => byId.get(r.player_id))
+      .filter((p): p is Player => Boolean(p)),
+  }));
+
   return (
     <Sheet onClose={onClose} label="Actions sur le message">
       {!supprime && (
         <div className="flex justify-between gap-1">
-          {CHAT_EMOJIS.map((e) => (
-            <button
-              key={e}
-              onClick={() => {
-                onReact(e);
-                onClose();
-              }}
-              aria-label={`Réagir ${e}`}
-              className="flex size-14 items-center justify-center rounded-2xl bg-surface text-2xl transition-transform active:scale-95"
-            >
-              {e}
-            </button>
-          ))}
+          {CHAT_EMOJIS.map((e) => {
+            const deja = mesEmojis.has(e);
+            return (
+              <button
+                key={e}
+                onClick={() => {
+                  onReact(e);
+                  onClose();
+                }}
+                aria-pressed={deja}
+                aria-label={deja ? `Retirer ${e}` : `Réagir ${e}`}
+                className="flex size-14 items-center justify-center rounded-2xl text-2xl transition-transform active:scale-95"
+                style={{
+                  background: deja
+                    ? "color-mix(in oklch, var(--pc) 22%, var(--color-surface))"
+                    : "var(--color-surface)",
+                  boxShadow: deja
+                    ? "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 60%, transparent)"
+                    : undefined,
+                }}
+              >
+                {e}
+              </button>
+            );
+          })}
         </div>
+      )}
+
+      {parEmoji.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {parEmoji.map(({ emoji, qui }) => (
+            <li key={emoji} className="flex items-baseline gap-2 text-sm">
+              <span className="shrink-0">{emoji}</span>
+              <span className="min-w-0">
+                {qui.map((p, i) => (
+                  <span key={p.id}>
+                    {i > 0 && <span className="text-faint">, </span>}
+                    <span className="font-bold" style={{ color: p.color }}>
+                      {p.id === myId ? "toi" : p.name}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       <div className="mt-3 flex flex-col">
