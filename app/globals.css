@@ -29,6 +29,17 @@
   color-scheme: dark;
   /* accent joueur courant, injecté par l'app */
   --pc: oklch(0.74 0.17 150);
+
+  /* Hauteur mangée par le clavier, écrite par hooks/useKeyboardInset.ts
+     pendant que le tchat est ouvert. 0 partout ailleurs. */
+  --kb: 0px;
+
+  /* La hauteur de la barre d'onglets, en UN endroit. La barre de saisie
+     du tchat doit se poser juste au-dessus d'elle ; si les deux
+     calculaient leur hauteur chacune de leur côté, elles finiraient par
+     se désynchroniser et la saisie chevaucherait les onglets. Doit
+     rester égale à `min-h-14` + `pb-safe` de components/TabBar.tsx. */
+  --tabbar-h: calc(3.5rem + max(env(safe-area-inset-bottom), 0.5rem));
 }
 
 html,
@@ -493,6 +504,26 @@ button {
     skeleton-respire 1.8s 470ms ease-in-out infinite;
 }
 
+/* Le message qu'on vient de rejoindre depuis une citation. Il s'allume
+   une fois : sans ce signal, on saute quelque part dans la conversation
+   sans savoir où on a atterri. Le halo porte sur la ligne entière, donc
+   il marche aussi bien à gauche qu'à droite. */
+@keyframes chat-flash {
+  0% {
+    background: color-mix(in oklch, var(--pc) 0%, transparent);
+  }
+  25% {
+    background: color-mix(in oklch, var(--pc) 18%, transparent);
+  }
+  100% {
+    background: color-mix(in oklch, var(--pc) 0%, transparent);
+  }
+}
+.chat-flash {
+  border-radius: 1rem;
+  animation: chat-flash 1000ms ease-out both;
+}
+
 /* Zones sûres (encoche, barre home) en mode installé */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
@@ -555,6 +586,10 @@ button {
   /* Le flash resterait un voile opaque figé sans animation : on le coupe. */
   .perfect-flash {
     display: none;
+  }
+  /* Le halo de citation disparaît, le défilement fait déjà le travail. */
+  .chat-flash {
+    animation: none;
   }
   /* .reel-strip est absent volontairement : neutraliser son animation
      la laisserait bloquée sur un leurre. C'est la modale qui coupe la

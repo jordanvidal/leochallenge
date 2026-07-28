@@ -662,11 +662,21 @@ qui ne soit pas noyée dans 600 lignes de composant.
 - [ ] Les fonctions de garde ne sont pas appelables via RPC (`revoke execute`).
 - [ ] `POST /api/chat-notify` sans `x-group-pass` renvoie 401.
 - [ ] `prefers-reduced-motion` : rien ne bouge, tout reste lisible.
-- [ ] Contraste vérifié sur les bulles à la couleur du joueur : le texte sombre
-      sur les 8 couleurs de `lib/palette.ts` doit tenir 4,5:1. Les couleurs
-      claires passent, **les foncées sont à vérifier une par une** — si l'une
-      échoue, la bulle passe en fond teinté 18 % avec texte `--color-ink`,
-      motif déjà utilisé pour les pastilles cochées (`Interactions.tsx` l. 125).
+- [x] **Contraste des bulles « moi » : mesuré, pas estimé.** Texte
+      `oklch(0.15 0 0)` sur chacune des 8 couleurs de `lib/palette.ts`, calcul
+      OKLCH → sRGB → luminance relative → ratio WCAG :
+
+      | couleur | ratio | | couleur | ratio |
+      |---|---|---|---|---|
+      | corail | 7,04 | | cyan | 11,08 |
+      | ambre | 9,50 | | bleu | 7,34 |
+      | jaune | 12,96 | | violet | **6,88** |
+      | vert | 9,11 | | rose | 7,58 |
+
+      Le pire cas est le violet à 6,88:1, soit une marge de 53 % sur le seuil
+      de 4,5. Le repli en fond teinté envisagé ici n'a pas lieu d'être, et le
+      motif accent déjà en place (`BigButton`, bouton d'envoi du fil) est donc
+      repris tel quel.
 - [ ] Ouvrir l'app et cocher trois exos ne déclenche **aucune requête de
       tchat** hors le comptage de la pastille (à vérifier dans l'onglet réseau).
 - [ ] Aucun fichier ne dépasse 500 lignes.

@@ -8,7 +8,7 @@
 // slot, « Historique » est descendu dans Stats (components/HistoryGrid.tsx).
 // Les deux regardaient le passé, aucun n'était sur le chemin d'une coche.
 
-export type Tab = "today" | "bilan" | "feed" | "leaderboard" | "stats";
+export type Tab = "today" | "bilan" | "feed" | "chat" | "leaderboard" | "stats";
 
 function IconTrophy() {
   return (
@@ -38,6 +38,20 @@ function IconToday() {
       />
       <path
         d="m8.5 12.5 2.5 2.5 4.5-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconChat() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M20.5 12.2c0 4-3.8 7.2-8.5 7.2a9.9 9.9 0 0 1-2.6-.34L4.5 20.5l1.2-3.3A6.9 6.9 0 0 1 3.5 12.2C3.5 8.2 7.3 5 12 5s8.5 3.2 8.5 7.2Z"
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
@@ -92,6 +106,9 @@ const TODAY_TAB = { key: "today" as Tab, label: "Aujourd'hui", icon: IconToday }
 const BILAN_TAB = { key: "bilan" as Tab, label: "Bilan", icon: IconBilan };
 const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "feed", label: "Feed", icon: IconFeed },
+  // Le tchat au centre des cinq : le pouce y arrive sans effort, et un
+  // salon qu'on veut voir vivre ne se met pas dans un coin.
+  { key: "chat", label: "Tchat", icon: IconChat },
   { key: "leaderboard", label: "Classement", icon: IconTrophy },
   { key: "stats", label: "Stats", icon: IconStats },
 ];
@@ -100,16 +117,23 @@ export default function TabBar({
   tab,
   onChange,
   feedUnread = 0,
+  chatUnread = 0,
   over = false,
 }: {
   tab: Tab;
   onChange: (tab: Tab) => void;
   /** Pastille de non-lu sur l'onglet Feed. C'est elle qui fait revenir. */
   feedUnread?: number;
+  /** Idem pour le tchat. La sienne compte des messages, pas des moments. */
+  chatUnread?: number;
   // Challenge terminé : « Aujourd'hui » s'efface, « Bilan » prend sa place en tête.
   over?: boolean;
 }) {
   const tabs = [over ? BILAN_TAB : TODAY_TAB, ...REST_TABS];
+  const nonLus: Partial<Record<Tab, number>> = {
+    feed: feedUnread,
+    chat: chatUnread,
+  };
   return (
     <nav
       aria-label="Navigation"
@@ -118,7 +142,8 @@ export default function TabBar({
       <div className="flex">
         {tabs.map(({ key, label, icon: Icon }) => {
           const active = key === tab;
-          const showBadge = key === "feed" && feedUnread > 0 && !active;
+          const unread = nonLus[key] ?? 0;
+          const showBadge = unread > 0 && !active;
           return (
             <button
               key={key}
@@ -131,11 +156,11 @@ export default function TabBar({
                 <Icon />
                 {showBadge && (
                   <span
-                    aria-label={`${feedUnread} non lus`}
+                    aria-label={`${unread} non lus`}
                     className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
                     style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
                   >
-                    {feedUnread > 9 ? "9+" : feedUnread}
+                    {unread > 9 ? "9+" : unread}
                   </span>
                 )}
               </span>
