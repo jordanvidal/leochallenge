@@ -19,11 +19,18 @@ import { entryCount, EXERCISES, Exercise } from "@/lib/types";
 import type { Player } from "@/lib/types";
 import { DayBreakdown, formatClock } from "@/lib/workout";
 import { fmtPoints } from "@/lib/gamification";
+import { Skeleton } from "../ui";
 import StreakCount from "../StreakCount";
 
 /** Durée du beat de fond, alignée sur .streak-beat-block dans globals.css.
     Il couvre toute la séquence longue de StreakCount, rebond compris. */
 const BEAT_MS = 1860;
+
+/** Les points du jour : demandés au serveur après l'upsert, donc absents
+    au premier rendu. « echec » couvre l'erreur RPC comme la journée sans
+    ligne — dans les deux cas il n'y a rien à dire, mais on ne fait plus
+    patienter pour rien. */
+export type DayPoints = "attente" | "echec" | DayBreakdown;
 
 type Props = {
   player: Player;
@@ -36,7 +43,7 @@ type Props = {
   missing: Exercise[];
   /** Série serveur. Monte d'elle-même quand rescore() a rechargé. */
   streak: number;
-  breakdown: DayBreakdown | null;
+  breakdown: DayPoints;
   onClose: () => void;
 };
 
@@ -98,14 +105,24 @@ export default function DoneScreen({
             ? "Journée validée 3/3 ✓"
             : `${exosDone}/3 exos validés aujourd'hui`}
         </p>
-        {breakdown !== null && (
-          <p className="mt-1 text-sm font-medium text-muted">
-            {fmtPoints(breakdown.points)} pts aujourd&apos;hui
-            {breakdown.bonusPoints > 0
-              ? ` · dont ${fmtPoints(breakdown.bonusPoints)} pts bonus 🎁`
-              : ""}
-          </p>
-        )}
+        {/* Emplacement réservé dès la première image. Les points arrivent
+            du serveur une demi-seconde plus tard : sans place gardée, leur
+            ligne poussait tout ce qui suit vers le bas — le bloc série y
+            compris, en plein milieu de son animation. La case tient sa
+            hauteur même quand l'appel échoue et qu'il n'y a rien à écrire :
+            un blanc discret vaut mieux qu'un écran qui se réorganise. */}
+        <div className="mt-1 flex h-5 items-center justify-center">
+          {breakdown === "attente" ? (
+            <Skeleton h={11} w={148} radius={6} />
+          ) : breakdown === "echec" ? null : (
+            <p className="text-sm font-medium text-muted">
+              {fmtPoints(breakdown.points)} pts aujourd&apos;hui
+              {breakdown.bonusPoints > 0
+                ? ` · dont ${fmtPoints(breakdown.bonusPoints)} pts bonus 🎁`
+                : ""}
+            </p>
+          )}
+        </div>
 
         {streak > 0 && (
           <div

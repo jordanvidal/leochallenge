@@ -4,7 +4,7 @@
 // Il n'écrit JAMAIS les entrées lui-même : la validation passe par le
 // chemin d'écriture existant (onValidate → upsert optimiste + triggers).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWorkout } from "@/hooks/useWorkout";
 import { parisToday } from "@/lib/challenge";
 import { Entry, entryCount, EXERCISES, Exercise, Player } from "@/lib/types";
@@ -18,7 +18,7 @@ import {
   WorkoutPreset,
 } from "@/lib/workout";
 import ConfigScreen from "./ConfigScreen";
-import DoneScreen from "./DoneScreen";
+import DoneScreen, { DayPoints } from "./DoneScreen";
 import { BlockScreen, RestScreen } from "./SessionScreens";
 
 type Props = {
@@ -47,7 +47,10 @@ export default function WorkoutMode({
   const w = useWorkout(player.id, showToast, onSessionStart);
   const [presets, setPresets] = useState<WorkoutPreset[] | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
-  const [breakdown, setBreakdown] = useState<DayBreakdown | null>(null);
+  // Trois états et pas deux : « en attente » et « pas de points » ne se
+  // dessinent pas pareil, et un null pour les deux faisait tourner le
+  // bloc d'attente indéfiniment quand l'appel échouait.
+  const [breakdown, setBreakdown] = useState<DayPoints>("attente");
   const validated = useRef(false);
 
   useEffect(() => {
@@ -56,12 +59,24 @@ export default function WorkoutMode({
 
   // Fin de séance : l'entrée du jour passe à fait (exos couverts par la
   // config), une seule fois, puis on lit les points du jour côté serveur.
-  useEffect(() => {
+  //
+  // useLayoutEffect et pas useEffect : l'écriture optimiste de l'entrée
+  // est synchrone (setEntries part avant le premier await de l'upsert),
+  // mais un useEffect s'exécute APRÈS la peinture. L'écran de fin était
+  // donc peint une image avec l'entrée d'avant la séance — c'est-à-dire
+  // « 0/3 exos validés aujourd'hui » et « il te manque les pompes, les
+  // abdos et les squats » à la seconde où on vient justement de tout
+  // faire. En couche de layout, l'entrée est à jour dès la première
+  // image. Le réseau, lui, reste derrière : si l'upsert échoue, le
+  // rollback rétablit la vérité et le toast l'explique.
+  useLayoutEffect(() => {
     if (w.step?.kind !== "done" || !w.config || validated.current) return;
     validated.current = true;
     const exos = coveredExos(w.config);
     onValidate(exos).then(() => {
-      fetchDayBreakdown(player.id, parisToday()).then(setBreakdown);
+      fetchDayBreakdown(player.id, parisToday()).then((b) =>
+        setBreakdown(b ?? "echec"),
+      );
     });
   }, [w.step, w.config, onValidate, player.id]);
 
