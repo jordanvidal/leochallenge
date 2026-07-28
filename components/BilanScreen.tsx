@@ -24,6 +24,7 @@ type Props = {
   gamification: Gamification | null;
   onShareFinal: () => void;
   onRematch: () => void;
+  /** Emmène à la grille jour par jour, qui vit dans Stats depuis le 28/07. */
   onGoHistory: () => void;
 };
 
@@ -56,7 +57,7 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
         className="mt-2 min-h-8 font-bold"
         style={{ color: "var(--pc)" }}
       >
-        Corriger dans l&apos;Historique →
+        Voir l&apos;historique →
       </button>
     </div>
   );
