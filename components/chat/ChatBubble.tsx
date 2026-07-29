@@ -12,6 +12,7 @@
 // salon lisible en diagonale.
 
 import { useRef, useState } from "react";
+import { ZONE_BORD_PX } from "@/hooks/useRetour";
 import { apercu, ChatMessage, ChatReaction, segmentsOf } from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
@@ -171,6 +172,11 @@ export default function ChatBubble({
 
   function onPointerDown(e: React.PointerEvent) {
     if (enVol) return;
+    // Le bord gauche appartient au retour arrière : les deux gestes vont
+    // dans le même sens, et une bulle alignée à gauche commence à 20 px
+    // du bord. Sans cette réserve, répondre et sortir du tchat se
+    // disputeraient le même glissé.
+    if (e.clientX <= ZONE_BORD_PX) return;
     consomme.current = false;
     depart.current = { x: e.clientX, y: e.clientY };
     // Même durée et même vibration que l'appui long des réactions du fil
