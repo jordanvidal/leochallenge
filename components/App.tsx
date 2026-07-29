@@ -15,10 +15,10 @@ import {
   addDays,
   challengeIsOver,
   parisToday,
-  SAISON3_START,
   saison3Started,
 } from "@/lib/challenge";
 import { FeedEvent } from "@/lib/feed";
+import { useFenetre } from "./ligue/LigueContexte";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -54,14 +54,17 @@ function Splash() {
 }
 
 export default function App() {
+  // La fenêtre de la ligue courante — celle des variables d'env en groupe
+  // unique. Tout ce qui date dans cet écran passe par elle.
+  const f = useFenetre();
   const data = useChallengeData();
   const id = useIdentity();
   const { playerId } = id;
   // Challenge terminé (1er sept.+) : le Bilan remplace « Aujourd'hui » et
   // devient l'onglet par défaut. Garde stable sur toute la session.
-  const over = challengeIsOver();
+  const over = challengeIsOver(f);
   const [tab, setTab] = useState<Tab>(() =>
-    challengeIsOver() ? "bilan" : "today",
+    challengeIsOver(f) ? "bilan" : "today",
   );
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
@@ -285,7 +288,7 @@ export default function App() {
   // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
   if (
     !over &&
-    (forceLaunch || replayLaunch || (saison3Started() && !id.launchS3Seen))
+    (forceLaunch || replayLaunch || (saison3Started(f) && !id.launchS3Seen))
   ) {
     return (
       <div style={accent}>
@@ -453,7 +456,7 @@ export default function App() {
         >
           Revoir les règles
         </button>
-        {saison3Started() && parisToday() <= addDays(SAISON3_START, 6) && (
+        {saison3Started(f) && parisToday() <= addDays(f.saison3, 6) && (
           <>
             <span className="text-[11px] text-faint" aria-hidden>
               ·

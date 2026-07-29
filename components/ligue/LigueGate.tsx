@@ -9,6 +9,7 @@ import { useLigue } from "@/hooks/useLigue";
 import type { Ligue } from "@/lib/ligue";
 import AccueilLigue from "./AccueilLigue";
 import CreerLigue from "./CreerLigue";
+import { FournisseurLigue } from "./LigueContexte";
 
 function Splash() {
   return (
@@ -32,8 +33,13 @@ export default function LigueGate({
 
   if (ligue.etat === "chargement") return <Splash />;
 
-  // `ligue: null` = groupe unique. Rien à choisir, rien à afficher.
-  if (ligue.etat === "prete") return <>{children}</>;
+  // `ligue: null` = groupe unique. Le fournisseur rend alors la fenêtre des
+  // variables d'env, et l'app en dessous ne voit aucune différence.
+  if (ligue.etat === "prete") {
+    return (
+      <FournisseurLigue ligue={ligue.ligue}>{children}</FournisseurLigue>
+    );
+  }
 
   const entre = (l: Ligue) => {
     ligue.installe(l);

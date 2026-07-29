@@ -4,7 +4,8 @@
 // L'écran change instantanément, Supabase suit derrière, rollback si échec.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CHALLENGE_END, CHALLENGE_START, parisToday } from "@/lib/challenge";
+import { useFenetre, useLigueCourante } from "@/components/ligue/LigueContexte";
+import { parisToday } from "@/lib/challenge";
 import { nextColor, normalizeName } from "@/lib/palette";
 import { SUPABASE_SCHEMA, supabase } from "@/lib/supabase";
 import { Entry, entryCount, entryKey, Exercise, Player } from "@/lib/types";
@@ -25,6 +26,10 @@ export type CreateResult =
   | { status: "error" };
 
 export function useChallengeData() {
+  const ligue = useLigueCourante();
+  // Les bornes, pas l'objet : la `Fenetre` est recréée à chaque ligue, et
+  // deux chaînes en dépendances valent mieux qu'un objet à comparer.
+  const { start: debut, end: fin } = useFenetre();
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [entries, setEntries] = useState<Map<string, Entry>>(new Map());
   // Horodatage (ms) de la dernière coche MONTANTE de chaque joueur,
@@ -52,16 +57,35 @@ export function useChallengeData() {
     toastTimer.current = setTimeout(() => setToast(null), 3200);
   }, []);
 
-  /** Recharge tout. 12 joueurs × 50 jours max : une seule requête suffit. */
+  /**
+   * Recharge tout. 12 joueurs × 42 jours max : une seule requête suffit.
+   *
+   * Les deux requêtes sont cadrées sur la ligue. Pour les joueurs c'est un
+   * simple `league_id`. Pour les coches il n'y a pas de colonne à filtrer —
+   * une entry appartient à un joueur, qui appartient à une ligue — d'où la
+   * jointure interne `players!inner(league_id)` : PostgREST ne rend que les
+   * coches dont le joueur est dans la ligue, en un seul aller-retour.
+   *
+   * Sans ce filtre, deux ligues actives sur des dates qui se chevauchent se
+   * voient l'une l'autre : mesuré sur la preview, deux coches remontaient là
+   * où il n'en fallait qu'une.
+   */
   const refresh = useCallback(async () => {
-    const [p, e] = await Promise.all([
-      supabase.from("players").select("*").order("created_at"),
-      supabase
-        .from("entries")
-        .select("player_id, day, pushups, abs, squats")
-        .gte("day", CHALLENGE_START)
-        .lte("day", CHALLENGE_END),
-    ]);
+    const colonnes = ligue
+      ? "player_id, day, pushups, abs, squats, players!inner(league_id)"
+      : "player_id, day, pushups, abs, squats";
+
+    let joueurs = supabase.from("players").select("*").order("created_at");
+    if (ligue) joueurs = joueurs.eq("league_id", ligue.id);
+
+    let coches = supabase
+      .from("entries")
+      .select(colonnes)
+      .gte("day", debut)
+      .lte("day", fin);
+    if (ligue) coches = coches.eq("players.league_id", ligue.id);
+
+    const [p, e] = await Promise.all([joueurs, coches]);
     if (p.error || e.error) {
       setOffline(true);
       // premier chargement raté : on affiche quand même l'app (cache SW)
@@ -71,11 +95,19 @@ export function useChallengeData() {
     setOffline(false);
     setPlayers(p.data as Player[]);
     const map = new Map<string, Entry>();
-    for (const row of e.data as Entry[]) {
-      map.set(entryKey(row.player_id, row.day), row);
+    // Champ par champ : la jointure ajoute un objet `players` dont personne
+    // n'a besoin ici, et qui n'a rien à faire dans une `Entry`.
+    for (const row of e.data as unknown as Entry[]) {
+      map.set(entryKey(row.player_id, row.day), {
+        player_id: row.player_id,
+        day: row.day,
+        pushups: row.pushups,
+        abs: row.abs,
+        squats: row.squats,
+      });
     }
     setEntries(map);
-  }, []);
+  }, [ligue, debut, fin]);
 
   useEffect(() => {
     refresh();
@@ -211,7 +243,13 @@ export function useChallengeData() {
 
       const { data, error } = await supabase
         .from("players")
-        .insert({ name, color: nextColor(players?.length ?? 0) })
+        .insert({
+          name,
+          color: nextColor(players?.length ?? 0),
+          // `league_id` n'existe pas dans `public` : on ne l'envoie que si
+          // l'app tourne effectivement en multi-ligues.
+          ...(ligue ? { league_id: ligue.id } : {}),
+        })
         .select()
         .single();
       if (error) {
@@ -230,7 +268,7 @@ export function useChallengeData() {
       setPlayers((prev) => [...(prev ?? []), player]);
       return { status: "created", player };
     },
-    [players, refresh, showToast],
+    [players, refresh, showToast, ligue],
   );
 
   /** Suppression d'un joueur fantôme. La base refuse s'il a des entrées. */
