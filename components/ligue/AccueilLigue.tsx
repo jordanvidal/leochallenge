@@ -25,7 +25,13 @@ export default function AccueilLigue({
 }) {
   const [saisie, setSaisie] = useState("");
   const [busy, setBusy] = useState(false);
-  const [erreur, setErreur] = useState<string | null>(message ?? null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  // Le message venu du portier s'efface dès qu'on tape : il explique pourquoi
+  // on est là, il n'a pas à commenter la saisie en cours. On le dérive au lieu
+  // de l'installer dans l'état — sinon un changement de motif (« introuvable »
+  // après « aucune ») n'apparaîtrait jamais, l'état initial ayant déjà été pris.
+  const [touche, setTouche] = useState(false);
+  const affiche = erreur ?? (touche ? null : (message ?? null));
 
   async function soumets(e: React.FormEvent) {
     e.preventDefault();
@@ -64,7 +70,7 @@ export default function AccueilLigue({
           Pompes, abdos, squats. Tous les jours, avec tes potes.
         </p>
 
-        <form onSubmit={soumets} className={`mt-10 ${erreur ? "shake" : ""}`}>
+        <form onSubmit={soumets} className={`mt-10 ${affiche ? "shake" : ""}`}>
           <label htmlFor="entree" className="text-sm font-medium text-muted">
             Le lien ou le code reçu
           </label>
@@ -74,6 +80,7 @@ export default function AccueilLigue({
             onChange={(e) => {
               setSaisie(e.target.value);
               setErreur(null);
+              setTouche(true);
             }}
             autoComplete="off"
             autoCapitalize="off"
@@ -81,9 +88,9 @@ export default function AccueilLigue({
             placeholder="K7M-2QP"
             className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg outline-none focus:border-faint"
           />
-          {erreur && (
+          {affiche && (
             <p className="mt-2 text-sm font-medium text-danger" role="alert">
-              {erreur}
+              {affiche}
             </p>
           )}
           <div className="mt-4">
