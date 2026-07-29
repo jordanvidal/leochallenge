@@ -138,12 +138,35 @@ après le 31 août.
 
 ---
 
-## Phase 3 — Création & invitation *(3-4 soirées)* — **entamée, puis bloquée**
+## Phase 3 — Création & invitation *(3-4 soirées)* — **écrite, testable à un réglage près**
 
-✅ **Débloquée le 28/07** : le schéma `app` existe maintenant sur le projet
-Supabase de prod, vide et sans lecteur. Les écrans de cette phase peuvent donc
-être écrits **et testés sur une preview Vercel**, en posant
-`NEXT_PUBLIC_SUPABASE_SCHEMA=app` sur les déploiements de preview uniquement.
+Le schéma `app` existe sur le projet Supabase de prod depuis le 28/07, vide et
+sans lecteur. Les écrans sont écrits et déployés sur une preview, avec
+`NEXT_PUBLIC_SUPABASE_SCHEMA=app` posée **sur la seule branche
+`feature/ligue-ecrans`** — pas sur toutes les previews, sinon les branches en
+cours sans rapport (#43, #58) basculeraient sur un schéma vide et passeraient
+pour cassées.
+
+> ⛔ **Il manque un réglage, et le plan ne l'avait pas vu.** Créer le schéma ne
+> suffit pas : PostgREST ne sert que les schémas déclarés dans les réglages
+> d'API du projet. Testé sur la preview le 29/07, toute requête sur `app`
+> répond :
+>
+> ```
+> PGRST106 — Only the following schemas are exposed: public, graphql_public
+> ```
+>
+> **À faire par Jordan, une fois :** Supabase → Settings → API → *Exposed
+> schemas* → ajouter `app` à côté de `public`.
+>
+> C'est additif et réversible. Un client doit **demander** explicitement le
+> schéma (en-tête `Accept-Profile`, posé par l'option `db.schema` du client) :
+> l'app de prod ne l'envoie pas et ne l'enverra pas tant que
+> `NEXT_PUBLIC_SUPABASE_SCHEMA` reste absente en production. `public` ne change
+> ni de comportement ni de surface.
+>
+> Tant que ce n'est pas fait, les écrans s'affichent mais aucune ligue ne peut
+> être créée ni rejointe.
 
 **Fait — la plomberie, qui ne dépend pas de la base**
 
@@ -159,21 +182,40 @@ Supabase de prod, vide et sans lecteur. Les écrans de cette phase peuvent donc
       phase 1) ; l'alphabet client en est une copie exacte, tenue par un test
 - [x] Code de récupération (6 car.) : même générateur, déjà en base *(phase 1)*
 
-**Bloqué — tout ce qui lit `app.leagues`**
+**Livré — les écrans et la donnée ligue** *(PR #74 et #75)*
 
-- [ ] Routing `/l/[slug]`
-- [ ] Écran de création : nom, date de début, durée (1 à 6 semaines)
-- [ ] Entrée dans une ligue par prénom via le lien/code
-- [ ] Code de récupération **affiché au joueur** à l'entrée
-- [ ] Bascule entre ligues **au lancement = re-saisir le lien** (pas de
+- [x] Routing `/l/[slug]` — l'app se monte **sur cette route**, sans
+      redirection vers `/` : le `?c=` du lien reste dans l'URL pour la garde
+      qui le lira, et le slug est mémorisé au passage
+- [x] Écran de création : nom, date de début, durée (1 à 6 semaines)
+      → la borne haute client tombe pile sur celle du trigger
+      (`finDeLigue(d, 6) === addDays(d, 41)`), tenue par un test
+- [x] Entrée dans une ligue par **lien collé ou code tapé**, un seul champ pour
+      les deux — `lib/ligue` démêle
+- [x] Bascule entre ligues **au lancement = re-saisir le lien** (pas de
       sélecteur pour l'instant ; ne pas fermer la porte au sélecteur futur)
+- [x] Trois échecs, trois phrases : ligue inconnue, saisie illisible, et
+      « injoignable » qui ne nomme **pas** sa cause — le premier jet accusait le
+      réseau, la preview a montré que c'était le serveur qui refusait
+- [x] `MULTI_LIGUES` : tout ce chemin est inerte sur le schéma `public`, ce qui
+      rend les PR mergeables sans que la prod bouge
+
+**Reste à faire**
+
+- [ ] La ligue **traverse** l'app : `useChallengeData` charge encore tous les
+      joueurs sans filtre `league_id`, et l'app tourne sur la fenêtre des
+      variables d'env au lieu de celle de la ligue
+- [ ] Code de récupération **affiché au joueur** à l'entrée
 - [ ] `components/PasswordGate.tsx` → écran de saisie du **code de ligue**
 - [ ] Reporter la garde `x-group-pass` des POST (`/api/moments`,
       `/api/feed-notify`) sur le code de ligue — **ne jamais la retirer**
       → aujourd'hui elle compare `NEXT_PUBLIC_GROUP_PASSWORD` côté client
       (`PasswordGate`) **et** côté serveur (`lib/server/push.ts`). La porter
       veut dire aller chercher la ligue en base : d'où le blocage.
-- [ ] Ligue disponible en **contexte React avant tout rendu**
+- [x] Ligue disponible **avant tout rendu** : `LigueGate` ne monte pas l'app
+      tant qu'il ne sait pas dans quelle ligue on est. Toujours pas de contexte
+      React — il attend son premier consommateur, c'est-à-dire le point
+      ci-dessus
       → reporté ici volontairement : un contexte dont la valeur serait une
       constante est de la plomberie sans consommateur, et ce repo ne teste pas
       les composants (`vitest.config.ts`). Il arrivera avec le chargement de la
@@ -249,10 +291,17 @@ Supabase de prod, vide et sans lecteur. Les écrans de cette phase peuvent donc
 
 Sorties du code en chemin. Aucune n'est urgente, aucune n'est tranchée.
 
-- [x] ~~**Débloquer la phase 3**~~ — fait le 28/07 : 36, 37, 38 et 42 appliquées
-      sur le projet de prod, `public` prouvé inchangé. Reste à poser
-      `NEXT_PUBLIC_SUPABASE_SCHEMA=app` **sur les previews Vercel seulement** —
-      surtout pas en production, tant que la phase 5 n'a pas tourné.
+- [x] ~~**Appliquer le socle SQL**~~ — fait le 28/07 : 36, 37, 38 et 42
+      appliquées sur le projet de prod, `public` prouvé inchangé.
+- [x] ~~**Poser `NEXT_PUBLIC_SUPABASE_SCHEMA=app`**~~ — fait le 29/07, cadrée
+      sur la seule branche `feature/ligue-ecrans`, jamais en production.
+      Vérifié : une branche témoin (`feature/seance-bonus`) ne la reçoit pas.
+- [ ] ⛔ **Exposer le schéma `app` dans l'API Supabase.** *Settings → API →
+      Exposed schemas → ajouter `app`.* Une case à cocher, une fois.
+      **C'est le dernier verrou de la phase 3** : sans lui, PostgREST répond
+      `PGRST106` et aucune ligue ne peut être créée ni rejointe, alors que les
+      écrans s'affichent normalement. Additif et réversible — un client doit
+      demander le schéma explicitement, l'app de prod ne le fait pas.
 - [ ] **Duels sur les ligues courtes.** Le premier appariement tombe au lundi de
       la 2ᵉ semaine — il faut un classement de S1 pour apparier. Conséquence :
       **une ligue d'une ou deux semaines n'aura jamais de duel.** Règle actuelle
