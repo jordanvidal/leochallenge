@@ -138,7 +138,7 @@ après le 31 août.
 
 ---
 
-## Phase 3 — Création & invitation *(3-4 soirées)* — **écrite, testable à un réglage près**
+## Phase 3 — Création & invitation — **complète**
 
 Le schéma `app` existe sur le projet Supabase de prod depuis le 28/07, vide et
 sans lecteur. Les écrans sont écrits et déployés sur une preview, avec
@@ -200,11 +200,24 @@ pour cassées.
 - [x] `MULTI_LIGUES` : tout ce chemin est inerte sur le schéma `public`, ce qui
       rend les PR mergeables sans que la prod bouge
 
+**Livré — la ligue traverse tout** *(PR #79, #83, #85, #86, #87)*
+
+- [x] Données cadrées : joueurs par `league_id`, coches par jointure interne
+      (#79). Mesuré : 2 coches remontaient, 1 remonte.
+- [x] Classement (#83) — `app.leaderboard(p_league, …)` exige la ligue en
+      premier argument, sans défaut : les 6 appels clients répondaient
+      `PGRST202`. L'app en ligue n'avait **aucun** classement.
+- [x] Fil et tchat (#85), + `migration43` qui crée enfin le tchat dans `app`
+- [x] Les 11 écrans prennent leurs dates de la ligue (#86) — une ligue finissant
+      le 2 août annonçait « 34 jours restants »
+- [x] `aUneBasculeDeBareme()` (#86) : sans elle, l'écran « la saison 3 démarre »
+      s'affichait à la création de **chaque** ligue neuve
+- [x] `PasswordGate` → code de ligue, garde `x-group-pass` portée et
+      **jamais retirée**, fail-closed sur tous les chemins (#87)
+- [x] Arrivé par le lien, on n'a pas à retaper le code qu'il porte (#87)
+
 **Reste à faire**
 
-- [ ] La ligue **traverse** l'app : `useChallengeData` charge encore tous les
-      joueurs sans filtre `league_id`, et l'app tourne sur la fenêtre des
-      variables d'env au lieu de celle de la ligue
 - [ ] Code de récupération **affiché au joueur** à l'entrée
 - [ ] `components/PasswordGate.tsx` → écran de saisie du **code de ligue**
 - [ ] Reporter la garde `x-group-pass` des POST (`/api/moments`,
@@ -296,12 +309,12 @@ Sorties du code en chemin. Aucune n'est urgente, aucune n'est tranchée.
 - [x] ~~**Poser `NEXT_PUBLIC_SUPABASE_SCHEMA=app`**~~ — fait le 29/07, cadrée
       sur la seule branche `feature/ligue-ecrans`, jamais en production.
       Vérifié : une branche témoin (`feature/seance-bonus`) ne la reçoit pas.
-- [ ] ⛔ **Exposer le schéma `app` dans l'API Supabase.** *Settings → API →
-      Exposed schemas → ajouter `app`.* Une case à cocher, une fois.
-      **C'est le dernier verrou de la phase 3** : sans lui, PostgREST répond
-      `PGRST106` et aucune ligue ne peut être créée ni rejointe, alors que les
-      écrans s'affichent normalement. Additif et réversible — un client doit
-      demander le schéma explicitement, l'app de prod ne le fait pas.
+- [x] ~~**Exposer le schéma `app` dans l'API Supabase**~~ — fait le 29/07 par
+      Jordan. Vérifié dans la foulée : `app.leagues` répond en HTTP 200.
+- [x] ~~**`migration43-app-tchat.sql`**~~ — appliquée le 29/07 avec l'accord de
+      Jordan. Le tchat, livré le 28/07, n'avait jamais été transposé dans `app`
+      (15 tables contre 17). Empreinte de `public` identique avant/après
+      (`14602406e9dffe910c79f65078001d3e`), ses 30 messages intacts.
 - [ ] **Duels sur les ligues courtes.** Le premier appariement tombe au lundi de
       la 2ᵉ semaine — il faut un classement de S1 pour apparier. Conséquence :
       **une ligue d'une ou deux semaines n'aura jamais de duel.** Règle actuelle
