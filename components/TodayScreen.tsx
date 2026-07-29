@@ -10,6 +10,7 @@ import {
   daysLeft,
   frenchDate,
   parisToday,
+  joursDeFenetre,
 } from "@/lib/challenge";
 import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, EXERCISES, Player } from "@/lib/types";
@@ -242,7 +243,8 @@ export default function TodayScreen({
       {over && (
         <div className="mt-8 flex-1">
           <p className="text-lg text-muted">
-            50 jours, c&apos;est plié. Va voir les stats pour le bilan.
+            {joursDeFenetre(f)} jours, c&apos;est plié. Va voir les stats pour
+            le bilan.
           </p>
         </div>
       )}

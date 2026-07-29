@@ -18,8 +18,11 @@ const anton = Anton({
 
 export const metadata: Metadata = {
   title: "100 · 100 · 100",
+  // Sans date : cette description sert aussi les ligues, qui ont chacune la
+  // leur. `/l/<slug>` la remplace par celle de la ligue — c'est ce que voient
+  // tes potes dans l'aperçu WhatsApp du lien d'invitation.
   description:
-    "Challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour jusqu'au 31 août.",
+    "Challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour.",
   appleWebApp: {
     capable: true, // plein écran sans barre d'URL sur iOS
     statusBarStyle: "black-translucent",
