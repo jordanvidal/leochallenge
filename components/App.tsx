@@ -500,6 +500,7 @@ export default function App() {
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             onShareWeek={shareWeek}
+            onSetPhoto={data.setPhoto}
             showToast={data.showToast}
           />
         )}
