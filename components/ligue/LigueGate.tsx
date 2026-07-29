@@ -44,17 +44,16 @@ export default function LigueGate({
     return <CreerLigue onCreee={entre} onRetour={() => setCreation(false)} />;
   }
 
-  // Injoignable : le réseau, pas la ligue. On ne propose surtout pas de
+  // Injoignable : quelque chose entre l'app et la base, pas la ligue elle-même
+  // — réseau coupé, ou serveur qui refuse. On ne propose surtout pas de
   // recréer une ligue à quelqu'un qui en a déjà une et qui est dans le métro
-  // — il repartirait avec un doublon.
+  // : il repartirait avec un doublon.
   if (ligue.etat === "injoignable") {
     return (
       <main className="flex min-h-dvh flex-col justify-center px-6 pb-safe">
         <div className="mx-auto w-full max-w-sm text-center">
           <p className="num-display text-4xl text-faint">100 · 100 · 100</p>
-          <p className="mt-6 text-muted">
-            Impossible de joindre ta ligue. Vérifie ta connexion.
-          </p>
+          <p className="mt-6 text-muted">Impossible de joindre ta ligue.</p>
           <button
             onClick={ligue.recharge}
             className="mt-6 min-h-14 w-full rounded-2xl bg-raised px-5 font-bold"

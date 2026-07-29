@@ -53,8 +53,12 @@ export default function AccueilLigue({
     setBusy(false);
     if (trouvaille.statut === "trouvee") onTrouvee(trouvaille.ligue);
     else if (trouvaille.statut === "saisie") setErreur(trouvaille.message);
+    // « Injoignable » couvre le réseau coupé comme le serveur qui refuse : on
+    // ne sait pas laquelle des deux, donc on n'en nomme aucune. Annoncer « pas
+    // de réseau » à quelqu'un dont les cinq barres sont pleines, c'est lui
+    // faire chercher une panne qui n'existe pas.
     else if (trouvaille.statut === "injoignable")
-      setErreur("Pas de réseau. Réessaie dans un instant.");
+      setErreur("Impossible de vérifier pour l'instant. Réessaie.");
     else setErreur("Aucune ligue derrière ça. Redemande le lien au groupe.");
   }
 
