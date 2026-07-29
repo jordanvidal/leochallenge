@@ -284,9 +284,12 @@ export function frenchDateShort(day: string): string {
   return frShortFmt.format(noon(day));
 }
 
-/** "20 juillet" */
+/** "20 juillet", et "1er septembre" — jamais "1 septembre".
+    Intl ne fait pas l'ordinal du premier du mois, et une ligue qui finit un
+    1er le dit dans l'aperçu WhatsApp de son lien d'invitation. */
 export function frenchDayMonth(day: string): string {
-  return frDayMonthFmt.format(noon(day));
+  const t = frDayMonthFmt.format(noon(day));
+  return t.startsWith("1 ") ? `1er ${t.slice(2)}` : t;
 }
 
 /** Jour de semaine 0 = lundi … 6 = dimanche. */
