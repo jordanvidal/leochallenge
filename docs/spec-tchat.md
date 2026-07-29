@@ -514,6 +514,24 @@ phrase de la carte via `eventPhrase()` en tête, exactement comme une réponse
 citée. Ça n'ajoute pas de table, seulement une colonne nullable
 `feed_event_id uuid references public.feed_events (id) on delete set null`.
 
+### Le chemin retour (ajouté le 29/07)
+
+La citation ramène au fil : un tap dessus rouvre l'onglet Feed, amène la carte
+au centre de l'écran et l'entoure d'un anneau qui s'efface. Un chevron sur la
+citation prévient qu'on va changer d'écran — le seul moyen de le savoir avant
+d'appuyer, la citation d'un message se contentant, elle, de remonter la
+conversation.
+
+C'est le pendant d'« En parler », et il ne s'invente rien : la citation dit de
+quoi on parle, elle ne dit pas ce qui s'est passé autour. Les réactions du
+groupe, les moments d'avant et d'après, le bilan de la semaine sont dans le fil,
+et sans ce tap il faut les retrouver à la main.
+
+Le moment cité peut être plus vieux que la page chargée. Le fil remonte alors
+jusqu'à quatre pages de plus (250 événements, une dizaine de jours de vie du
+groupe), puis renonce en le disant : « Ce moment est trop loin dans le fil ».
+Une roue qui tourne sans fin serait pire que l'aveu.
+
 ### La conséquence, à valider
 
 **Les commentaires du fil ferment.** L'action « Commenter » de

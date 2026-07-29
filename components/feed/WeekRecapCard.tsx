@@ -30,6 +30,9 @@ type Props = {
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
   onDiscuss: (events: FeedEvent[]) => void;
   onGoLeaderboard: () => void;
+  /** Rejointe depuis une citation du tchat : le bilan se cite comme
+      n'importe quel moment, il se retrouve donc pareil. */
+  vise?: boolean;
 };
 
 /** Un appariement prêt à afficher, résolu ou non. */
@@ -62,6 +65,7 @@ export default function WeekRecapCard({
   onToggleReaction,
   onDiscuss,
   onGoLeaderboard,
+  vise,
 }: Props) {
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
@@ -152,7 +156,8 @@ export default function WeekRecapCard({
 
   return (
     <li
-      className="flex flex-col rounded-2xl px-4 py-4"
+      id={vise ? "moment-vise" : undefined}
+      className={`flex flex-col rounded-2xl px-4 py-4 ${vise ? "moment-vise" : ""}`}
       style={{ background: "var(--color-raised)" }}
       aria-label="Bilan de la semaine"
     >

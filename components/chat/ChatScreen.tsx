@@ -29,6 +29,10 @@ type Props = {
   players: Player[];
   chat: Chat;
   onGoFeed: () => void;
+  /** Le retour vers un moment précis du fil, depuis sa citation. Le
+      pendant exact de « En parler » : le fil pousse un moment ici, le
+      salon sait le renvoyer là-bas. */
+  onGoFeedEvent: (eventId: string) => void;
   /** Le moment du fil sur lequel on vient d'appuyer « En parler ». Il
       attend dans la saisie, cité, jusqu'à l'envoi ou l'annulation. */
   seed: FeedEvent | null;
@@ -40,6 +44,7 @@ export default function ChatScreen({
   players,
   chat,
   onGoFeed,
+  onGoFeedEvent,
   seed,
   onSeedUsed,
 }: Props) {
@@ -237,6 +242,7 @@ export default function ChatScreen({
                   onOpenMenu={setMenu}
                   onReply={setReply}
                   onJumpTo={rejoindre}
+                  onJumpToFeed={onGoFeedEvent}
                 />
               ),
             )}

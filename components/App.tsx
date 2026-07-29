@@ -78,6 +78,12 @@ export default function App() {
   // « En parler » : le moment du fil qui attend dans la saisie du tchat.
   // Il vit ici et pas dans le tchat parce qu'il naît sur un autre écran.
   const [chatSeed, setChatSeed] = useState<FeedEvent | null>(null);
+  // Le chemin retour : le moment que le fil doit retrouver et montrer,
+  // demandé depuis une citation du tchat. Même raison de vivre ici.
+  const [feedFocus, setFeedFocus] = useState<string | null>(null);
+  // Stable : le fil s'en sert dans une dépendance d'effet, une fonction
+  // recréée à chaque rendu y relancerait la recherche en boucle.
+  const clearFeedFocus = useCallback(() => setFeedFocus(null), []);
 
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
@@ -404,6 +410,9 @@ export default function App() {
               setChatSeed(events[0]);
               setTab("chat");
             }}
+            focusEventId={feedFocus}
+            onFocusDone={clearFeedFocus}
+            showToast={data.showToast}
           />
         )}
         {effTab === "chat" && (
@@ -412,6 +421,10 @@ export default function App() {
             players={data.players}
             chat={chat}
             onGoFeed={() => setTab("feed")}
+            onGoFeedEvent={(eventId) => {
+              setFeedFocus(eventId);
+              setTab("feed");
+            }}
             seed={chatSeed}
             onSeedUsed={() => setChatSeed(null)}
           />
