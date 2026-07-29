@@ -392,15 +392,32 @@ export function dayLabel(day: string): string {
     plus malin — les doublons de bord sont dédupliqués par id. */
 export async function fetchFeedPage(
   offset: number,
+  ligueId: string | null,
 ): Promise<{ events: FeedEvent[]; hasMore: boolean } | null> {
-  const { data, error } = await supabase
+  // Un événement de fil appartient à un joueur, qui appartient à une ligue :
+  // pas de colonne à filtrer, d'où la jointure interne. Sans elle, le fil
+  // raconterait les séances des inconnus d'une autre ligue — et la pagination
+  // se remplirait de leurs événements, poussant les vrais hors de la page.
+  const colonnes = ligueId
+    ? "id, player_id, kind, payload, created_at, players!inner(league_id)"
+    : "id, player_id, kind, payload, created_at";
+  let q = supabase
     .from("feed_events")
-    .select("id, player_id, kind, payload, created_at")
+    .select(colonnes)
     .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(offset, offset + FEED_PAGE_SIZE - 1);
+    .order("id", { ascending: false });
+  if (ligueId) q = q.eq("players.league_id", ligueId);
+  const { data, error } = await q.range(offset, offset + FEED_PAGE_SIZE - 1);
   if (error) return null;
-  const events = data as FeedEvent[];
+  // Champ par champ : la jointure ajoute un `players` qui n'a rien à faire
+  // dans un FeedEvent.
+  const events = (data as unknown as FeedEvent[]).map((e) => ({
+    id: e.id,
+    player_id: e.player_id,
+    kind: e.kind,
+    payload: e.payload,
+    created_at: e.created_at,
+  }));
   return { events, hasMore: events.length === FEED_PAGE_SIZE };
 }
 
