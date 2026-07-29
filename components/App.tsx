@@ -261,6 +261,7 @@ export default function App() {
         onSelect={(p) => id.choosePlayer(p.id)}
         onCreate={data.createPlayer}
         onDelete={data.deletePlayer}
+        onSetPhoto={data.setPhoto}
       />
     );
   }

@@ -135,7 +135,7 @@ export default function ChatComposer({
                 onClick={() => choisir(p)}
                 className="flex min-h-13 w-full items-center gap-2.5 border-b border-line px-3 py-2 text-left last:border-b-0"
               >
-                <Avatar name={p.name} color={p.color} size={28} />
+                <Avatar name={p.name} color={p.color} photo={p.photo} size={28} />
                 <span className="font-bold" style={{ color: p.color }}>
                   {p.name}
                 </span>

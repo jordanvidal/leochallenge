@@ -5,16 +5,48 @@
 
 import { Entry, EXERCISES } from "@/lib/types";
 
-/** Initiale du prénom dans un rond à la couleur du joueur. */
+/**
+ * Avatar du joueur : sa photo si elle existe, sinon l'initiale du prénom.
+ * Dans les deux cas l'anneau reste à la couleur du joueur — la couleur, c'est
+ * l'identité (PRODUCT.md), une photo la complète, elle ne l'efface pas.
+ */
 export function Avatar({
   name,
   color,
   size = 44,
+  photo,
 }: {
   name: string;
   color: string;
   size?: number;
+  photo?: string | null;
 }) {
+  const ring = `inset 0 0 0 1.5px color-mix(in oklch, ${color} 55%, transparent)`;
+
+  if (photo) {
+    return (
+      <span
+        aria-hidden
+        className="relative inline-flex shrink-0 overflow-hidden rounded-full"
+        style={{ width: size, height: size }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo}
+          alt=""
+          width={size}
+          height={size}
+          className="h-full w-full object-cover"
+        />
+        {/* L'anneau par-dessus l'image, sinon object-cover le recouvre. */}
+        <span
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{ boxShadow: ring }}
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden
@@ -25,7 +57,7 @@ export function Avatar({
         fontSize: size * 0.42,
         color,
         background: `color-mix(in oklch, ${color} 18%, var(--color-surface))`,
-        boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${color} 55%, transparent)`,
+        boxShadow: ring,
       }}
     >
       {name.trim().charAt(0).toUpperCase()}

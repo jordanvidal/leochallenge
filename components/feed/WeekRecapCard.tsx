@@ -230,7 +230,7 @@ export default function WeekRecapCard({
                       : undefined
                   }
                 >
-                  <Avatar name={p.a.name} color={p.a.color} size={24} />
+                  <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
                   <Name p={p.a} me={me} />
                   {p.b ? (
                     <>
@@ -238,7 +238,7 @@ export default function WeekRecapCard({
                         ⚔️
                       </span>
                       <Name p={p.b} me={me} />
-                      <Avatar name={p.b.name} color={p.b.color} size={24} />
+                      <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
                     </>
                   ) : (
                     <span className="text-muted">— exempt cette semaine</span>

@@ -3,8 +3,9 @@
 // "Qui es-tu ?" — sélection ou création du joueur. Aucun compte, aucun email.
 // Gère les doublons (cache vidé), les fantômes (faute de frappe) et le cap à 12.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CreateResult } from "@/hooks/useChallengeData";
+import { fileToAvatarDataUri } from "@/lib/image";
 import { Entry, Player } from "@/lib/types";
 import { Avatar, BigButton } from "./ui";
 
@@ -16,6 +17,7 @@ type Props = {
   onSelect: (player: Player) => void;
   onCreate: (name: string) => Promise<CreateResult>;
   onDelete: (playerId: string) => Promise<boolean>;
+  onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
 };
 
 export default function PlayerSelect({
@@ -24,6 +26,7 @@ export default function PlayerSelect({
   onSelect,
   onCreate,
   onDelete,
+  onSetPhoto,
 }: Props) {
   // Liste vide → champ de création affiché direct, sans détour.
   const [creating, setCreating] = useState(players.length === 0);
@@ -31,6 +34,27 @@ export default function PlayerSelect({
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState<Player | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Upload photo : un seul input caché, réutilisé pour le joueur qu'on tape.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const photoTarget = useRef<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
+
+  function pickPhotoFor(playerId: string) {
+    photoTarget.current = playerId;
+    fileRef.current?.click();
+  }
+
+  async function onPhotoPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const playerId = photoTarget.current;
+    e.target.value = ""; // autorise re-choisir le même fichier
+    photoTarget.current = null;
+    if (!file || !playerId) return;
+    setPhotoBusy(playerId);
+    const uri = await fileToAvatarDataUri(file);
+    if (uri) await onSetPhoto(playerId, uri);
+    setPhotoBusy(null);
+  }
 
   // Joueurs supprimables : zéro entrée. Une seule coche = indestructible.
   const hasEntries = useMemo(() => {
@@ -58,16 +82,43 @@ export default function PlayerSelect({
         <p className="mt-1 text-muted">Ton choix reste sur ce téléphone.</p>
       </header>
 
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onPhotoPicked}
+      />
+
       <div className="flex flex-col gap-3">
         {players.map((p) => (
           <div key={p.id} className="flex items-center gap-2">
-            <button
-              onClick={() => onSelect(p)}
-              className="flex min-h-16 flex-1 items-center gap-4 rounded-2xl bg-surface px-4 text-left text-xl font-bold transition-transform active:scale-[0.98]"
-            >
-              <Avatar name={p.name} color={p.color} />
-              {p.name}
-            </button>
+            <div className="flex min-h-16 flex-1 items-center gap-3 rounded-2xl bg-surface pr-4 pl-3">
+              {/* L'avatar est un bouton à part : le taper change la photo,
+                  taper le prénom sélectionne le joueur. */}
+              <button
+                type="button"
+                onClick={() => pickPhotoFor(p.id)}
+                aria-label={`Changer la photo de ${p.name}`}
+                className="relative shrink-0 rounded-full transition-transform active:scale-95"
+                style={photoBusy === p.id ? { opacity: 0.5 } : undefined}
+              >
+                <Avatar name={p.name} color={p.color} photo={p.photo} />
+                <span
+                  aria-hidden
+                  className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-raised text-[9px] leading-none"
+                  style={{ boxShadow: "0 0 0 2px var(--color-surface)" }}
+                >
+                  📷
+                </span>
+              </button>
+              <button
+                onClick={() => onSelect(p)}
+                className="flex-1 py-4 text-left text-xl font-bold transition-transform active:scale-[0.98]"
+              >
+                {p.name}
+              </button>
+            </div>
             {!hasEntries.has(p.id) &&
               (confirmDelete === p.id ? (
                 <button
@@ -120,7 +171,12 @@ export default function PlayerSelect({
                   onClick={() => onSelect(duplicate)}
                   className="mt-3 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-raised font-bold"
                 >
-                  <Avatar name={duplicate.name} color={duplicate.color} size={28} />
+                  <Avatar
+                    name={duplicate.name}
+                    color={duplicate.color}
+                    photo={duplicate.photo}
+                    size={28}
+                  />
                   Oui, je suis {duplicate.name}
                 </button>
               </div>

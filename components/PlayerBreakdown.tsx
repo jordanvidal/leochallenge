@@ -160,7 +160,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
       </div>
 
       <div className="mt-2 flex items-center gap-3">
-        <Avatar name={player.name} color={player.color} size={52} />
+        <Avatar name={player.name} color={player.color} photo={player.photo} size={52} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-bold">{player.name}</p>
           {/* Le rang est celui de la fenêtre affichée. « 1er au classement »

@@ -56,7 +56,7 @@ export default function FeedItem({
         vise ? "moment-vise" : ""
       }`}
     >
-      {author && <Avatar name={author.name} color={author.color} size={36} />}
+      {author && <Avatar name={author.name} color={author.color} photo={author.photo} size={36} />}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Le prénom sur la première ligne seulement : les suivantes
             s'enchaînent dessus ("Jordan bat sa meilleure série / a validé

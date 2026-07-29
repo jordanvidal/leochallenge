@@ -151,7 +151,7 @@ export default function StatsScreen({
         aria-label="Ton profil"
       >
         <div className="flex items-center gap-2.5">
-          <Avatar name={player.name} color={player.color} size={32} />
+          <Avatar name={player.name} color={player.color} photo={player.photo} size={32} />
           <span className="font-bold">Toi</span>
           {jokerKnown && (
             <span
