@@ -11,6 +11,7 @@
 
 import { dayLabel, FeedEvent, parisDayOf } from "./feed";
 import { supabase } from "./supabase";
+import { leGroupPass } from "./ligue";
 
 export const CHAT_PAGE_SIZE = 50;
 
@@ -290,15 +291,21 @@ export function apercu(body: string, max = 60): string {
     semaines, inutile de faire plus malin. */
 export async function fetchChatPage(
   offset: number,
+  ligueId: string | null,
 ): Promise<{ messages: ChatMessage[]; hasMore: boolean } | null> {
-  const { data, error } = await supabase
+  // Un message appartient à un joueur, qui appartient à une ligue : pas de
+  // `league_id` sur la table, d'où la jointure interne. migration41 annonçait
+  // « une colonne league_id + un backfill » — ce n'est pas le choix de `app`,
+  // qui cadre partout par jointure et ne duplique rien (voir migration43).
+  let q = supabase
     .from("chat_messages")
-    .select(CHAT_COLS)
+    .select(ligueId ? `${CHAT_COLS}, players!inner(league_id)` : CHAT_COLS)
     .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(offset, offset + CHAT_PAGE_SIZE - 1);
+    .order("id", { ascending: false });
+  if (ligueId) q = q.eq("players.league_id", ligueId);
+  const { data, error } = await q.range(offset, offset + CHAT_PAGE_SIZE - 1);
   if (error) return null;
-  const messages = data as ChatMessage[];
+  const messages = data as unknown as ChatMessage[];
   return { messages, hasMore: messages.length === CHAT_PAGE_SIZE };
 }
 
@@ -502,7 +509,7 @@ export function notifyChatMessage(messageId: string, actorId: string): void {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+      "x-group-pass": leGroupPass(),
     },
     body: JSON.stringify({ messageId, actorId }),
   }).catch(() => {

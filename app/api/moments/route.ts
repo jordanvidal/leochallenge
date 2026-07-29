@@ -220,7 +220,7 @@ function streakMoments(
 }
 
 export async function POST(request: Request) {
-  if (!isAuthorizedApp(request)) {
+  if (!(await isAuthorizedApp(request))) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
   const { actorId } = (await request.json().catch(() => ({}))) as {

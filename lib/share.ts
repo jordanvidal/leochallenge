@@ -4,11 +4,11 @@
 import { BonusState } from "./bonus";
 import {
   addDays,
-  CHALLENGE_DAYS,
-  CHALLENGE_END,
-  CHALLENGE_START,
   daysLeft,
+  FENETRE_ENV,
+  Fenetre,
   frenchDayMonth,
+  joursDeFenetre,
   mondayOf,
   parisToday,
 } from "./challenge";
@@ -35,17 +35,17 @@ export function buildWeekShare(
   rankInfo?: { rank: number; points: number } | null,
   todayBonuses?: string[],
   sessionLabel?: string | null,
+  f: Fenetre = FENETRE_ENV,
 ): string {
   const today = parisToday();
-  const monday = mondayOf(today > CHALLENGE_END ? CHALLENGE_END : today);
+  const monday = mondayOf(today > f.end ? f.end : today);
 
   const squares: string[] = [];
   let perfect = 0;
   let elapsed = 0;
   for (let i = 0; i < 7; i++) {
     const day = addDays(monday, i);
-    const inChallenge =
-      day >= CHALLENGE_START && day <= CHALLENGE_END && day <= today;
+    const inChallenge = day >= f.start && day <= f.end && day <= today;
     if (!inChallenge) {
       squares.push("⬜");
       continue;
@@ -56,8 +56,8 @@ export function buildWeekShare(
     squares.push(daySquare(n));
   }
 
-  const { streak } = computeStats(player.id, entries);
-  const left = daysLeft();
+  const { streak } = computeStats(player.id, entries, f);
+  const left = daysLeft(f);
   const rankLine = rankInfo
     ? [
         `🏆 ${rankInfo.rank === 1 ? "1er" : `${rankInfo.rank}e`} au général — ${Number.isInteger(rankInfo.points) ? rankInfo.points : rankInfo.points.toFixed(1)} pts`,
@@ -103,6 +103,7 @@ export function buildFinalShare(
   players: Player[],
   rows: LeaderboardRow[],
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): string {
   const byId = new Map(players.map((p) => [p.id, p]));
   const ranked = [...rows]
@@ -125,13 +126,13 @@ export function buildFinalShare(
   // Meilleure série du groupe : calculée sur les entries déjà chargées.
   let best = { name: "", streak: 0 };
   for (const p of players) {
-    const { bestStreak } = computeStats(p.id, entries);
+    const { bestStreak } = computeStats(p.id, entries, f);
     if (bestStreak > best.streak) best = { name: p.name, streak: bestStreak };
   }
 
   return [
     "🏁 Challenge 100-100-100 — TERMINÉ",
-    `${frenchDayMonth(CHALLENGE_START)} → ${frenchDayMonth(CHALLENGE_END)} · ${CHALLENGE_DAYS} jours`,
+    `${frenchDayMonth(f.start)} → ${frenchDayMonth(f.end)} · ${joursDeFenetre(f)} jours`,
     "",
     ...lines,
     "",

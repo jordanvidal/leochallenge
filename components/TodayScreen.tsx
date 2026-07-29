@@ -7,7 +7,6 @@
 import { useEffect, useState } from "react";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
 import {
-  CHALLENGE_END,
   daysLeft,
   frenchDate,
   parisToday,
@@ -18,6 +17,7 @@ import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -57,9 +57,10 @@ export default function TodayScreen({
   onGoLeaderboard,
   showToast,
 }: Props) {
+  const f = useFenetre();
   const today = parisToday();
-  const over = today > CHALLENGE_END;
-  const left = daysLeft();
+  const over = today > f.end;
+  const left = daysLeft(f);
   const mine = entries.get(entryKey(player.id, today));
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);

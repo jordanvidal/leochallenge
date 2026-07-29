@@ -4,6 +4,7 @@
 
 import { addDays, mondayOf, parisToday } from "./challenge";
 import { Duel } from "./duels";
+import { argLigue, leGroupPass } from "./ligue";
 import { supabase } from "./supabase";
 
 export type LeaderboardRow = {
@@ -52,16 +53,66 @@ export function fmtPoints(p: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+
+// ---------------------------------------------------------------------------
+// Les trois lectures qui traversent tous les joueurs
+// ---------------------------------------------------------------------------
+//
+// Elles ne portent pas de `league_id` à filtrer : un badge, un duel et une
+// coche appartiennent à un joueur, qui appartient à une ligue. D'où les
+// jointures internes — PostgREST fait le tri côté serveur, en un aller-retour.
+//
+// En groupe unique, aucune de ces colonnes n'existe : on garde la requête
+// d'aujourd'hui, mot pour mot.
+
+/** Les badges de la ligue. La vue `app.player_badges` porte `league_id`. */
+function badgesDeLaLigue(ligueId: string | null) {
+  const q = supabase.from("player_badges").select("player_id, badge");
+  return ligueId ? q.eq("league_id", ligueId) : q;
+}
+
+/**
+ * Les duels de la ligue. `duels` a deux clés vers `players` (`player_a` et
+ * `player_b`) : PostgREST refuse de deviner laquelle, il faut la nommer.
+ * `player_a` suffit — un duel n'apparie jamais deux ligues.
+ */
+function duelsDeLaLigue(ligueId: string | null) {
+  if (!ligueId) {
+    return supabase.from("duels").select("week_monday, player_a, player_b");
+  }
+  return supabase
+    .from("duels")
+    .select("week_monday, player_a, player_b, players!duels_player_a_fkey!inner(league_id)")
+    .eq("players.league_id", ligueId);
+}
+
+/** Les coches de la ligue jusqu'à un jour donné. */
+function cochesDeLaLigue(until: string, ligueId: string | null) {
+  if (!ligueId) {
+    return supabase
+      .from("entries")
+      .select("player_id, pushups, abs, squats")
+      .lte("day", until);
+  }
+  return supabase
+    .from("entries")
+    .select("player_id, pushups, abs, squats, players!inner(league_id)")
+    .eq("players.league_id", ligueId)
+    .lte("day", until);
+}
+
 /** Charge tout l'état gamification en un aller-retour. */
-export async function fetchGamification(): Promise<Gamification | null> {
+export async function fetchGamification(
+  ligueId: string | null,
+): Promise<Gamification | null> {
   const today = parisToday();
   const monday = mondayOf(today);
 
   const [total, week, badges, duels] = await Promise.all([
-    supabase.rpc("leaderboard"),
-    supabase.rpc("leaderboard", { p_from: monday }),
-    supabase.from("player_badges").select("player_id, badge"),
-    supabase.from("duels").select("week_monday, player_a, player_b"),
+    supabase.rpc("leaderboard", argLigue(ligueId)),
+    supabase.rpc("leaderboard", { ...argLigue(ligueId), p_from: monday }),
+    badgesDeLaLigue(ligueId),
+    duelsDeLaLigue(ligueId),
   ]);
   if (total.error || week.error || badges.error) return null;
   // duels tolère l'erreur (table absente tant que la migration 14 n'est
@@ -92,9 +143,12 @@ export async function fetchGamification(): Promise<Gamification | null> {
  * Rend `null` si l'appel échoue — l'écran retentera en revenant sur
  * l'onglet, exactement comme pour l'historique des semaines closes.
  */
-export async function fetchLastWeekRanks(): Promise<Map<string, number> | null> {
+export async function fetchLastWeekRanks(
+  ligueId: string | null,
+): Promise<Map<string, number> | null> {
   const lastSunday = addDays(mondayOf(parisToday()), -1);
   const { data, error } = await supabase.rpc("leaderboard", {
+    ...argLigue(ligueId),
     p_until: lastSunday,
   });
   if (error || !data) return null;
@@ -144,13 +198,11 @@ export async function fetchBilanSaison(
   until: string,
   joursTotal: number,
   noms: Map<string, string>,
+  ligueId: string | null,
 ): Promise<BilanSaison | null> {
   const [entries, lb] = await Promise.all([
-    supabase
-      .from("entries")
-      .select("player_id, pushups, abs, squats")
-      .lte("day", until),
-    supabase.rpc("leaderboard", { p_until: until }),
+    cochesDeLaLigue(until, ligueId),
+    supabase.rpc("leaderboard", { ...argLigue(ligueId), p_until: until }),
   ]);
   if (entries.error || lb.error) return null;
 
@@ -194,8 +246,10 @@ export async function fetchBilanSaison(
 export async function fetchWeekLeaderboard(
   from: string,
   until: string,
+  ligueId: string | null,
 ): Promise<LeaderboardRow[] | null> {
   const { data, error } = await supabase.rpc("leaderboard", {
+    ...argLigue(ligueId),
     p_from: from,
     p_until: until,
   });
@@ -224,7 +278,7 @@ export function notifyMoments(actorId: string): Promise<void> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+      "x-group-pass": leGroupPass(),
     },
     body: JSON.stringify({ actorId }),
   })

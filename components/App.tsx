@@ -20,12 +20,13 @@ import {
 import { useTodaySession } from "@/hooks/useTodaySession";
 import {
   addDays,
+  aUneBasculeDeBareme,
   challengeIsOver,
   parisToday,
-  SAISON3_START,
   saison3Started,
 } from "@/lib/challenge";
 import { FeedEvent } from "@/lib/feed";
+import { useFenetre } from "./ligue/LigueContexte";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
 import {
   shareFinalFlow,
@@ -61,14 +62,17 @@ function Splash() {
 }
 
 export default function App() {
+  // La fenêtre de la ligue courante — celle des variables d'env en groupe
+  // unique. Tout ce qui date dans cet écran passe par elle.
+  const f = useFenetre();
   const data = useChallengeData();
   const id = useIdentity();
   const { playerId } = id;
   // Challenge terminé (1er sept.+) : le Bilan remplace « Aujourd'hui » et
   // devient l'onglet par défaut. Garde stable sur toute la session.
-  const over = challengeIsOver();
+  const over = challengeIsOver(f);
   const [tab, setTab] = useState<Tab>(() =>
-    challengeIsOver() ? "bilan" : "today",
+    challengeIsOver(f) ? "bilan" : "today",
   );
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
@@ -85,6 +89,13 @@ export default function App() {
   // « En parler » : le moment du fil qui attend dans la saisie du tchat.
   // Il vit ici et pas dans le tchat parce qu'il naît sur un autre écran.
   const [chatSeed, setChatSeed] = useState<FeedEvent | null>(null);
+
+  // Les identifiants des joueurs de la ligue : le tchat s'en sert pour
+  // ignorer le temps réel des autres ligues.
+  const joueursDeLaLigue = useMemo(
+    () => (data.players ? new Set(data.players.map((p) => p.id)) : null),
+    [data.players],
+  );
 
   // ---- Retour arrière ----
   // Le gestionnaire d'historique et le glissé depuis le bord gauche.
@@ -182,7 +193,7 @@ export default function App() {
   // l'onglet, le hook ne charge que le compteur de la pastille, pas une
   // ligne de message. Ouvrir l'app pour cocher ne traîne pas un salon
   // derrière elle (docs/spec-tchat.md §3).
-  const chat = useChat(effTab === "chat", playerId, data.showToast);
+  const chat = useChat(effTab === "chat", playerId, data.showToast, joueursDeLaLigue);
 
   /** Après toute écriture qui compte : classement rechargé, moments
       détectés côté serveur (/api/moments), puis fil rafraîchi. */
@@ -344,7 +355,7 @@ export default function App() {
   // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
   if (
     !over &&
-    (forceLaunch || replayLaunch || (saison3Started() && !id.launchS3Seen))
+    (forceLaunch || replayLaunch || (saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen))
   ) {
     return (
       <div style={accent}>
@@ -520,7 +531,7 @@ export default function App() {
         >
           Revoir les règles
         </button>
-        {saison3Started() && parisToday() <= addDays(SAISON3_START, 6) && (
+        {saison3Started(f) && aUneBasculeDeBareme(f) && parisToday() <= addDays(f.saison3, 6) && (
           <>
             <span className="text-[11px] text-faint" aria-hidden>
               ·

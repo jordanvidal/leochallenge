@@ -36,7 +36,8 @@ import {
   setNotifyPref,
 } from "@/lib/chat";
 import { FeedEvent } from "@/lib/feed";
-import { supabase } from "@/lib/supabase";
+import { SUPABASE_SCHEMA, supabase } from "@/lib/supabase";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
 
 /** Le rythme du battement de présence. Le serveur tolère 90 s, soit
     trois battements : un de perdu ne coupe pas les notifications. */
@@ -63,7 +64,18 @@ export function useChat(
   enabled: boolean,
   myId: string | null,
   showToast: (msg: string) => void,
+  /** Les joueurs de la ligue, ou `null` tant qu'on ne les connaît pas —
+      auquel cas on ne trie rien plutôt que de tout jeter. */
+  joueursConnus: Set<string> | null,
 ) {
+  const ligueId = useLigueCourante()?.id ?? null;
+  // Miroir des joueurs de la ligue, pour trier le temps réel sans remonter
+  // dans les dépendances de l'abonnement.
+  const connusRef = useRef<Set<string> | null>(joueursConnus);
+  useEffect(() => {
+    connusRef.current = joueursConnus;
+  }, [joueursConnus]);
+
   // Chronologique : le plus ancien en tête, le plus récent en queue.
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [reactions, setReactions] = useState<Map<string, ChatReaction[]>>(
@@ -114,7 +126,7 @@ export function useChat(
     if (inflight.current) return;
     inflight.current = true;
     try {
-      const page = await fetchChatPage(0);
+      const page = await fetchChatPage(0, ligueId);
       if (!page) return;
       const chrono = [...page.messages].reverse();
       const rx = await fetchChatReactions(chrono.map((m) => m.id));
@@ -147,17 +159,31 @@ export function useChat(
       .channel("tchat")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (p) => setMessages((prev) => (prev ? upsert(prev, p.new as ChatMessage) : prev)),
+        { event: "INSERT", schema: SUPABASE_SCHEMA, table: "chat_messages" },
+        (p) => {
+          const m = p.new as ChatMessage;
+          // Le canal porte toute la table : un message d'une autre ligue
+          // arriverait ici aussi. On ne garde que les auteurs qu'on connaît.
+          const connus = connusRef.current;
+          if (connus && !connus.has(m.player_id)) return;
+          setMessages((prev) => (prev ? upsert(prev, m) : prev));
+        },
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chat_messages" },
-        (p) => setMessages((prev) => (prev ? upsert(prev, p.new as ChatMessage) : prev)),
+        { event: "UPDATE", schema: SUPABASE_SCHEMA, table: "chat_messages" },
+        (p) => {
+          const m = p.new as ChatMessage;
+          // Le canal porte toute la table : un message d'une autre ligue
+          // arriverait ici aussi. On ne garde que les auteurs qu'on connaît.
+          const connus = connusRef.current;
+          if (connus && !connus.has(m.player_id)) return;
+          setMessages((prev) => (prev ? upsert(prev, m) : prev));
+        },
       )
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_reactions" },
+        { event: "INSERT", schema: SUPABASE_SCHEMA, table: "chat_reactions" },
         (p) => {
           const r = p.new as ChatReaction;
           setReactions((prev) => {
@@ -170,7 +196,7 @@ export function useChat(
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "chat_reactions" },
+        { event: "DELETE", schema: SUPABASE_SCHEMA, table: "chat_reactions" },
         (p) => {
           // `replica identity full` (migration 41) : sans elle, `old` ne
           // porterait que l'id et on ne saurait pas quelle pastille retirer.
@@ -232,7 +258,7 @@ export function useChat(
     if (loadingMore || !messages) return;
     setLoadingMore(true);
     try {
-      const page = await fetchChatPage(messages.length);
+      const page = await fetchChatPage(messages.length, ligueId);
       if (!page) return;
       const connus = new Set(messages.map((m) => m.id));
       const frais = [...page.messages].reverse().filter((m) => !connus.has(m.id));

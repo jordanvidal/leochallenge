@@ -18,7 +18,12 @@ export function serverSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } },
+    {
+      auth: { persistSession: false },
+      // Même schéma que le client navigateur, pour la même raison — voir
+      // lib/supabase.ts. `public` tant que la variable n'est pas posée.
+      db: { schema: process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public" },
+    },
   );
 }
 
@@ -211,11 +216,39 @@ export function isAuthorizedCron(request: Request): boolean {
   return request.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-/** Garde des routes POST appelées par l'app : le client envoie le mot de
-    passe du groupe en header. Même niveau que PasswordGate — bloque le
-    passant qui a trouvé l'URL, pas le NSA. Fail-closed si non configuré. */
-export function isAuthorizedApp(request: Request): boolean {
-  const pass = process.env.NEXT_PUBLIC_GROUP_PASSWORD;
-  if (!pass) return false;
-  return request.headers.get("x-group-pass") === pass;
+/**
+ * Garde des routes POST appelées par l'app. Le client envoie un secret en
+ * header. Même niveau que PasswordGate — bloque le passant qui a trouvé
+ * l'URL, pas le NSA. **Fail-closed** dans tous les cas de figure.
+ *
+ * En groupe unique : le mot de passe du groupe, exactement comme avant.
+ *
+ * En multi-ligues : le code d'invitation, qui joue le même rôle — un secret
+ * que se partagent les gens qui sont dans la ligue. Il n'y a pas de liste de
+ * codes côté serveur, donc on vérifie en base. Un code qui n'existe pas ne
+ * passe pas, et une base injoignable ne passe pas non plus : on refuse plutôt
+ * que d'ouvrir en cas de doute.
+ */
+export async function isAuthorizedApp(request: Request): Promise<boolean> {
+  const envoye = request.headers.get("x-group-pass");
+  if (!envoye) return false;
+
+  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public";
+  if (schema === "public") {
+    const pass = process.env.NEXT_PUBLIC_GROUP_PASSWORD;
+    if (!pass) return false;
+    return envoye === pass;
+  }
+
+  // Normalisation minimale, alignée sur `normaliseCode` côté client : le code
+  // voyage en clair dans un header, autant ne pas refuser une casse.
+  const code = envoye.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) return false;
+
+  const { data, error } = await serverSupabase()
+    .from("leagues")
+    .select("id")
+    .eq("invite_code", code)
+    .maybeSingle();
+  return !error && !!data;
 }

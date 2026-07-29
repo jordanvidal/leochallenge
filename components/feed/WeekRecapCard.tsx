@@ -20,6 +20,8 @@ import { eventPhrase, FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 import Interactions from "./Interactions";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
+import { useFenetre } from "@/components/ligue/LigueContexte";
 
 type Props = {
   events: FeedEvent[]; // le récit + les duel_start / duel_result d'une même semaine
@@ -67,6 +69,8 @@ export default function WeekRecapCard({
   onGoLeaderboard,
   vise,
 }: Props) {
+  const f = useFenetre();
+  const ligueId = useLigueCourante()?.id ?? null;
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
   const recit = events.find((e) => e.kind === "recit") ?? null;
@@ -83,7 +87,7 @@ export default function WeekRecapCard({
   const closedMonday =
     recit?.payload.week_monday ?? (openedMonday ? addDays(openedMonday, -7) : null);
 
-  const weeks = challengeWeeks();
+  const weeks = challengeWeeks(f);
   const closedWeek = closedMonday
     ? (weeks.find((w) => mondayOf(w.from) === closedMonday) ?? null)
     : null;
@@ -97,13 +101,13 @@ export default function WeekRecapCard({
   useEffect(() => {
     if (!closedWeek) return;
     let cancelled = false;
-    fetchWeekLeaderboard(closedWeek.from, closedWeek.until).then((r) => {
+    fetchWeekLeaderboard(closedWeek.from, closedWeek.until, ligueId).then((r) => {
       if (!cancelled) setRows(r);
     });
     return () => {
       cancelled = true;
     };
-  }, [closedWeek?.from, closedWeek?.until]);
+  }, [closedWeek?.from, closedWeek?.until, ligueId]);
 
   const winner = rows?.find((r) => r.rank === 1) ?? null;
   const winnerPlayer = winner ? (byId.get(winner.player_id) ?? null) : null;

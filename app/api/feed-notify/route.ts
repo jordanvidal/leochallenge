@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 const QUARTER_HOUR_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
-  if (!isAuthorizedApp(request)) {
+  if (!(await isAuthorizedApp(request))) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
   const { eventId, actorId } = (await request.json().catch(() => ({}))) as {
