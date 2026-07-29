@@ -8,8 +8,15 @@ Rappel de la contrainte qui commande tout : **tout se construit dans le schéma
 `app`, jamais dans `public`.** Le groupe d'origine n'est migré qu'en phase 5,
 après le 31 août.
 
-> **Ce que veut dire une case cochée ici : livré en PR draft, testé, en attente
-> de review.** Le code n'est pas mergé — `main` ne l'a pas encore.
+> **Phases 1 à 3 : mergées dans `main` le 29/07 et déployées en production**
+> (#87, un merge et non un squash — tous les commits de la pile sont dans
+> l'historique). Vérifié en prod après déploiement : les 9 joueurs, le
+> classement, les séries et le duel de la semaine sont inchangés.
+>
+> L'app reste **exactement celle d'avant** pour le groupe d'origine :
+> `MULTI_LIGUES` est faux tant que `NEXT_PUBLIC_SUPABASE_SCHEMA` n'est pas
+> posée, et elle ne l'est pas en production. Le schéma `app` est vide et sans
+> lecteur ; il le restera jusqu'à la phase 5.
 >
 > **Le SQL, lui, est appliqué.** Le 28/07, avec l'accord de Jordan, les
 > migrations 36, 37, 38 et 42 ont été jouées sur le projet Supabase de prod
