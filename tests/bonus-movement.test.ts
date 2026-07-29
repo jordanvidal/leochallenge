@@ -20,13 +20,13 @@ const AUTRE = "doren";
     Les valeurs sont celles de migration29 : le 10 km est une puce
     entière à +20, hors échelle, pas le palier haut du 5 km. */
 const CATALOGUE: BonusCatalogItem[] = [
-  { key: "pompes_50", kind: "exercise", emoji: "💪", label: "+50 pompes", points: 4, sort: 1, ladder: "pompes" },
-  { key: "pompes_100", kind: "exercise", emoji: "💪", label: "+100 pompes", points: 7, sort: 2, ladder: "pompes" },
-  { key: "course_5km", kind: "exercise", emoji: "🏃", label: "5 km de course", points: 8, sort: 7, ladder: null },
-  { key: "course_10km", kind: "exercise", emoji: "🏃", label: "10 km de course", points: 20, sort: 8, ladder: null },
-  { key: "gainage_3min", kind: "exercise", emoji: "🧱", label: "3 min de gainage", points: 3, sort: 9, ladder: null },
-  { key: "marches_500", kind: "exercise", emoji: "🪜", label: "500 marches", points: 5, sort: 10, ladder: null },
-  { key: "pas_10000", kind: "exercise", emoji: "🚶", label: "10 000 pas", points: 4, sort: 17, ladder: null },
+  { key: "pompes_50", kind: "exercise", emoji: "💪", label: "+50 pompes", points: 4, sort: 1, ladder: "pompes" , family: null },
+  { key: "pompes_100", kind: "exercise", emoji: "💪", label: "+100 pompes", points: 7, sort: 2, ladder: "pompes" , family: null },
+  { key: "course_5km", kind: "exercise", emoji: "🏃", label: "5 km de course", points: 8, sort: 7, ladder: null , family: null },
+  { key: "course_10km", kind: "exercise", emoji: "🏃", label: "10 km de course", points: 20, sort: 8, ladder: null , family: null },
+  { key: "gainage_3min", kind: "exercise", emoji: "🧱", label: "3 min de gainage", points: 3, sort: 9, ladder: null , family: null },
+  { key: "marches_500", kind: "exercise", emoji: "🪜", label: "500 marches", points: 5, sort: 10, ladder: null , family: null },
+  { key: "pas_10000", kind: "exercise", emoji: "🚶", label: "10 000 pas", points: 4, sort: 17, ladder: null , family: null },
 ];
 
 /** Le catalogue de la prod avant que migration29 soit appliquée : pas de
