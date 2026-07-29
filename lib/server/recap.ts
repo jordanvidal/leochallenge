@@ -6,11 +6,11 @@
 
 import {
   addDays,
-  CHALLENGE_END,
-  CHALLENGE_START,
   mondayOf,
 } from "@/lib/challenge";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
+import { argLigue } from "@/lib/ligue";
+import { joueursNommes, TERRAIN_ENV, type Terrain } from "./ligues";
 
 type LbRow = { player_id: string; points: number; rank: number };
 
@@ -44,13 +44,16 @@ export async function sendWeeklyRecap(
   // Décrochés déjà relancés par le win-back : on ne leur redit pas « tu es
   // tombé à la Xe place » par-dessus — ils reçoivent le win-back à la place.
   exclude?: ReadonlySet<string>,
+  // En dernier et avec un défaut : les appels existants ne bougent pas, et
+  // sans variable de schéma ce défaut est le challenge d'origine.
+  t: Terrain = TERRAIN_ENV,
 ): Promise<{
   skipped?: string;
   notified: number;
   sent: number;
 }> {
   const today = parisToday();
-  if (today > CHALLENGE_END) {
+  if (today > t.fenetre.end) {
     return { skipped: "challenge terminé", notified: 0, sent: 0 };
   }
 
@@ -58,17 +61,17 @@ export async function sendWeeklyRecap(
   const monday = mondayOf(today);
   const lastMonday = addDays(monday, -7);
   const lastSunday = addDays(monday, -1);
-  if (lastSunday < CHALLENGE_START) {
+  if (lastSunday < t.fenetre.start) {
     // Tout premier lundi : pas de semaine écoulée à raconter.
     return { skipped: "pas de semaine écoulée", notified: 0, sent: 0 };
   }
 
   const supabase = serverSupabase();
   const [week, general, generalBefore, players] = await Promise.all([
-    supabase.rpc("leaderboard", { p_from: lastMonday, p_until: lastSunday }),
-    supabase.rpc("leaderboard", { p_until: lastSunday }),
-    supabase.rpc("leaderboard", { p_until: addDays(lastSunday, -7) }),
-    supabase.from("players").select("id, name"),
+    supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_from: lastMonday, p_until: lastSunday }),
+    supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_until: lastSunday }),
+    supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_until: addDays(lastSunday, -7) }),
+    joueursNommes(supabase, t),
   ]);
   if (week.error || general.error || generalBefore.error || players.error) {
     throw new Error("lecture Supabase échouée");

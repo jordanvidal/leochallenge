@@ -9,6 +9,7 @@
 // matin par le cron (9h), l'événement existe tôt dans la journée.
 
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
+import { joueursDuTerrain, TERRAIN_ENV, type Terrain } from "./ligues";
 
 // Quatre formulations en rotation : ~30 notifications sur le challenge,
 // un texte unique deviendrait invisible au bout d'une semaine.
@@ -27,7 +28,7 @@ export function teaserFor(day: string): string {
   return TEASERS[Number(day.slice(-2)) % TEASERS.length];
 }
 
-export async function notifyDailyEvent(): Promise<{
+export async function notifyDailyEvent(t: Terrain = TERRAIN_ENV): Promise<{
   day: string;
   event: string | null;
   sent: number;
@@ -45,10 +46,12 @@ export async function notifyDailyEvent(): Promise<{
   // on se tait : réveiller les gens pour dire qu'il ne se passe rien, non.
   if (!event || event === "rien") return { day, event, sent: 0 };
 
-  const players = await supabase.from("players").select("id");
-  if (players.error) throw new Error("lecture joueurs échouée");
-
-  const ids = (players.data as { id: string }[]).map((p) => p.id);
+  // Le tirage est global — un événement par jour civil, le même pour tout le
+  // monde (`app.daily_events`, migration36). Les destinataires, eux, ne le
+  // sont pas : quelqu'un dont la ligue n'a pas encore commencé n'a rien à
+  // faire d'un « aujourd'hui, double pompes ».
+  const ids = await joueursDuTerrain(t);
+  if (!ids) throw new Error("lecture joueurs échouée");
   const sent = await sendToPlayers(ids, {
     title: EVENT_PUSH_TITLE,
     body: teaserFor(day),

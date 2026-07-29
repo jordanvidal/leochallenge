@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/server/push";
 import { sendStreakRisk } from "@/lib/server/reminders";
+import { surChaqueTerrain } from "@/lib/server/ligues";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,5 @@ export async function GET(request: Request) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
-  const result = await sendStreakRisk();
-  return NextResponse.json(result);
+  return NextResponse.json(await surChaqueTerrain((t) => sendStreakRisk(t)));
 }

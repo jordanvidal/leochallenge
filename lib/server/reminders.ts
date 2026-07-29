@@ -9,7 +9,9 @@
 // 21h30 — dernier debout : le seul encore à 0/3 reçoit la phrase qui
 //       pique. Elle n'existe que quand elle est vraie.
 
-import { addDays, CHALLENGE_END, CHALLENGE_START } from "@/lib/challenge";
+import { addDays } from "@/lib/challenge";
+import { argLigue } from "@/lib/ligue";
+import { TERRAIN_ENV, type Terrain } from "./ligues";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
 type Entry = {
@@ -37,9 +39,9 @@ const DAYS_GONE = 3;
 const WINBACK_SILENT_DAYS = 7;
 const WINBACK_LOOKBACK_DAYS = 21;
 
-/** Hors des dates du challenge, aucun rappel ne part. */
-function offSeason(today: string): boolean {
-  return today < CHALLENGE_START || today > CHALLENGE_END;
+/** Hors des dates de SA fenêtre, aucun rappel ne part. */
+function offSeason(today: string, t: Terrain): boolean {
+  return today < t.fenetre.start || today > t.fenetre.end;
 }
 
 function doneCount(e: Entry | undefined): number {
@@ -49,21 +51,32 @@ function doneCount(e: Entry | undefined): number {
 /** Joueurs + coches sur 7 jours glissants : le socle de tous les rappels.
     `count` = exos cochés aujourd'hui ; `active` = au moins une coche sur
     la fenêtre (les inscrits fantômes ne comptent pas dans la bande). */
-async function loadToday() {
+async function loadToday(t: Terrain) {
   const supabase = serverSupabase();
   const today = parisToday();
-  const [players, entries] = await Promise.all([
-    supabase.from("players").select("id, name"),
-    supabase
-      .from("entries")
-      .select("player_id, day, pushups, abs, squats")
-      .gte("day", addDays(today, -6))
-      .lte("day", today),
-  ]);
+  // Cadrage par ligue : les joueurs par `league_id`, les coches par jointure
+  // interne — une coche appartient à un joueur, qui appartient à une ligue.
+  // En groupe unique, `t.ligue` est nul et les deux requêtes sont celles
+  // d'aujourd'hui, mot pour mot.
+  let qp = supabase.from("players").select("id, name");
+  if (t.ligue) qp = qp.eq("league_id", t.ligue.id);
+
+  let qe = supabase
+    .from("entries")
+    .select(
+      t.ligue
+        ? "player_id, day, pushups, abs, squats, players!inner(league_id)"
+        : "player_id, day, pushups, abs, squats",
+    )
+    .gte("day", addDays(today, -6))
+    .lte("day", today);
+  if (t.ligue) qe = qe.eq("players.league_id", t.ligue.id);
+
+  const [players, entries] = await Promise.all([qp, qe]);
   if (players.error || entries.error) {
     throw new Error("lecture Supabase échouée");
   }
-  const rows = entries.data as Entry[];
+  const rows = entries.data as unknown as Entry[];
   const byPlayer = new Map(
     rows.filter((e) => e.day === today).map((e) => [e.player_id, e]),
   );
@@ -95,12 +108,15 @@ async function loadToday() {
 }
 
 /** Rappels de 20h (social) et 22h30 (dernier appel), pour les 0/3. */
-export async function sendReminders(final: boolean): Promise<{
+export async function sendReminders(
+  final: boolean,
+  t: Terrain = TERRAIN_ENV,
+): Promise<{
   notified: number;
   sent: number;
 }> {
-  const { today, players, count, active, zeroStreak } = await loadToday();
-  if (offSeason(today)) return { notified: 0, sent: 0 };
+  const { today, players, count, active, zeroStreak } = await loadToday(t);
+  if (offSeason(today, t)) return { notified: 0, sent: 0 };
 
   // Cibles : rien coché aujourd'hui (0/3) ET encore dans la bande (au moins
   // une coche sur 7 j). Ce plancher d'activité épargne les inscrits fantômes
@@ -147,14 +163,14 @@ function streakBody(streak: number): string {
 /** 17h — la série en danger. La série vient du RPC leaderboard
     (current_streak reflète la série jusqu'à hier tant qu'aujourd'hui
     n'est pas parfait — exactement ce qui est en jeu). */
-export async function sendStreakRisk(): Promise<{
+export async function sendStreakRisk(t: Terrain = TERRAIN_ENV): Promise<{
   notified: number;
   sent: number;
 }> {
-  const { supabase, today, players, count } = await loadToday();
-  if (offSeason(today)) return { notified: 0, sent: 0 };
+  const { supabase, today, players, count } = await loadToday(t);
+  if (offSeason(today, t)) return { notified: 0, sent: 0 };
 
-  const lb = await supabase.rpc("leaderboard");
+  const lb = await supabase.rpc("leaderboard", argLigue(t.ligue?.id ?? null));
   if (lb.error) throw new Error("lecture leaderboard échouée");
   const streaks = new Map(
     (lb.data as LbRow[]).map((r) => [r.player_id, Number(r.current_streak)]),
@@ -180,12 +196,12 @@ export async function sendStreakRisk(): Promise<{
     retardataires ou plus → silence, la phrase perdrait sa vérité. Les
     inscrits fantômes (aucune coche sur 7 jours) ne comptent pas — sinon
     la notif ne partirait jamais. */
-export async function sendLastStanding(): Promise<{
+export async function sendLastStanding(t: Terrain = TERRAIN_ENV): Promise<{
   notified: number;
   sent: number;
 }> {
-  const { today, players, count, active } = await loadToday();
-  if (offSeason(today)) return { notified: 0, sent: 0 };
+  const { today, players, count, active } = await loadToday(t);
+  if (offSeason(today, t)) return { notified: 0, sent: 0 };
 
   const band = players.filter(active);
   if (band.length < 2) return { notified: 0, sent: 0 };
@@ -205,28 +221,34 @@ export async function sendLastStanding(): Promise<{
     vrai participant qui a lâché, ni fantôme ni parti depuis un mois. Ton
     chaud, barre basse, une fois par semaine — l'inverse du « Pas toi » du
     soir qui les a fait fuir. Renvoie les IDs relancés pour dédoubler. */
-export async function sendWinBack(): Promise<{
+export async function sendWinBack(t: Terrain = TERRAIN_ENV): Promise<{
   notified: number;
   sent: number;
   reengaged: string[];
 }> {
   const supabase = serverSupabase();
   const today = parisToday();
-  if (offSeason(today)) return { notified: 0, sent: 0, reengaged: [] };
+  if (offSeason(today, t)) return { notified: 0, sent: 0, reengaged: [] };
 
-  const [players, entries] = await Promise.all([
-    supabase.from("players").select("id, name"),
-    supabase
-      .from("entries")
-      .select("player_id, day, pushups, abs, squats")
-      .gte("day", addDays(today, -(WINBACK_LOOKBACK_DAYS - 1)))
-      .lte("day", today),
-  ]);
+  let qp = supabase.from("players").select("id, name");
+  if (t.ligue) qp = qp.eq("league_id", t.ligue.id);
+  let qe = supabase
+    .from("entries")
+    .select(
+      t.ligue
+        ? "player_id, day, pushups, abs, squats, players!inner(league_id)"
+        : "player_id, day, pushups, abs, squats",
+    )
+    .gte("day", addDays(today, -(WINBACK_LOOKBACK_DAYS - 1)))
+    .lte("day", today);
+  if (t.ligue) qe = qe.eq("players.league_id", t.ligue.id);
+
+  const [players, entries] = await Promise.all([qp, qe]);
   if (players.error || entries.error) {
     throw new Error("lecture Supabase échouée");
   }
 
-  const rows = entries.data as Entry[];
+  const rows = entries.data as unknown as Entry[];
   // Fenêtre "récent" = 7 derniers jours, aujourd'hui inclus (sémantique active).
   const silentCut = addDays(today, -(WINBACK_SILENT_DAYS - 1));
   const activeRecent = new Set(

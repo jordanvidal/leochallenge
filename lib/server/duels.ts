@@ -10,8 +10,10 @@
 // le feed est dédupliqué par (player_id, kind, dedupe_key), et les
 // lignes sont toujours reconstruites depuis l'état en base.
 
-import { addDays, CHALLENGE_END, weekdayIndex } from "@/lib/challenge";
-import { DUEL_POINTS, DUELS_FROM } from "@/lib/duels";
+import { addDays, weekdayIndex } from "@/lib/challenge";
+import { argLigue } from "@/lib/ligue";
+import { DUEL_POINTS, duelsFrom } from "@/lib/duels";
+import { TERRAIN_ENV, type Terrain } from "./ligues";
 import { parisToday, serverSupabase } from "./push";
 
 type DuelRow = { week_monday: string; player_a: string; player_b: string | null };
@@ -52,7 +54,7 @@ function scoreLabel(myP: number, theirP: number, myPts: number, theirPts: number
   return `${myP}–${theirP}, départage aux points ${fmt(myPts)}–${fmt(theirPts)}`;
 }
 
-export async function runWeeklyDuels(): Promise<{
+export async function runWeeklyDuels(t: Terrain = TERRAIN_ENV): Promise<{
   skipped?: string;
   resolved: number;
   created: number;
@@ -71,7 +73,7 @@ export async function runWeeklyDuels(): Promise<{
     alreadyRan: false,
     lines: new Map(),
   };
-  if (today > CHALLENGE_END) return { skipped: "challenge terminé", ...none };
+  if (today > t.fenetre.end) return { skipped: "challenge terminé", ...none };
   // Le workflow a un déclencheur manuel : hors lundi, on ne touche à rien.
   if (weekdayIndex(today) !== 0) return { skipped: "pas lundi", ...none };
 
@@ -89,7 +91,7 @@ export async function runWeeklyDuels(): Promise<{
   // ---- 1. La semaine écoulée : raconter ce que la vue a résolu ----
   let resolved = 0;
   const playedMonday = addDays(today, -7);
-  if (playedMonday >= DUELS_FROM) {
+  if (playedMonday >= duelsFrom(t.fenetre)) {
     const res = await supabase
       .from("duel_results")
       .select(
@@ -164,7 +166,7 @@ export async function runWeeklyDuels(): Promise<{
   let created = 0;
   // Le 31/08 (dernier jour) : la semaine n'irait pas jusqu'à dimanche,
   // pas de nouvel appariement — on ne fait que résoudre la précédente.
-  if (today >= DUELS_FROM && addDays(today, 6) <= CHALLENGE_END) {
+  if (today >= duelsFrom(t.fenetre) && addDays(today, 6) <= t.fenetre.end) {
     const existing = await supabase
       .from("duels")
       .select("week_monday, player_a, player_b")
@@ -173,7 +175,7 @@ export async function runWeeklyDuels(): Promise<{
 
     let weekDuels = existing.data as DuelRow[];
     if (weekDuels.length === 0) {
-      weekDuels = await createPairings(supabase, today);
+      weekDuels = await createPairings(supabase, today, t);
       created = weekDuels.length;
     }
 
@@ -238,25 +240,44 @@ export async function runWeeklyDuels(): Promise<{
 async function createPairings(
   supabase: ReturnType<typeof serverSupabase>,
   monday: string,
+  t: Terrain,
 ): Promise<DuelRow[]> {
   // Actifs = au moins une coche sur [lundi-6, lundi] (sémantique reminders).
+  // Cadrées par ligue : apparier un joueur avec l'inconnu d'une autre ligue
+  // serait un duel que personne des deux côtés ne comprendrait.
+  let qe = supabase
+    .from("entries")
+    .select(
+      t.ligue
+        ? "player_id, pushups, abs, squats, players!inner(league_id)"
+        : "player_id, pushups, abs, squats",
+    )
+    .gte("day", addDays(monday, -6))
+    .lte("day", monday);
+  if (t.ligue) qe = qe.eq("players.league_id", t.ligue.id);
+
+  // `duels` a deux clés vers `players` : PostgREST veut qu'on nomme laquelle.
+  const qb = t.ligue
+    ? supabase
+        .from("duels")
+        .select("week_monday, player_a, players!duels_player_a_fkey!inner(league_id)")
+        .is("player_b", null)
+        .eq("players.league_id", t.ligue.id)
+    : supabase.from("duels").select("week_monday, player_a").is("player_b", null);
+
   const [entries, ranks, byes] = await Promise.all([
-    supabase
-      .from("entries")
-      .select("player_id, pushups, abs, squats")
-      .gte("day", addDays(monday, -6))
-      .lte("day", monday),
+    qe,
     // Rangs figés à dimanche soir : déterministes au rejeu, et ils
     // intègrent déjà le transfert du duel tout juste résolu.
-    supabase.rpc("leaderboard", { p_until: addDays(monday, -1) }),
-    supabase.from("duels").select("week_monday, player_a").is("player_b", null),
+    supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_until: addDays(monday, -1) }),
+    qb,
   ]);
   if (entries.error || ranks.error || byes.error) {
     throw new Error("lecture appariement échouée");
   }
 
   const activeIds = new Set(
-    (entries.data as { player_id: string; pushups: boolean; abs: boolean; squats: boolean }[])
+    (entries.data as unknown as { player_id: string; pushups: boolean; abs: boolean; squats: boolean }[])
       .filter((e) => e.pushups || e.abs || e.squats)
       .map((e) => e.player_id),
   );
@@ -276,7 +297,7 @@ async function createPairings(
     // À historique égal, le moins bien classé souffle. Et jamais deux
     // fois de suite quand il y a une alternative.
     const lastBye = new Map<string, string>();
-    for (const b of byes.data as { week_monday: string; player_a: string }[]) {
+    for (const b of byes.data as unknown as { week_monday: string; player_a: string }[]) {
       const prev = lastBye.get(b.player_a);
       if (!prev || b.week_monday > prev) lastBye.set(b.player_a, b.week_monday);
     }
