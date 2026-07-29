@@ -8,6 +8,8 @@
 // Ce module ne parle pas à la base : il prépare, normalise et relit. La vérité
 // des codes reste `app.leagues.invite_code` (migration36).
 
+import { addDays, diffDays, fenetre, type Fenetre } from "./challenge";
+
 /**
  * L'alphabet des codes courts. **Copie exacte** de `app.code_court()` dans
  * `supabase/migration36-app-structure.sql` — si l'un des deux bouge, l'autre
@@ -212,4 +214,68 @@ export function litLienInvitation(texte: string): LienInvitation | null {
   // l'écran demandera de le taper, au lieu de partir sur une valeur fausse.
   const lu = litCode(nettoye);
   return { slug, code: lu.ok ? lu.code : null };
+}
+
+// ---------------------------------------------------------------------------
+// La ligue elle-même
+// ---------------------------------------------------------------------------
+
+/** Une ligue telle qu'elle vit dans `app.leagues` (migration36). */
+export type Ligue = {
+  id: string;
+  slug: string;
+  name: string;
+  invite_code: string;
+  start_day: string;
+  end_day: string;
+  creator_player_id: string | null;
+  parent_league_id: string | null;
+  created_at: string;
+};
+
+/**
+ * Une ligue dure de 1 à 6 semaines. Ce n'est pas un réglage d'affichage : le
+ * trigger `guard_league_insert` (migration37) refuse tout le reste, et le
+ * refuse en `DUREE_INVALIDE`. Ces deux bornes sont la copie client de cette
+ * règle — l'écran de création n'a pas à faire un aller-retour pour savoir
+ * qu'une ligue de 8 semaines sera rejetée.
+ */
+export const SEMAINES_MIN = 1;
+export const SEMAINES_MAX = 6;
+
+/**
+ * Le dernier jour d'une ligue qui démarre le `debut` et dure `semaines`.
+ *
+ * Bornes comprises : une ligue d'une semaine qui démarre un lundi finit le
+ * dimanche suivant, soit 7 jours, soit `debut + 6`. C'est le « -1 » que tout le
+ * monde oublie et qui donne des ligues de 8 jours.
+ */
+export function finDeLigue(debut: string, semaines: number): string {
+  if (!Number.isInteger(semaines)) {
+    throw new Error(`Durée de ligue non entière : ${semaines} semaines.`);
+  }
+  if (semaines < SEMAINES_MIN || semaines > SEMAINES_MAX) {
+    throw new Error(
+      `Une ligue dure de ${SEMAINES_MIN} à ${SEMAINES_MAX} semaines, pas ${semaines}.`,
+    );
+  }
+  return addDays(debut, semaines * 7 - 1);
+}
+
+/**
+ * La fenêtre de dates d'une ligue, à passer aux modules qui la réclament
+ * depuis la phase 3a (`stats`, `share`, `duels`, tout `challenge`).
+ *
+ * Le troisième terme est la date d'entrée en vigueur du barème S3. Pour une
+ * ligue neuve c'est son premier jour : `app.daily_points` est du S3 pur, elle
+ * ne traîne aucune règle antérieure. Seul le groupe d'origine aura une valeur
+ * différente, et il ne passe dans `app` qu'en phase 5.
+ */
+export function fenetreDeLigue(l: Ligue): Fenetre {
+  return fenetre(l.start_day, l.end_day, l.start_day);
+}
+
+/** Le nombre de semaines entamées d'une ligue — pour l'afficher, pas pour compter. */
+export function semainesDeLigue(l: Ligue): number {
+  return Math.ceil((diffDays(l.start_day, l.end_day) + 1) / 7);
 }
