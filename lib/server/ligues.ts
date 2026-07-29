@@ -12,16 +12,20 @@ import { FENETRE_ENV, parisToday, type Fenetre } from "@/lib/challenge";
 import { fenetreDeLigue, type Ligue } from "@/lib/ligue";
 import { serverSupabase } from "./push";
 
-const MULTI = (process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public") !== "public";
-
 export type Terrain = {
-  /** `null` en groupe unique : il n'y a pas de ligue, il y a le challenge. */
+  /** `null` pour le challenge d'origine : ce n'est pas une ligue. */
   ligue: Ligue | null;
   fenetre: Fenetre;
+  /** `public` pour le challenge d'origine, `app` pour une ligue. */
+  schema: "public" | "app";
 };
 
 /** Le terrain du groupe d'origine : pas de ligue, la fenêtre des variables. */
-export const TERRAIN_ENV: Terrain = { ligue: null, fenetre: FENETRE_ENV };
+export const TERRAIN_ENV: Terrain = {
+  ligue: null,
+  fenetre: FENETRE_ENV,
+  schema: "public",
+};
 
 /** Le nombre de joueurs à partir duquel une ligue mérite qu'on la notifie. */
 export const JOUEURS_MINIMUM = 2;
@@ -39,45 +43,66 @@ const COLONNES =
  * une notification qui ne parle de personne. Elle se réveillera quand ses
  * potes seront là.
  *
- * Rend une liste vide en cas d'erreur : un cron qui ne sait pas à qui parler
- * se tait. C'est la bonne façon d'échouer quand on tient un canal qui réveille
- * les gens.
+ * Le challenge d'origine ouvre la liste tant qu'il tourne, et il est calculé
+ * sans toucher à `app` : ses neuf joueurs ne perdent pas un rappel parce
+ * qu'une requête sur les ligues a échoué. Les ligues, elles, sont ignorées en
+ * silence si le schéma est absent — un cron qui ne sait pas à qui parler se
+ * tait plutôt que d'échouer bruyamment.
  */
 export async function terrainsActifs(): Promise<Terrain[]> {
-  if (!MULTI) return [TERRAIN_ENV];
-
   const today = parisToday();
-  const sb = serverSupabase();
+  const terrains: Terrain[] = [];
 
-  const { data: ligues, error } = await sb
-    .from("leagues")
-    .select(COLONNES)
-    .lte("start_day", today)
-    .gte("end_day", today);
-  if (error || !ligues || ligues.length === 0) return [];
-
-  // Le compte des joueurs en une seule requête plutôt qu'une par ligue : à ce
-  // volume, ramener les identifiants coûte moins cher que N aller-retours.
-  const ids = (ligues as Ligue[]).map((l) => l.id);
-  const { data: joueurs, error: err2 } = await sb
-    .from("players")
-    .select("league_id")
-    .in("league_id", ids);
-  if (err2 || !joueurs) return [];
-
-  const compte = new Map<string, number>();
-  for (const j of joueurs as { league_id: string }[]) {
-    compte.set(j.league_id, (compte.get(j.league_id) ?? 0) + 1);
+  // Le challenge d'origine, tant qu'il tourne. Il passe en premier et il est
+  // calculé sans toucher à `app` : ses neuf joueurs ne doivent jamais perdre
+  // un rappel parce qu'une requête sur les ligues a échoué.
+  if (today >= FENETRE_ENV.start && today <= FENETRE_ENV.end) {
+    terrains.push(TERRAIN_ENV);
   }
 
-  return (ligues as Ligue[])
-    .filter((l) => (compte.get(l.id) ?? 0) >= JOUEURS_MINIMUM)
-    .map((ligue) => ({ ligue, fenetre: fenetreDeLigue(ligue) }));
+  try {
+    const sb = serverSupabase("app");
+    const { data: ligues, error } = await sb
+      .from("leagues")
+      .select(COLONNES)
+      .lte("start_day", today)
+      .gte("end_day", today);
+    if (error || !ligues || ligues.length === 0) return terrains;
+
+    // Le compte des joueurs en une seule requête plutôt qu'une par ligue : à ce
+    // volume, ramener les identifiants coûte moins cher que N aller-retours.
+    const ids = (ligues as Ligue[]).map((l) => l.id);
+    const { data: joueurs, error: err2 } = await sb
+      .from("players")
+      .select("league_id")
+      .in("league_id", ids);
+    if (err2 || !joueurs) return terrains;
+
+    const compte = new Map<string, number>();
+    for (const j of joueurs as { league_id: string }[]) {
+      compte.set(j.league_id, (compte.get(j.league_id) ?? 0) + 1);
+    }
+
+    for (const ligue of ligues as Ligue[]) {
+      if ((compte.get(ligue.id) ?? 0) >= JOUEURS_MINIMUM) {
+        terrains.push({
+          ligue,
+          fenetre: fenetreDeLigue(ligue),
+          schema: "app",
+        });
+      }
+    }
+  } catch {
+    // Le schéma `app` peut être absent ou non exposé selon l'environnement.
+    // Ce n'est pas une raison pour taire le challenge d'origine.
+  }
+
+  return terrains;
 }
 
 /** Les identifiants des joueurs d'un terrain — les destinataires d'un push. */
 export async function joueursDuTerrain(t: Terrain): Promise<string[] | null> {
-  const sb = serverSupabase();
+  const sb = serverSupabase(t.schema);
   let q = sb.from("players").select("id");
   if (t.ligue) q = q.eq("league_id", t.ligue.id);
   const { data, error } = await q;

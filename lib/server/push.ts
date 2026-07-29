@@ -13,16 +13,21 @@ export type PushRow = {
   auth: string;
 };
 
-/** Client Supabase côté serveur (clé anonyme : RLS ouverte par design). */
-export function serverSupabase() {
+/**
+ * Client Supabase côté serveur (clé anonyme : RLS ouverte par design).
+ *
+ * Le schéma est un argument et non une variable d'environnement : un cron
+ * traite le challenge d'origine (`public`) ET les ligues (`app`) dans le même
+ * passage, et il ne peut pas être des deux avis à la fois. Chaque terrain dit
+ * le sien — voir `lib/server/ligues.ts`.
+ */
+export function serverSupabase(schema: "public" | "app" = "public") {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: { persistSession: false },
-      // Même schéma que le client navigateur, pour la même raison — voir
-      // lib/supabase.ts. `public` tant que la variable n'est pas posée.
-      db: { schema: process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public" },
+      db: { schema },
     },
   );
 }
@@ -217,38 +222,41 @@ export function isAuthorizedCron(request: Request): boolean {
 }
 
 /**
- * Garde des routes POST appelées par l'app. Le client envoie un secret en
- * header. Même niveau que PasswordGate — bloque le passant qui a trouvé
- * l'URL, pas le NSA. **Fail-closed** dans tous les cas de figure.
+ * De quel monde vient cet appel ? `null` s'il n'est pas autorisé.
  *
- * En groupe unique : le mot de passe du groupe, exactement comme avant.
+ * Le secret envoyé **est** le discriminant, et c'est ce qui rend la
+ * cohabitation possible sans paramètre supplémentaire :
  *
- * En multi-ligues : le code d'invitation, qui joue le même rôle — un secret
- * que se partagent les gens qui sont dans la ligue. Il n'y a pas de liste de
- * codes côté serveur, donc on vérifie en base. Un code qui n'existe pas ne
- * passe pas, et une base injoignable ne passe pas non plus : on refuse plutôt
- * que d'ouvrir en cas de doute.
+ *   * le mot de passe du groupe ouvre le challenge d'origine (`public`) ;
+ *   * un code d'invitation valide ouvre les ligues (`app`).
+ *
+ * Même niveau qu'avant — ça bloque le passant qui a trouvé l'URL, pas le NSA.
+ * **Fail-closed** sur tous les chemins : en-tête absent, format invalide, code
+ * inconnu, base injoignable. On refuse plutôt que d'ouvrir en cas de doute.
  */
-export async function isAuthorizedApp(request: Request): Promise<boolean> {
+export async function mondeAutorise(
+  request: Request,
+): Promise<"public" | "app" | null> {
   const envoye = request.headers.get("x-group-pass");
-  if (!envoye) return false;
+  if (!envoye) return null;
 
-  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public";
-  if (schema === "public") {
-    const pass = process.env.NEXT_PUBLIC_GROUP_PASSWORD;
-    if (!pass) return false;
-    return envoye === pass;
-  }
+  const pass = process.env.NEXT_PUBLIC_GROUP_PASSWORD;
+  if (pass && envoye === pass) return "public";
 
   // Normalisation minimale, alignée sur `normaliseCode` côté client : le code
-  // voyage en clair dans un header, autant ne pas refuser une casse.
+  // voyage en clair dans un en-tête, autant ne pas refuser une casse.
   const code = envoye.trim().toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) return false;
+  if (!/^[A-Z0-9]{6}$/.test(code)) return null;
 
-  const { data, error } = await serverSupabase()
+  const { data, error } = await serverSupabase("app")
     .from("leagues")
     .select("id")
     .eq("invite_code", code)
     .maybeSingle();
-  return !error && !!data;
+  return !error && data ? "app" : null;
+}
+
+/** La même garde, en booléen, pour qui n'a pas besoin de savoir d'où ça vient. */
+export async function isAuthorizedApp(request: Request): Promise<boolean> {
+  return (await mondeAutorise(request)) !== null;
 }

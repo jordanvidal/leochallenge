@@ -19,7 +19,7 @@
 
 import { NextResponse } from "next/server";
 import { mentionedPlayerIds } from "@/lib/chat";
-import { isAuthorizedApp, sendToPlayers, serverSupabase } from "@/lib/server/push";
+import { mondeAutorise, sendToPlayers, serverSupabase } from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,10 @@ const PRESENT_MS = 90_000;
 type Pref = "tous" | "mentions" | "aucune";
 
 export async function POST(request: Request) {
-  if (!(await isAuthorizedApp(request))) {
+  // Le secret envoyé dit de quel monde vient l'appel : mot de passe du groupe
+  // pour le challenge d'origine, code de ligue pour une ligue.
+  const monde = await mondeAutorise(request);
+  if (!monde) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
   const { messageId, actorId } = (await request.json().catch(() => ({}))) as {
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(monde);
 
   const { data: msg, error: msgErr } = await supabase
     .from("chat_messages")

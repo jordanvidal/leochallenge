@@ -77,7 +77,7 @@ export async function runWeeklyDuels(t: Terrain = TERRAIN_ENV): Promise<{
   // Le workflow a un déclencheur manuel : hors lundi, on ne touche à rien.
   if (weekdayIndex(today) !== 0) return { skipped: "pas lundi", ...none };
 
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const players = await supabase.from("players").select("id, name");
   if (players.error) throw new Error("lecture players échouée");
   const names = new Map(

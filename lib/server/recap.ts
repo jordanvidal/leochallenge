@@ -66,7 +66,7 @@ export async function sendWeeklyRecap(
     return { skipped: "pas de semaine écoulée", notified: 0, sent: 0 };
   }
 
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const [week, general, generalBefore, players] = await Promise.all([
     supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_from: lastMonday, p_until: lastSunday }),
     supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_until: lastSunday }),

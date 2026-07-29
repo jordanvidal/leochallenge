@@ -39,7 +39,7 @@ export async function sendWeeklyClose(t: Terrain = TERRAIN_ENV): Promise<{
   }
 
   const monday = mondayOf(today);
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const [week, players] = await Promise.all([
     supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_from: monday, p_until: today }),
     joueursNommes(supabase, t),

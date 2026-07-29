@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server";
 import {
-  isAuthorizedApp,
+  mondeAutorise,
   sendToPlayers,
   serverSupabase,
 } from "@/lib/server/push";
@@ -22,7 +22,10 @@ export const dynamic = "force-dynamic";
 const QUARTER_HOUR_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
-  if (!(await isAuthorizedApp(request))) {
+  // Le secret envoyé dit de quel monde vient l'appel : mot de passe du groupe
+  // pour le challenge d'origine, code de ligue pour une ligue.
+  const monde = await mondeAutorise(request);
+  if (!monde) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
   const { eventId, actorId } = (await request.json().catch(() => ({}))) as {
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "eventId requis" }, { status: 400 });
   }
 
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(monde);
   const cutoff = new Date(Date.now() - QUARTER_HOUR_MS).toISOString();
 
   // Le verrou : ne passe que si aucune notif depuis 15 min sur cet événement.
