@@ -32,6 +32,9 @@ type Props = {
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
   onDiscuss: (events: FeedEvent[]) => void;
   onGoLeaderboard: () => void;
+  /** Rejointe depuis une citation du tchat : le bilan se cite comme
+      n'importe quel moment, il se retrouve donc pareil. */
+  vise?: boolean;
 };
 
 /** Un appariement prêt à afficher, résolu ou non. */
@@ -64,6 +67,7 @@ export default function WeekRecapCard({
   onToggleReaction,
   onDiscuss,
   onGoLeaderboard,
+  vise,
 }: Props) {
   const f = useFenetre();
   const ligueId = useLigueCourante()?.id ?? null;
@@ -156,7 +160,8 @@ export default function WeekRecapCard({
 
   return (
     <li
-      className="flex flex-col rounded-2xl px-4 py-4"
+      id={vise ? "moment-vise" : undefined}
+      className={`flex flex-col rounded-2xl px-4 py-4 ${vise ? "moment-vise" : ""}`}
       style={{ background: "var(--color-raised)" }}
       aria-label="Bilan de la semaine"
     >
@@ -229,7 +234,7 @@ export default function WeekRecapCard({
                       : undefined
                   }
                 >
-                  <Avatar name={p.a.name} color={p.a.color} size={24} />
+                  <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
                   <Name p={p.a} me={me} />
                   {p.b ? (
                     <>
@@ -237,7 +242,7 @@ export default function WeekRecapCard({
                         ⚔️
                       </span>
                       <Name p={p.b} me={me} />
-                      <Avatar name={p.b.name} color={p.b.color} size={24} />
+                      <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
                     </>
                   ) : (
                     <span className="text-muted">— exempt cette semaine</span>

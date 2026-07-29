@@ -279,6 +279,34 @@ export function useChallengeData() {
     [players, refresh, showToast, ligue],
   );
 
+  /** Photo de profil : écriture optimiste, rollback si la base refuse.
+      La photo est déjà réduite en data-URI côté client (lib/image.ts). */
+  const setPhoto = useCallback(
+    async (playerId: string, photo: string) => {
+      const before =
+        (players ?? []).find((p) => p.id === playerId)?.photo ?? null;
+      setPlayers((prev) =>
+        (prev ?? []).map((p) => (p.id === playerId ? { ...p, photo } : p)),
+      );
+
+      const { error } = await supabase
+        .from("players")
+        .update({ photo })
+        .eq("id", playerId);
+      if (error) {
+        setPlayers((prev) =>
+          (prev ?? []).map((p) =>
+            p.id === playerId ? { ...p, photo: before } : p,
+          ),
+        );
+        showToast("Photo non enregistrée, réessaie");
+        return false;
+      }
+      return true;
+    },
+    [players, showToast],
+  );
+
   /** Suppression d'un joueur fantôme. La base refuse s'il a des entrées. */
   const deletePlayer = useCallback(
     async (playerId: string) => {
@@ -308,6 +336,7 @@ export function useChallengeData() {
     setExercisesDone,
     createPlayer,
     deletePlayer,
+    setPhoto,
   };
 }
 

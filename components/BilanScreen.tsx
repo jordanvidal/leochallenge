@@ -74,7 +74,7 @@ function Podium({ rows, byId }: { rows: LeaderboardRow[]; byId: Map<string, Play
         const first = r.rank === 1;
         return (
           <div key={r.player_id} className="flex flex-col items-center gap-1.5">
-            <Avatar name={p.name} color={p.color} size={first ? 76 : 54} />
+            <Avatar name={p.name} color={p.color} photo={p.photo} size={first ? 76 : 54} />
             <span className="max-w-24 truncate text-sm font-bold">{p.name}</span>
             <span
               className={`num-display ${first ? "text-5xl" : "text-3xl"}`}
@@ -200,7 +200,7 @@ function PlayerCard(props: {
     <details open={open} className="rounded-2xl bg-surface [&[open]_.chev]:rotate-180">
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
         <span className="num-display w-6 text-xl text-faint">{row.rank}</span>
-        <Avatar name={player.name} color={player.color} size={38} />
+        <Avatar name={player.name} color={player.color} photo={player.photo} size={38} />
         <span className="min-w-0 flex-1 truncate font-bold">{player.name}</span>
         <span className="num-display text-xl" style={{ color: player.color }}>
           {fmtPoints(row.points)}

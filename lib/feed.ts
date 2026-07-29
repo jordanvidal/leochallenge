@@ -39,6 +39,11 @@ export type FeedPayload = {
   badge?: string;
   streak?: number;
   co?: string[];
+  // 👑 tête de la semaine : les ids des leaders au moment de l'annonce,
+  // dans un ordre canonique. C'est la mémoire qui permet à /api/moments de
+  // savoir si la tête a bougé — la semaine repart de zéro chaque lundi, il
+  // n'existe aucun rang hebdo figé ailleurs.
+  leaders?: string[];
   // record de volume : les répétitions de rab du jour, et l'ancien record
   // qui vient de tomber. Leur présence distingue les deux familles de
   // `kind: "record"` — sans `reps`, c'est un record de série.
@@ -266,7 +271,16 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
       return { emoji: "🎲", text: verb + pts };
     }
     case "lead":
-      return { emoji: "👑", text: "prend la tête du classement" };
+      // La tête se joue sur la semaine depuis le 29/07, comme le
+      // Classement qui s'ouvre dessus. Les cartes d'avant ont été
+      // calculées sur le général : sans `week_monday`, elles gardent
+      // leur phrase, sinon le fil réécrirait son propre passé.
+      return {
+        emoji: "👑",
+        text: p.week_monday
+          ? "prend la tête de la semaine"
+          : "prend la tête du classement",
+      };
     case "co_lead": {
       // Auteur rendu à part (prénom coloré) : la phrase enchaîne dessus.
       const co = p.co ?? [];
@@ -274,7 +288,10 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
         co.length <= 1
           ? co[0] ?? ""
           : `${co.slice(0, -1).join(", ")} et ${co[co.length - 1]}`;
-      return { emoji: "👑", text: `et ${list} se partagent la tête` };
+      return {
+        emoji: "👑",
+        text: `et ${list} se partagent la tête${p.week_monday ? " de la semaine" : ""}`,
+      };
     }
     case "badge": {
       const b = BADGES.find((x) => x.key === p.badge);

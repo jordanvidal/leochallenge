@@ -12,6 +12,7 @@
 // salon lisible en diagonale.
 
 import { useRef, useState } from "react";
+import { ZONE_BORD_PX } from "@/hooks/useRetour";
 import { apercu, ChatMessage, ChatReaction, segmentsOf } from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
@@ -39,6 +40,8 @@ function BulleCitee({
   texte,
   deSonAuteur,
   aDroite,
+  ailleurs,
+  ariaLabel,
   onClick,
 }: {
   auteur: string;
@@ -48,12 +51,18 @@ function BulleCitee({
   deSonAuteur: boolean;
   /** Alignée à droite, comme la réponse qu'elle précède. */
   aDroite: boolean;
+  /** Le tap emmène sur un autre écran et pas plus haut dans la même
+      conversation. Ça se signale : le chevron est le seul moyen de
+      savoir, avant d'appuyer, qu'on va quitter le salon. */
+  ailleurs?: boolean;
+  ariaLabel?: string;
   onClick?: () => void;
 }) {
   const Balise = onClick ? "button" : "div";
   return (
     <Balise
       onClick={onClick}
+      aria-label={ariaLabel}
       className={`-mb-0.5 max-w-[72%] rounded-2xl px-3 py-1.5 text-left ${
         aDroite ? "mr-3" : "ml-3"
       }`}
@@ -64,8 +73,29 @@ function BulleCitee({
         opacity: 0.72,
       }}
     >
-      <span className="block text-[11px] font-bold" style={{ color: couleur }}>
-        {auteur}
+      <span
+        className="flex items-center gap-1 text-[11px] font-bold"
+        style={{ color: couleur }}
+      >
+        <span className="truncate">{auteur}</span>
+        {ailleurs && (
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="shrink-0"
+            aria-hidden
+          >
+            <path
+              d="M9 5l7 7-7 7"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
       </span>
       <span className="line-clamp-2 block text-xs text-muted">{texte}</span>
     </Balise>
@@ -98,6 +128,9 @@ type Props = {
   onOpenMenu: (m: ChatMessage) => void;
   onReply: (m: ChatMessage) => void;
   onJumpTo: (id: string) => void;
+  /** Le chemin retour vers le fil : on est parti de là, on doit pouvoir
+      y revenir. */
+  onJumpToFeed: (eventId: string) => void;
 };
 
 export default function ChatBubble({
@@ -118,6 +151,7 @@ export default function ChatBubble({
   onOpenMenu,
   onReply,
   onJumpTo,
+  onJumpToFeed,
 }: Props) {
   const [dx, setDx] = useState(0);
   const depart = useRef<{ x: number; y: number } | null>(null);
@@ -138,6 +172,11 @@ export default function ChatBubble({
 
   function onPointerDown(e: React.PointerEvent) {
     if (enVol) return;
+    // Le bord gauche appartient au retour arrière : les deux gestes vont
+    // dans le même sens, et une bulle alignée à gauche commence à 20 px
+    // du bord. Sans cette réserve, répondre et sortir du tchat se
+    // disputeraient le même glissé.
+    if (e.clientX <= ZONE_BORD_PX) return;
     consomme.current = false;
     depart.current = { x: e.clientX, y: e.clientY };
     // Même durée et même vibration que l'appui long des réactions du fil
@@ -216,12 +255,21 @@ export default function ChatBubble({
         // Le moment du fil suit le même traitement : c'est aussi « ce
         // message parle de ça ». La phrase vient d'eventPhrase(), la même
         // qui rend la carte dans le fil — jamais une reformulation.
+        //
+        // Et il ramène là d'où il vient. La citation dit de quoi on parle,
+        // pas ce qui s'est dit autour : réactions, autres messages, les
+        // moments d'avant et d'après. Sans le tap, il faut ouvrir le fil et
+        // retrouver la carte à la main, ce qui est exactement le genre de
+        // trajet que l'app s'interdit.
         <BulleCitee
           auteur={`${eventPhrase(feedEvent).emoji} ${feedEventAuthor?.name ?? "Le fil"}`}
           couleur={feedEventAuthor?.color ?? "var(--color-muted)"}
           texte={apercu(eventPhrase(feedEvent).text, 120)}
           deSonAuteur={feedEvent.player_id === myId}
           aDroite={isMine}
+          ailleurs
+          ariaLabel="Voir ce moment dans le fil"
+          onClick={() => onJumpToFeed(feedEvent.id)}
         />
       )}
 

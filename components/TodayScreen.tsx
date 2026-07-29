@@ -278,7 +278,7 @@ export default function TodayScreen({
                       className={live ? "live-pulse" : undefined}
                       style={{ "--lc": p.color } as React.CSSProperties}
                     >
-                      <Avatar name={p.name} color={p.color} size={46} />
+                      <Avatar name={p.name} color={p.color} photo={p.photo} size={46} />
                     </div>
                     <span className="max-w-16 truncate text-xs font-medium text-muted">
                       {p.name}

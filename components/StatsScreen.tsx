@@ -26,7 +26,7 @@ import {
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import HistoryGrid from "./HistoryGrid";
-import { Avatar, Skeleton } from "./ui";
+import { EditablePhotoAvatar, Skeleton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
@@ -38,6 +38,9 @@ type Props = {
       respirer un loader qui n'aboutira pas. */
   gamificationEnPanne: boolean;
   onShareWeek: () => void;
+  /** Changer sa propre photo depuis son profil, sans repasser par
+      « Qui es-tu ? ». */
+  onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
   /** Passé à la grille d'historique : ses cases expliquent au tap. */
   showToast: (msg: string) => void;
 };
@@ -103,6 +106,7 @@ export default function StatsScreen({
   gamification,
   gamificationEnPanne,
   onShareWeek,
+  onSetPhoto,
   showToast,
 }: Props) {
   const f = useFenetre();
@@ -153,7 +157,7 @@ export default function StatsScreen({
         aria-label="Ton profil"
       >
         <div className="flex items-center gap-2.5">
-          <Avatar name={player.name} color={player.color} size={32} />
+          <EditablePhotoAvatar player={player} onSetPhoto={onSetPhoto} size={32} />
           <span className="font-bold">Toi</span>
           {jokerKnown && (
             <span
