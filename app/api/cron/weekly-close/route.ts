@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/server/push";
 import { sendWeeklyClose } from "@/lib/server/weekly-close";
+import { surChaqueTerrain } from "@/lib/server/ligues";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +15,5 @@ export async function GET(request: Request) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
-  return NextResponse.json(await sendWeeklyClose());
+  return NextResponse.json(await surChaqueTerrain((t) => sendWeeklyClose(t)));
 }

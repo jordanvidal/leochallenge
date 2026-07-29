@@ -17,6 +17,7 @@ import { NextResponse } from "next/server";
 import { runWeeklyDuels } from "@/lib/server/duels";
 import { isAuthorizedCron } from "@/lib/server/push";
 import { sendWeeklyRecap } from "@/lib/server/recap";
+import { surChaqueTerrain } from "@/lib/server/ligues";
 import { sendWinBack } from "@/lib/server/reminders";
 
 export const dynamic = "force-dynamic";
@@ -26,53 +27,61 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
 
-  let duels: Awaited<ReturnType<typeof runWeeklyDuels>> | null = null;
-  let duelsError: string | undefined;
-  try {
-    duels = await runWeeklyDuels();
-  } catch (e) {
-    duelsError = (e as Error).message;
-  }
+  // Les trois étages du lundi, ligue par ligue. Chaque terrain est isolé par
+  // `surChaqueTerrain` : une ligue qui échoue n'empêche pas les autres de
+  // recevoir leur récap.
+  return NextResponse.json(
+    await surChaqueTerrain(async (t) => {
+      let duels: Awaited<ReturnType<typeof runWeeklyDuels>> | null = null;
+      let duelsError: string | undefined;
+      try {
+        duels = await runWeeklyDuels(t);
+      } catch (e) {
+        duelsError = (e as Error).message;
+      }
 
-  // Rejeu détecté : la base a déjà tout, il ne reste qu'à ne réveiller
-  // personne. On sort avant les deux envois (récap et win-back).
-  if (duels?.alreadyRan) {
-    return NextResponse.json({
-      replayed: true,
-      duels: {
-        resolved: duels.resolved,
-        created: duels.created,
-        feedInserted: duels.feedInserted,
-      },
-    });
-  }
+      // Rejeu détecté : la base a déjà tout, il ne reste qu'à ne réveiller
+      // personne. On sort avant les deux envois (récap et win-back).
+      if (duels?.alreadyRan) {
+        return {
+          replayed: true,
+          duels: {
+            resolved: duels.resolved,
+            created: duels.created,
+            feedInserted: duels.feedInserted,
+          },
+        };
+      }
 
-  // Win-back des décrochés, isolé comme les duels : s'il échoue, le récap
-  // part quand même (les relancés recevront juste le récap standard).
-  let winBack: Awaited<ReturnType<typeof sendWinBack>> | null = null;
-  let winBackError: string | undefined;
-  try {
-    winBack = await sendWinBack();
-  } catch (e) {
-    winBackError = (e as Error).message;
-  }
+      // Win-back des décrochés, isolé comme les duels : s'il échoue, le récap
+      // part quand même (les relancés recevront juste le récap standard).
+      let winBack: Awaited<ReturnType<typeof sendWinBack>> | null = null;
+      let winBackError: string | undefined;
+      try {
+        winBack = await sendWinBack(t);
+      } catch (e) {
+        winBackError = (e as Error).message;
+      }
 
-  const recap = await sendWeeklyRecap(
-    duels?.lines,
-    winBack ? new Set(winBack.reengaged) : undefined,
+      const recap = await sendWeeklyRecap(
+        duels?.lines,
+        winBack ? new Set(winBack.reengaged) : undefined,
+        t,
+      );
+      return {
+        recap,
+        winBack: winBack
+          ? { notified: winBack.notified, sent: winBack.sent }
+          : { error: winBackError },
+        duels: duels
+          ? {
+              skipped: duels.skipped,
+              resolved: duels.resolved,
+              created: duels.created,
+              feedInserted: duels.feedInserted,
+            }
+          : { error: duelsError },
+      };
+    }),
   );
-  return NextResponse.json({
-    recap,
-    winBack: winBack
-      ? { notified: winBack.notified, sent: winBack.sent }
-      : { error: winBackError },
-    duels: duels
-      ? {
-          skipped: duels.skipped,
-          resolved: duels.resolved,
-          created: duels.created,
-          feedInserted: duels.feedInserted,
-        }
-      : { error: duelsError },
-  });
 }

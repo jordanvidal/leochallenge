@@ -93,3 +93,31 @@ export function joueursNommes(
   const q = sb.from("players").select("id, name");
   return t.ligue ? q.eq("league_id", t.ligue.id) : q;
 }
+
+/**
+ * Passe sur chaque terrain actif et rend un compte-rendu par ligue.
+ *
+ * Chaque terrain est isolé : si la lecture échoue pour l'un, les autres
+ * partent quand même et l'erreur apparaît dans le compte-rendu au lieu de
+ * faire tomber la route. Un cron qui réveille des gens ne doit pas se taire
+ * pour six ligues parce qu'une septième a hoqueté.
+ *
+ * En groupe unique, la liste a un seul terrain sans ligue : le compte-rendu
+ * porte alors `ligue: null` et le contenu est celui d'aujourd'hui.
+ */
+export async function surChaqueTerrain<T extends object>(
+  travail: (t: Terrain) => Promise<T>,
+): Promise<{ terrains: number; resultats: unknown[] }> {
+  const terrains = await terrainsActifs();
+  const resultats = await Promise.all(
+    terrains.map(async (t) => {
+      const ligue = t.ligue?.slug ?? null;
+      try {
+        return { ligue, ...(await travail(t)) };
+      } catch (e) {
+        return { ligue, erreur: (e as Error).message };
+      }
+    }),
+  );
+  return { terrains: terrains.length, resultats };
+}
