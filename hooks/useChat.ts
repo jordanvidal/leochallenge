@@ -64,13 +64,14 @@ export function useChat(
   enabled: boolean,
   myId: string | null,
   showToast: (msg: string) => void,
-  /** Les joueurs de la ligue — le tri du temps réel se fait dessus. */
-  joueursConnus: Set<string>,
+  /** Les joueurs de la ligue, ou `null` tant qu'on ne les connaît pas —
+      auquel cas on ne trie rien plutôt que de tout jeter. */
+  joueursConnus: Set<string> | null,
 ) {
   const ligueId = useLigueCourante()?.id ?? null;
   // Miroir des joueurs de la ligue, pour trier le temps réel sans remonter
   // dans les dépendances de l'abonnement.
-  const connusRef = useRef(joueursConnus);
+  const connusRef = useRef<Set<string> | null>(joueursConnus);
   useEffect(() => {
     connusRef.current = joueursConnus;
   }, [joueursConnus]);
@@ -163,7 +164,8 @@ export function useChat(
           const m = p.new as ChatMessage;
           // Le canal porte toute la table : un message d'une autre ligue
           // arriverait ici aussi. On ne garde que les auteurs qu'on connaît.
-          if (!connusRef.current.has(m.player_id)) return;
+          const connus = connusRef.current;
+          if (connus && !connus.has(m.player_id)) return;
           setMessages((prev) => (prev ? upsert(prev, m) : prev));
         },
       )
@@ -174,7 +176,8 @@ export function useChat(
           const m = p.new as ChatMessage;
           // Le canal porte toute la table : un message d'une autre ligue
           // arriverait ici aussi. On ne garde que les auteurs qu'on connaît.
-          if (!connusRef.current.has(m.player_id)) return;
+          const connus = connusRef.current;
+          if (connus && !connus.has(m.player_id)) return;
           setMessages((prev) => (prev ? upsert(prev, m) : prev));
         },
       )

@@ -46,9 +46,13 @@ export function useChallengeData() {
   }, [entries]);
   // Les joueurs que cet appareil connaît — c'est-à-dire ceux de sa ligue.
   // Sert à trier les événements temps réel : voir l'abonnement plus bas.
-  const knownPlayersRef = useRef<Set<string>>(new Set());
+  // `null` = on ne sait pas encore qui joue ici. Distinct d'un ensemble
+  // vide, qui voudrait dire « personne » — et ferait jeter les coches.
+  const knownPlayersRef = useRef<Set<string> | null>(null);
   useEffect(() => {
-    knownPlayersRef.current = new Set((players ?? []).map((p) => p.id));
+    knownPlayersRef.current = players
+      ? new Set(players.map((p) => p.id))
+      : null;
   }, [players]);
 
   const showToast = useCallback((msg: string) => {
@@ -141,7 +145,11 @@ export function useChallengeData() {
           const row = payload.new as Entry | undefined;
           if (!row?.player_id || !row.day) return; // DELETE : new est vide
           // Joueur d'une autre ligue : on ne l'affiche pas, on ne le stocke pas.
-          if (!knownPlayersRef.current.has(row.player_id)) return;
+          // Tant que la liste n'est pas chargée, on ne trie pas : jeter une
+          // coche parce qu'on ne sait pas encore qui joue, c'est perdre
+          // exactement le moment que le temps réel existe pour montrer.
+          const connus = knownPlayersRef.current;
+          if (connus && !connus.has(row.player_id)) return;
           const key = entryKey(row.player_id, row.day);
           const before = entriesRef.current.get(key);
           const next: Entry = {

@@ -86,7 +86,7 @@ export default function App() {
   // Les identifiants des joueurs de la ligue : le tchat s'en sert pour
   // ignorer le temps réel des autres ligues.
   const joueursDeLaLigue = useMemo(
-    () => new Set((data.players ?? []).map((p) => p.id)),
+    () => (data.players ? new Set(data.players.map((p) => p.id)) : null),
     [data.players],
   );
 
