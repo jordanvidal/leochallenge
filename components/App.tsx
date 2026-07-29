@@ -11,6 +11,7 @@ import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useGestePage } from "@/hooks/useGestePage";
+import { useHistoriqueOnglets } from "@/hooks/useHistoriqueOnglets";
 import { useCoucheRetour, useRetour } from "@/hooks/useRetour";
 import { useTodaySession } from "@/hooks/useTodaySession";
 import {
@@ -39,7 +40,7 @@ import InstallScreen from "./InstallScreen";
 import PasswordGate from "./PasswordGate";
 import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
-import TabBar, { ordreOnglets, Tab } from "./TabBar";
+import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import LaunchS3Screen from "./LaunchS3Screen";
 import TutorialScreen from "./TutorialScreen";
@@ -66,7 +67,9 @@ export default function App() {
   // Challenge terminé (1er sept.+) : le Bilan remplace « Aujourd'hui » et
   // devient l'onglet par défaut. Garde stable sur toute la session.
   const over = challengeIsOver(f);
-  const [tab, setTab] = useState<Tab>(() =>
+  // L'ordre dans lequel on a vu les écrans, pas celui de la barre : c'est
+  // lui que le glissé remonte.
+  const { tab, aller: setTab, reculer, avancer } = useHistoriqueOnglets(
     challengeIsOver(f) ? "bilan" : "today",
   );
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
@@ -93,25 +96,23 @@ export default function App() {
   );
 
   // ---- Navigation ----
-  // Le gestionnaire d'historique : il ne sert plus qu'aux couches posées
-  // par-dessus l'écran (feuilles, modales, mode séance), pour le bouton
-  // retour d'Android et le glissé natif de Safari. Changer d'onglet ne
-  // touche pas à l'historique — c'est une rangée, pas une pile.
+  // L'historique du navigateur ne sert qu'aux couches posées par-dessus
+  // l'écran (feuilles, modales, mode séance), pour le bouton retour
+  // d'Android et le glissé natif de Safari. Les écrans, eux, ont leur
+  // propre historique (useHistoriqueOnglets) : deux notions distinctes,
+  // et les mêler ferait quitter l'app en voulant revenir au Feed.
   useRetour();
   const scene = useRef<HTMLDivElement>(null);
   // Le sens du dernier changement d'onglet, quand il vient du glissé :
   // c'est lui qui décide du côté par lequel l'écran entre.
   const sensEntree = useRef<1 | -1 | 0>(0);
 
-  /** Un glissé : l'onglet voisin, s'il existe. Aux deux bouts, rien —
-      un enroulement ferait passer de Stats à Aujourd'hui, ce qui n'a
-      aucun sens dans une rangée qu'on voit en entier. */
+  /** Un glissé vers la droite remonte l'historique, un glissé vers la
+      gauche le redescend — le geste d'un navigateur, appliqué aux écrans
+      qu'on a vraiment vus. Au bout, rien : rien à défaire ni à refaire. */
   useGestePage((sens) => {
-    const liste = ordreOnglets(over);
-    const cible = liste[liste.indexOf(effTab) + sens];
-    if (!cible) return;
-    sensEntree.current = sens;
-    setTab(cible);
+    const bouge = sens === -1 ? reculer() : avancer();
+    if (bouge) sensEntree.current = sens;
   });
 
   // L'écran entre par le côté d'où il vient. Court et de faible
