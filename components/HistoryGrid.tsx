@@ -4,11 +4,18 @@
 // Façon graphe de contributions GitHub, en plus lisible sur mobile.
 // Lecture seule intégrale : depuis que la séance est le seul chemin de
 // validation, plus aucune case ne s'édite ici. On montre, on ne coche pas.
+//
+// C'était un onglet à part jusqu'au 28/07 ; c'est maintenant la dernière
+// section de l'écran Stats — le tchat avait besoin du cinquième slot, et de
+// tous les onglets, ces deux-là étaient les seuls à regarder le passé.
+// Elle vient en dernier et pas en tête : 50 jours de 44 px font le bloc le
+// plus haut de l'app, et Stats doit s'ouvrir sur le profil, pas sur un tableau.
 
 import { elapsedDays, isEditable } from "@/lib/challenge";
 import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, Player } from "@/lib/types";
 import { Avatar } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -35,14 +42,15 @@ const dayFmt = new Intl.DateTimeFormat("fr-FR", {
   month: "2-digit",
 });
 
-export default function HistoryScreen({
+export default function HistoryGrid({
   player,
   players,
   entries,
   gamification,
   showToast,
 }: Props) {
-  const days = elapsedDays();
+  const f = useFenetre();
+  const days = elapsedDays(f);
 
   // L'ordre des colonnes : soi d'abord, les autres ensuite.
   const columns = [player, ...players.filter((p) => p.id !== player.id)];
@@ -56,13 +64,18 @@ export default function HistoryScreen({
   );
 
   return (
-    <div className="flex min-h-full flex-col px-5 pt-safe">
-      <h1 className="mt-4 mb-4 text-2xl font-bold">Historique</h1>
+    <section aria-label="Historique jour par jour">
+      <h2 className="mt-6 mb-2 text-xs font-bold tracking-wide text-faint uppercase">
+        Historique · jour par jour
+      </h2>
 
       {days.length === 0 ? (
         <p className="text-muted">Le challenge n&apos;a pas encore commencé.</p>
       ) : (
-        <div className="-mx-5 flex-1 overflow-x-auto px-5">
+        // Le débord négatif rend la largeur de l'écran au tableau : sans lui
+        // la grille se scrolle dans une fenêtre amputée des 20 px de marge de
+        // Stats, et la dernière colonne reste coincée sous le bord.
+        <div className="-mx-5 overflow-x-auto px-5">
           <table className="border-separate border-spacing-1.5">
             <thead>
               <tr>
@@ -70,7 +83,7 @@ export default function HistoryScreen({
                 {columns.map((p) => (
                   <th key={p.id} className="pb-1">
                     <div className="flex flex-col items-center gap-0.5">
-                      <Avatar name={p.name} color={p.color} size={30} />
+                      <Avatar name={p.name} color={p.color} photo={p.photo} size={30} />
                       <span className="max-w-12 truncate text-[10px] font-medium text-muted">
                         {p.id === player.id ? "toi" : p.name}
                       </span>
@@ -88,7 +101,7 @@ export default function HistoryScreen({
                   {columns.map((p) => {
                     const count = entryCount(entries.get(entryKey(p.id, day)));
                     const isMine = p.id === player.id;
-                    const editable = isMine && isEditable(day);
+                    const editable = isMine && isEditable(day, f);
                     const isJoker = jokerDayByPlayer.get(p.id) === day;
                     return (
                       <td key={p.id}>
@@ -131,7 +144,6 @@ export default function HistoryScreen({
           </table>
         </div>
       )}
-
-    </div>
+    </section>
   );
 }

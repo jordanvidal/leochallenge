@@ -16,6 +16,7 @@ import {
   parisToday,
 } from "@/lib/challenge";
 import {
+  fetchLastWeekRanks,
   fetchWeekLeaderboard,
   fmtPoints,
   frenchRank,
@@ -25,13 +26,19 @@ import {
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
 import PlayerBreakdown from "./PlayerBreakdown";
-import { Avatar } from "./ui";
+import { Avatar, Skeleton } from "./ui";
+import { useLigueCourante } from "./ligue/LigueContexte";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  /** Les reprises automatiques ont abandonné : on le dit, au lieu de
+      laisser « Calcul en cours… » tourner dans le vide. */
+  enPanne: boolean;
+  onRetry: () => void;
 };
 
 /** ↑2 / ↓1 / = depuis la semaine dernière. */
@@ -51,9 +58,44 @@ function Variation({ delta }: { delta: number | null }) {
   );
 }
 
-export default function LeaderboardScreen({ player, players, entries, gamification }: Props) {
+/** Le classement pendant le calcul : le podium et les lignes à leur place
+    exacte. Trois RPC tournent derrière, ça se compte en centaines de ms —
+    autant montrer la forme de la page plutôt qu'une phrase qui bouge. */
+function ClassementEnAttente({ lignes }: { lignes: number }) {
+  return (
+    <div role="status" aria-label="Classement en cours de calcul">
+      <div className="mt-5 flex items-end justify-center gap-6">
+        {[48, 64, 48].map((taille, i) => (
+          <div key={i} className="flex flex-col items-center gap-1 p-1">
+            <Skeleton w={taille} h={taille} radius={taille / 2} />
+            <Skeleton w={taille} h={14} radius={7} />
+            <Skeleton w={taille - 12} h={taille === 64 ? 32 : 22} radius={8} />
+          </div>
+        ))}
+      </div>
+      <ul className="mt-6 flex flex-col gap-2 pb-4">
+        {Array.from({ length: lignes }, (_, i) => (
+          <li key={i}>
+            <Skeleton h={60} radius={16} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default function LeaderboardScreen({
+  player,
+  players,
+  entries,
+  gamification,
+  enPanne,
+  onRetry,
+}: Props) {
+  const f = useFenetre();
+  const ligueId = useLigueCourante()?.id ?? null;
   const [view, setView] = useState<"total" | "week">("week");
-  const weeks = challengeWeeks();
+  const weeks = challengeWeeks(f);
   const currentWeek = weeks.find((w) => w.current) ?? null;
   // Semaine affichée dans la vue hebdo. Par défaut : celle en cours.
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
@@ -64,6 +106,12 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
   );
   // Joueur dont on regarde le détail des points (overlay), null = fermé.
   const [detail, setDetail] = useState<LeaderboardRow | null>(null);
+  // Rangs au dimanche dernier : uniquement les flèches ↑↓ du Général, donc
+  // chargés à l'ouverture de cet onglet et pas avant. undefined = pas encore
+  // demandé, null = échec (retenté en revenant sur l'onglet).
+  const [lastWeekRanks, setLastWeekRanks] = useState<
+    Map<string, number> | null | undefined
+  >(undefined);
 
   const selectedWeek: ChallengeWeek | null =
     view === "week"
@@ -75,7 +123,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
     if (view !== "week" || !selectedWeek || selectedWeek.current) return;
     if (history.get(selectedWeek.index)) return; // déjà chargée
     let cancelled = false;
-    fetchWeekLeaderboard(selectedWeek.from, selectedWeek.until).then((rows) => {
+    fetchWeekLeaderboard(selectedWeek.from, selectedWeek.until, ligueId).then((rows) => {
       if (cancelled) return;
       setHistory((h) => new Map(h).set(selectedWeek.index, rows));
     });
@@ -85,13 +133,45 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedWeek?.index]);
 
+  // Les flèches ↑↓ n'existent que dans le Général : on ne paie l'appel
+  // qu'en y entrant. `null` (échec) est retenté au retour sur l'onglet.
+  useEffect(() => {
+    if (view !== "total" || lastWeekRanks) return;
+    let cancelled = false;
+    fetchLastWeekRanks(ligueId).then((m) => {
+      if (!cancelled) setLastWeekRanks(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, lastWeekRanks, ligueId]);
+
   const byId = new Map(players.map((p) => [p.id, p]));
 
   if (!gamification) {
     return (
       <div className="flex flex-1 flex-col px-5 pt-safe">
         <h1 className="mt-4 text-2xl font-bold">Classement</h1>
-        <p className="mt-4 animate-pulse text-muted">Calcul en cours…</p>
+        {enPanne ? (
+          <>
+            <p className="mt-4 text-muted">
+              Impossible de charger le classement. Tes coches sont bien
+              enregistrées — c&apos;est l&apos;affichage qui coince.
+            </p>
+            <button
+              onClick={onRetry}
+              className="mt-4 min-h-11 self-start rounded-xl px-6 font-bold"
+              style={{
+                background: "var(--color-raised)",
+                color: "var(--color-ink)",
+              }}
+            >
+              Réessayer
+            </button>
+          </>
+        ) : (
+          <ClassementEnAttente lignes={Math.max(players.length, 3)} />
+        )}
       </div>
     );
   }
@@ -101,7 +181,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
   const nDays = Math.max(
     selectedWeek
       ? diffDays(selectedWeek.from, selectedWeek.until < today ? selectedWeek.until : today) + 1
-      : elapsedDays().length,
+      : elapsedDays(f).length,
     1,
   );
 
@@ -118,7 +198,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
 
   const variation = (r: LeaderboardRow): number | null => {
     if (view !== "total") return null;
-    const old = gamification.lastWeekRanks.get(r.player_id);
+    const old = lastWeekRanks?.get(r.player_id);
     if (old === undefined) return null;
     return old - r.rank;
   };
@@ -201,7 +281,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
       )}
 
       {isPastWeek && rawRows === undefined && (
-        <p className="mt-6 animate-pulse text-muted">Calcul en cours…</p>
+        <ClassementEnAttente lignes={Math.max(players.length, 3)} />
       )}
       {isPastWeek && rawRows === null && (
         <p className="mt-6 text-muted">
@@ -223,7 +303,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
                   aria-label={`Voir le détail des points de ${p.name}`}
                   className="flex flex-col items-center gap-1 rounded-xl p-1 transition-transform active:scale-95"
                 >
-                  <Avatar name={p.name} color={p.color} size={first ? 64 : 48} />
+                  <Avatar name={p.name} color={p.color} photo={p.photo} size={first ? 64 : 48} />
                   <span className="max-w-20 truncate text-sm font-bold">
                     {isPastWeek && first && r.points > 0 ? "🏆 " : ""}
                     {p.name}
@@ -261,7 +341,7 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
                     }}
                   >
                     <span className="num-display w-8 text-2xl text-faint">{r.rank}</span>
-                    <Avatar name={p.name} color={p.color} size={36} />
+                    <Avatar name={p.name} color={p.color} photo={p.photo} size={36} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-bold">
                         {me ? "Toi" : p.name}
@@ -285,7 +365,11 @@ export default function LeaderboardScreen({ player, players, entries, gamificati
                                 : "Joker de série disponible"
                             }
                           >
-                            🛡️{" · "}
+                            {/* 🛟 et pas 🛡️ : c'est la bouée qu'affichent les
+                                Stats, l'Historique, le fil et les règles du
+                                jeu. Un joueur qui cherche « son 🛟 » ne doit
+                                pas trouver un bouclier au Classement. */}
+                            🛟{" · "}
                           </span>
                         )}
                         {completion}% de complétion

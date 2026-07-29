@@ -7,7 +7,6 @@
 import { useEffect, useState } from "react";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
 import {
-  CHALLENGE_END,
   daysLeft,
   frenchDate,
   parisToday,
@@ -18,6 +17,7 @@ import BonusSection from "./BonusSection";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -25,6 +25,9 @@ type Props = {
   entries: Map<string, Entry>;
   liveChecks: Map<string, number>; // joueur → dernière coche reçue en direct (ms)
   gamification: Gamification | null;
+  /** Le classement a renoncé (reprises épuisées) : la ligne de statut se
+      tait au lieu de faire respirer un loader qui n'aboutira pas. */
+  gamificationEnPanne: boolean;
   bonus: BonusState | null;
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
@@ -43,6 +46,7 @@ export default function TodayScreen({
   entries,
   liveChecks,
   gamification,
+  gamificationEnPanne,
   bonus,
   sessionStarted,
   onStartWorkout,
@@ -53,9 +57,10 @@ export default function TodayScreen({
   onGoLeaderboard,
   showToast,
 }: Props) {
+  const f = useFenetre();
   const today = parisToday();
-  const over = today > CHALLENGE_END;
-  const left = daysLeft();
+  const over = today > f.end;
+  const left = daysLeft(f);
   const mine = entries.get(entryKey(player.id, today));
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);
@@ -129,7 +134,9 @@ export default function TodayScreen({
         <RankLine
           player={player}
           players={players}
+          entries={entries}
           gamification={gamification}
+          enPanne={gamificationEnPanne}
           perfect={perfect}
           onGoLeaderboard={onGoLeaderboard}
         />
@@ -271,7 +278,7 @@ export default function TodayScreen({
                       className={live ? "live-pulse" : undefined}
                       style={{ "--lc": p.color } as React.CSSProperties}
                     >
-                      <Avatar name={p.name} color={p.color} size={46} />
+                      <Avatar name={p.name} color={p.color} photo={p.photo} size={46} />
                     </div>
                     <span className="max-w-16 truncate text-xs font-medium text-muted">
                       {p.name}

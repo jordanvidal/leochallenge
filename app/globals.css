@@ -29,6 +29,17 @@
   color-scheme: dark;
   /* accent joueur courant, injecté par l'app */
   --pc: oklch(0.74 0.17 150);
+
+  /* Hauteur mangée par le clavier, écrite par hooks/useKeyboardInset.ts
+     pendant que le tchat est ouvert. 0 partout ailleurs. */
+  --kb: 0px;
+
+  /* La hauteur de la barre d'onglets, en UN endroit. La barre de saisie
+     du tchat doit se poser juste au-dessus d'elle ; si les deux
+     calculaient leur hauteur chacune de leur côté, elles finiraient par
+     se désynchroniser et la saisie chevaucherait les onglets. Doit
+     rester égale à `min-h-14` + `pb-safe` de components/TabBar.tsx. */
+  --tabbar-h: calc(3.5rem + max(env(safe-area-inset-bottom), 0.5rem));
 }
 
 html,
@@ -204,10 +215,20 @@ button {
 }
 
 /* ------------------------------------------------------------------
-   La série qui monte. Trois temps, dans cet ordre : le +1 se pose, un
-   silence, puis le chiffre bascule. Sans le silence au milieu tout
-   bouge en même temps et l'œil ne voit rien — testé, c'était le
-   défaut de la première version.
+   La série qui monte. L'histoire se lit dans cet ordre, et elle n'a de
+   sens que si l'ancien chiffre est vu EN PREMIER :
+
+     0            l'ancien chiffre est seul à l'écran, le fond s'allume,
+                  le +1 monte à côté de lui
+     --streak-hold  le +1 plonge dans le chiffre, qui recule d'un cheveu
+     +130ms       le chiffre bascule sur le nouveau
+     +620ms       rebond d'arrivée
+
+   --streak-hold : c'est LE réglage. Trop court, le chiffre a déjà changé
+   quand l'œil arrive, et on ne voit que le résultat — c'était le défaut
+   signalé sur l'écran de fin de séance, où le bloc entier apparaît au
+   même instant que l'animation démarre. D'où la variante .streak-big,
+   qui laisse presque une seconde avant de toucher au chiffre.
 
    --streak-oh : hauteur d'un cran. La boîte, la cellule et la distance
    de roulement en dépendent toutes les trois : écrites séparément
@@ -215,14 +236,31 @@ button {
 ------------------------------------------------------------------- */
 .streak-count {
   --streak-oh: 1.45em;
+  --streak-hold: 560ms;
   position: relative;
   display: inline-block;
+}
+.streak-count.streak-big {
+  --streak-hold: 900ms;
 }
 .streak-odo {
   display: inline-block;
   height: var(--streak-oh);
   overflow: hidden;
   vertical-align: middle;
+  /* Les bords de la fenêtre s'estompent : le chiffre qui sort et celui
+     qui entre s'effacent au lieu d'être coupés net. Les paliers restent
+     loin du glyphe (centré sur ~25-75 % de la cellule), rien n'est rogné
+     au repos. */
+  --streak-fade: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 12%,
+    #000 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: var(--streak-fade);
+  mask-image: var(--streak-fade);
 }
 .streak-strip {
   display: flex;
@@ -232,16 +270,27 @@ button {
   display: flex;
   height: var(--streak-oh);
   align-items: center;
+  justify-content: center;
   font-variant-numeric: tabular-nums;
 }
 .streak-roll .streak-strip {
-  animation: streak-roll 620ms cubic-bezier(0.34, 1.3, 0.5, 1) 560ms both;
+  animation: streak-roll 640ms linear var(--streak-hold) both;
 }
+/* Le recul avant le saut : le chiffre s'enfonce d'un cheveu avant de
+   monter. C'est ce micro-mouvement qui dit « regarde » — sans lui la
+   bascule démarre déjà à pleine vitesse et l'œil la rate. Le timing est
+   posé par palier : la descente s'amortit, la montée part vite et se
+   dépose. Une seule courbe pour les deux ferait traîner le départ. */
 @keyframes streak-roll {
-  from {
+  0% {
     transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1);
   }
-  to {
+  22% {
+    transform: translateY(calc(var(--streak-oh) * 0.1));
+    animation-timing-function: cubic-bezier(0.3, 0.8, 0.25, 1);
+  }
+  100% {
     transform: translateY(calc(var(--streak-oh) * -1));
   }
 }
@@ -250,7 +299,7 @@ button {
    fenêtre de l'odomètre, il se ferait rogner par son propre overflow. */
 .streak-roll .streak-punch {
   display: inline-block;
-  animation: streak-punch 340ms ease-out 1080ms both;
+  animation: streak-punch 340ms ease-out calc(var(--streak-hold) + 520ms) both;
 }
 @keyframes streak-punch {
   0% {
@@ -264,7 +313,13 @@ button {
   }
 }
 
-/* Le +1 : il monte, il TIENT le temps qu'on le lise, il s'efface. */
+/* Le +1 : il monte à côté de l'ancien chiffre, il TIENT le temps qu'on
+   le lise, puis il plonge DANS le chiffre au moment exact où celui-ci
+   bascule. Deux animations et pas une seule : la montée garde sa durée
+   propre quelle que soit la longueur du maintien, et la plongée se cale
+   sur --streak-hold. La seconde est déclarée en dernier, c'est donc elle
+   qui pilote la transformation dès qu'elle démarre — elle repart de
+   l'état final de la première, la jointure est invisible. */
 .streak-plus {
   position: absolute;
   top: -0.55em;
@@ -272,27 +327,33 @@ button {
   font-weight: 800;
   pointer-events: none;
   white-space: nowrap;
-  animation: streak-plus 1150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation:
+    streak-plus-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    streak-plus-absorb 260ms cubic-bezier(0.6, 0, 0.9, 0.45)
+      var(--streak-hold) both;
 }
-@keyframes streak-plus {
+@keyframes streak-plus-in {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.6);
+    transform: translate(0, 0.4em) scale(0.6);
   }
-  18% {
+  58% {
     opacity: 1;
-    transform: translateY(0) scale(1.15);
+    transform: translate(0, 0) scale(1.16);
   }
-  32% {
-    transform: translateY(0) scale(1);
-  }
-  62% {
+  100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(0, 0) scale(1);
+  }
+}
+@keyframes streak-plus-absorb {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-16px) scale(0.85);
+    transform: translate(-0.7em, 0.45em) scale(0.35);
   }
 }
 
@@ -319,22 +380,30 @@ button {
 }
 
 /* Même beat, version bloc (fin de séance) : plus sourd, le chiffre y
-   est déjà énorme, inutile d'inverser le texte. */
+   est déjà énorme, inutile d'inverser le texte.
+   Il s'allume AVANT que le chiffre bouge — c'est lui qui fait descendre
+   le regard sur le bloc pendant que l'ancien chiffre est encore là — et
+   il ne relâche qu'après le rebond. Sa durée suit donc la séquence
+   longue (--streak-hold à 900 ms + 960 ms de queue). */
 .streak-beat-block {
-  animation: streak-beat-block 1600ms ease-out both;
+  animation: streak-beat-block 1860ms ease-out both;
 }
 @keyframes streak-beat-block {
   0% {
     background: color-mix(in oklch, var(--pc) 9%, var(--color-surface));
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--pc) 0%, transparent);
   }
-  10% {
-    background: color-mix(in oklch, var(--pc) 26%, var(--color-surface));
+  8% {
+    background: color-mix(in oklch, var(--pc) 32%, var(--color-surface));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--pc) 55%, transparent);
   }
-  64% {
-    background: color-mix(in oklch, var(--pc) 26%, var(--color-surface));
+  85% {
+    background: color-mix(in oklch, var(--pc) 32%, var(--color-surface));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--pc) 55%, transparent);
   }
   100% {
     background: color-mix(in oklch, var(--pc) 9%, var(--color-surface));
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--pc) 0%, transparent);
   }
 }
 
@@ -396,6 +465,84 @@ button {
   animation: x2-halo 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Le loader : un bloc gris à la forme et à la place du contenu qui arrive.
+   Deux règles, et elles comptent autant l'une que l'autre.
+
+   Il tient la place finale, donc rien ne saute sous le pouce quand la
+   donnée tombe — le classement qui apparaît d'un coup et pousse le reste
+   vers le bas, c'est un tap raté.
+
+   Et il reste transparent un quart de seconde : quand le réseau répond
+   vite (le cas normal), personne ne voit passer de gris. Un loader qui
+   clignote 80 ms fait paraître l'app plus lente qu'un écran vide. */
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* La respiration ne descend qu'à 0,6 : sur un fond à 0.115 de clarté, un
+   bloc à moitié effacé ne se distingue plus du vide, et le loader disparaît
+   au lieu de faire patienter. Elle joue sur l'opacité, jamais sur la
+   couleur — une dizaine de blocs qui repeignent leur fond à chaque image,
+   c'est du travail inutile pour un vieil iPhone. */
+@keyframes skeleton-respire {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+.skeleton {
+  background-color: var(--color-surface);
+  animation:
+    skeleton-in 220ms 250ms both,
+    skeleton-respire 1.8s 470ms ease-in-out infinite;
+}
+
+/* Le message qu'on vient de rejoindre depuis une citation. Il s'allume
+   une fois : sans ce signal, on saute quelque part dans la conversation
+   sans savoir où on a atterri. Le halo porte sur la ligne entière, donc
+   il marche aussi bien à gauche qu'à droite. */
+@keyframes chat-flash {
+  0% {
+    background: color-mix(in oklch, var(--pc) 0%, transparent);
+  }
+  25% {
+    background: color-mix(in oklch, var(--pc) 18%, transparent);
+  }
+  100% {
+    background: color-mix(in oklch, var(--pc) 0%, transparent);
+  }
+}
+.chat-flash {
+  border-radius: 1rem;
+  animation: chat-flash 1000ms ease-out both;
+}
+
+/* Le moment du fil rejoint depuis sa citation dans le tchat. Un anneau et
+   non un fond : la carte a déjà le sien, et le teinter la ferait changer
+   de nature le temps de l'animation. L'anneau est posé dès la première
+   image, puis s'efface — on change d'écran, il faut voir la cible tout de
+   suite, pas au bout d'un fondu. */
+@keyframes moment-vise {
+  0%,
+  60% {
+    box-shadow: 0 0 0 2px var(--pc);
+  }
+  100% {
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--pc) 0%, transparent);
+  }
+}
+.moment-vise {
+  box-shadow: 0 0 0 2px var(--pc);
+  animation: moment-vise 1400ms ease-out both;
+}
+
 /* Zones sûres (encoche, barre home) en mode installé */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
@@ -450,9 +597,23 @@ button {
   .streak-plus {
     display: none;
   }
+  /* Le loader ne respire plus, mais il apparaît toujours en retard : le
+     délai n'est pas une animation, c'est la règle du « pas de flash ». */
+  .skeleton {
+    animation: skeleton-in 220ms 250ms both;
+  }
   /* Le flash resterait un voile opaque figé sans animation : on le coupe. */
   .perfect-flash {
     display: none;
+  }
+  /* Le halo de citation disparaît, le défilement fait déjà le travail. */
+  .chat-flash {
+    animation: none;
+  }
+  /* L'anneau reste posé et s'en va avec l'état React, au même moment que
+     l'animation l'aurait effacé. Le repère compte plus que le fondu. */
+  .moment-vise {
+    animation: none;
   }
   /* .reel-strip est absent volontairement : neutraliser son animation
      la laisserait bloquée sur un leurre. C'est la modale qui coupe la

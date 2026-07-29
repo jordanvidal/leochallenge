@@ -66,6 +66,55 @@ export const EDIT_WINDOW_DAYS = 0;
 // partage, il doit suivre la config sinon il ment.
 export const CHALLENGE_DAYS = diffDays(CHALLENGE_START, CHALLENGE_END) + 1;
 
+// ---- La fenêtre d'une ligue ----
+//
+// Ce module ne décide plus quelles sont les dates du jeu : il les reçoit. Une
+// `Fenetre`, c'est le début, la fin et la bascule de barème d'UNE ligue. Les
+// constantes ci-dessus n'en sont plus qu'un cas particulier — celui du
+// challenge d'origine — servi par défaut à qui ne précise rien.
+//
+// Sans ce paramètre, chaque fonction plus bas raisonnait sur un challenge de 50
+// jours allant du 13/07 au 31/08 : `elapsedDays()` rendait les jours du
+// challenge d'origine même pour une ligue d'une semaine en mars, et
+// `challengeWeeks()` numérotait ses semaines à partir de juillet. Rien de tout
+// ça ne se voit aujourd'hui, puisqu'il n'y a qu'une ligue et que c'est la
+// sienne — mais c'est exactement ce qui casserait à la deuxième.
+
+export type Fenetre = {
+  /** Premier jour, 'YYYY-MM-DD' (jour civil Paris). */
+  start: string;
+  /** Dernier jour, inclus. */
+  end: string;
+  /** Jour de bascule du barème S3. Une ligue neuve naît en S3 : sa bascule est
+      son premier jour. Le challenge d'origine, lui, a changé de barème en
+      cours de route, d'où une date distincte. */
+  saison3: string;
+};
+
+/** La fenêtre du challenge d'origine, telle que l'env la décrit. */
+export const FENETRE_ENV: Fenetre = {
+  start: CHALLENGE_START,
+  end: CHALLENGE_END,
+  saison3: SAISON3_START,
+};
+
+/**
+ * Fabrique une fenêtre depuis les dates d'une ligue, en refusant l'absurde.
+ * Je throw plutôt que de corriger en silence : une ligue à l'envers vient d'une
+ * ligne en base ou d'un formulaire, c'est un bug à voir, pas à absorber.
+ */
+export function fenetre(start: string, end: string, saison3: string = start): Fenetre {
+  if (start > end) {
+    throw new Error(`Ligue à l'envers : début ${start} après fin ${end}.`);
+  }
+  return { start, end, saison3 };
+}
+
+/** Nombre de jours d'une fenêtre, début et fin compris. */
+export function joursDeFenetre(f: Fenetre): number {
+  return diffDays(f.start, f.end) + 1;
+}
+
 // Formateur figé sur Europe/Paris. en-CA donne directement 'YYYY-MM-DD'.
 const parisDayFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Paris",
@@ -114,18 +163,18 @@ export function editableFrom(): string {
 }
 
 /** Un jour est-il éditable ? Avec EDIT_WINDOW_DAYS = 0 : le jour même, et
-    rien d'autre — ni la veille, ni le futur, ni après la fin du challenge. */
-export function isEditable(day: string): boolean {
+    rien d'autre — ni la veille, ni le futur, ni après la fin de la ligue. */
+export function isEditable(day: string, f: Fenetre = FENETRE_ENV): boolean {
   const today = parisToday();
-  return day >= editableFrom() && day <= today && day <= CHALLENGE_END;
+  return day >= editableFrom() && day <= today && day <= f.end;
 }
 
-/** Jours restants avant la fin, jour J compris. 0 si le challenge est fini. */
-export function daysLeft(): number {
+/** Jours restants avant la fin, jour J compris. 0 si la ligue est finie. */
+export function daysLeft(f: Fenetre = FENETRE_ENV): number {
   const today = parisToday();
-  if (today > CHALLENGE_END) return 0;
-  const from = today < CHALLENGE_START ? CHALLENGE_START : today;
-  return diffDays(from, CHALLENGE_END) + 1;
+  if (today > f.end) return 0;
+  const from = today < f.start ? f.start : today;
+  return diffDays(from, f.end) + 1;
 }
 
 /** Nombre de jours entre deux jours ISO (b - a). */
@@ -135,48 +184,63 @@ export function diffDays(a: string, b: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-/** Tous les jours du challenge écoulés (du plus récent au plus ancien). */
-export function elapsedDays(): string[] {
+/** Tous les jours écoulés de la ligue (du plus récent au plus ancien). */
+export function elapsedDays(f: Fenetre = FENETRE_ENV): string[] {
   const today = parisToday();
-  const last = today > CHALLENGE_END ? CHALLENGE_END : today;
-  if (last < CHALLENGE_START) return [];
+  const last = today > f.end ? f.end : today;
+  if (last < f.start) return [];
   const days: string[] = [];
-  for (let d = last; d >= CHALLENGE_START; d = addDays(d, -1)) days.push(d);
+  for (let d = last; d >= f.start; d = addDays(d, -1)) days.push(d);
   return days;
 }
 
-/** Tous les jours du challenge, du début à la fin, dans l'ordre chronologique. */
-export function allChallengeDays(): string[] {
+/** Tous les jours de la ligue, du début à la fin, dans l'ordre chronologique. */
+export function allChallengeDays(f: Fenetre = FENETRE_ENV): string[] {
   const days: string[] = [];
-  for (let i = 0; i < CHALLENGE_DAYS; i++) days.push(addDays(CHALLENGE_START, i));
+  for (let i = 0; i < joursDeFenetre(f); i++) days.push(addDays(f.start, i));
   return days;
 }
 
-/** Le challenge est-il terminé ? Vrai dès le lendemain du dernier jour (Paris).
+/** La ligue est-elle terminée ? Vrai dès le lendemain du dernier jour (Paris).
     C'est la garde qui fait apparaître le Bilan et disparaître « Aujourd'hui ». */
-export function challengeIsOver(): boolean {
-  return parisToday() > CHALLENGE_END;
+export function challengeIsOver(f: Fenetre = FENETRE_ENV): boolean {
+  return parisToday() > f.end;
 }
 
 /** La saison 3 a-t-elle commencé ? Garde de l'écran de lancement et repère
-    d'affichage. Vrai à partir du jour SAISON3_START (Paris) inclus. */
-export function saison3Started(): boolean {
-  return parisToday() >= SAISON3_START;
+    d'affichage. Vrai à partir du jour de bascule (Paris) inclus. */
+/**
+ * Cette fenêtre connaît-elle un changement de barème en cours de route ?
+ *
+ * Le challenge d'origine, oui : il a basculé en S3 le 27/07, à mi-parcours.
+ * Une ligue neuve, non — `fenetreDeLigue` cale sa saison 3 sur son premier
+ * jour, elle est en S3 pur du début à la fin.
+ *
+ * Sans cette distinction, `saison3Started()` est vrai dès le jour 1 de toute
+ * ligue, et l'écran qui raconte la bascule s'afficherait à la création de
+ * chacune — un récit d'un changement qui n'a jamais eu lieu.
+ */
+export function aUneBasculeDeBareme(f: Fenetre = FENETRE_ENV): boolean {
+  return f.saison3 > f.start;
+}
+
+export function saison3Started(f: Fenetre = FENETRE_ENV): boolean {
+  return parisToday() >= f.saison3;
 }
 
 /** Le bilan est-il encore provisoire ? Vrai tant que le dernier jour tombe dans
     la fenêtre d'édition. Avec EDIT_WINDOW_DAYS = 0, uniquement le jour même. */
-export function bilanProvisoire(): boolean {
-  return isEditable(CHALLENGE_END);
+export function bilanProvisoire(f: Fenetre = FENETRE_ENV): boolean {
+  return isEditable(f.end, f);
 }
 
 /** Heures restantes avant le verrouillage définitif du dernier jour, pour le
     bandeau provisoire. Basé sur l'horloge réelle ; en simulation de date,
     part de minuit du jour simulé. */
-export function hoursUntilFinalLock(): number {
+export function hoursUntilFinalLock(f: Fenetre = FENETRE_ENV): number {
   // Avec EDIT_WINDOW_DAYS = 0, le dernier jour se verrouille à minuit (Paris)
   // le lendemain. La formule suit la constante si elle rouvre un jour.
-  const lockDay = addDays(CHALLENGE_END, EDIT_WINDOW_DAYS + 1);
+  const lockDay = addDays(f.end, EDIT_WINDOW_DAYS + 1);
   // +02:00 = CEST. Vrai pour un challenge qui finit entre avril et octobre.
   // Une bande qui jouerait l'hiver verrait ce compteur décalé d'une heure —
   // c'est un bandeau cosmétique, je n'ai pas sorti l'artillerie fuseau pour ça.
@@ -242,25 +306,25 @@ export function mondayOf(day: string): string {
 
 export type ChallengeWeek = {
   index: number; // 1 = première semaine
-  from: string; // max(lundi, CHALLENGE_START)
-  until: string; // min(dimanche, CHALLENGE_END)
+  from: string; // max(lundi, début de la ligue)
+  until: string; // min(dimanche, fin de la ligue)
   current: boolean;
 };
 
 /** Les semaines écoulées ou en cours, de S1 à aujourd'hui. Vide avant le début. */
-export function challengeWeeks(): ChallengeWeek[] {
+export function challengeWeeks(f: Fenetre = FENETRE_ENV): ChallengeWeek[] {
   const today = parisToday();
-  const last = today > CHALLENGE_END ? CHALLENGE_END : today;
-  if (last < CHALLENGE_START) return [];
+  const last = today > f.end ? f.end : today;
+  if (last < f.start) return [];
   const currentMonday = mondayOf(last);
   const weeks: ChallengeWeek[] = [];
-  let monday = mondayOf(CHALLENGE_START);
+  let monday = mondayOf(f.start);
   for (let i = 1; monday <= currentMonday; i++, monday = addDays(monday, 7)) {
     const sunday = addDays(monday, 6);
     weeks.push({
       index: i,
-      from: monday < CHALLENGE_START ? CHALLENGE_START : monday,
-      until: sunday > CHALLENGE_END ? CHALLENGE_END : sunday,
+      from: monday < f.start ? f.start : monday,
+      until: sunday > f.end ? f.end : sunday,
       current: monday === currentMonday,
     });
   }

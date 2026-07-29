@@ -1,19 +1,45 @@
 "use client";
 
-// Porte d'entrée à mot de passe partagé. Bloque le passant, pas le NSA.
+// Porte d'entrée à secret partagé. Bloque le passant, pas le NSA.
 // Un seul passage : le flag va en localStorage et on n'y revient plus.
+//
+// En groupe unique, le secret est le mot de passe du groupe. En ligue, c'est
+// son code d'invitation — le même rôle, tenu par la chose que les gens ont
+// déjà reçue. Leur demander un mot de passe *en plus* du lien serait une
+// deuxième porte sur le chemin critique, et il n'y en a qu'une.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLigueCourante } from "./ligue/LigueContexte";
+import { litCode, litLienInvitation, normaliseCode } from "@/lib/ligue";
 import { BigButton } from "./ui";
 
 export default function PasswordGate({ onPass }: { onPass: () => void }) {
+  const ligue = useLigueCourante();
   const [value, setValue] = useState("");
   const [wrong, setWrong] = useState(false);
 
+  // Le lien d'invitation porte déjà le code (`?c=…`). Le redemander à celui
+  // qui vient de cliquer dessus, ce serait lui faire recopier ce qu'il a sous
+  // les yeux. On ouvre, et on ne dit rien : une porte franchie sans effort ne
+  // se raconte pas.
+  useEffect(() => {
+    if (!ligue) return;
+    const lu = litLienInvitation(window.location.href);
+    if (lu?.code && lu.code === ligue.invite_code) onPass();
+  }, [ligue, onPass]);
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const expected = process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "";
-    if (expected !== "" && value.trim() === expected) {
+    const attendu = ligue
+      ? ligue.invite_code
+      : (process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "");
+    // En ligue le secret est un code : on le normalise comme partout ailleurs,
+    // sinon une minuscule ou un tiret de séparation le ferait rater.
+    const saisi = ligue ? normaliseCode(value) : value.trim();
+    const lu = ligue ? litCode(value) : null;
+    const propose = lu?.ok ? lu.code : saisi;
+
+    if (attendu !== "" && propose === attendu) {
       onPass();
     } else {
       setWrong(true);
@@ -31,18 +57,23 @@ export default function PasswordGate({ onPass }: { onPass: () => void }) {
           <span className="text-faint"> · </span>100
         </p>
         <p className="mt-3 text-muted">
-          Pompes, abdos, squats. Tous les jours jusqu&apos;au 31 août.
+          {ligue
+            ? `Pompes, abdos, squats. Tous les jours, avec ${ligue.name}.`
+            : "Pompes, abdos, squats. Tous les jours jusqu'au 31 août."}
         </p>
 
         <form onSubmit={submit} className={`mt-10 ${wrong ? "shake" : ""}`}>
           <label htmlFor="pw" className="text-sm font-medium text-muted">
-            Mot de passe du groupe
+            {ligue ? "Le code de la ligue" : "Mot de passe du groupe"}
           </label>
           <input
             id="pw"
-            type="password"
+            type={ligue ? "text" : "password"}
             inputMode="text"
             autoComplete="off"
+            autoCapitalize={ligue ? "characters" : "off"}
+            spellCheck={false}
+            placeholder={ligue ? "K7M-2QP" : undefined}
             value={value}
             onChange={(e) => {
               setValue(e.target.value);
@@ -53,7 +84,7 @@ export default function PasswordGate({ onPass }: { onPass: () => void }) {
           />
           {wrong && (
             <p className="mt-2 text-sm font-medium text-danger" role="alert">
-              Raté. Demande au groupe.
+              {ligue ? "Ce n'est pas le code. Redemande-le au groupe." : "Raté. Demande au groupe."}
             </p>
           )}
           <div className="mt-4">

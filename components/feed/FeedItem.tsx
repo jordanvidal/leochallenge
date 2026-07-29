@@ -30,7 +30,10 @@ type Props = {
   reactions: FeedReaction[]; // du groupe entier
   comments: FeedComment[]; // du groupe entier
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
-  onAddComment: (event: FeedEvent, body: string) => void;
+  onDiscuss: (events: FeedEvent[]) => void;
+  /** On vient d'arriver dessus depuis une citation du tchat. L'id est
+      unique dans la page : c'est lui que le fil vise pour défiler. */
+  vise?: boolean;
 };
 
 export default function FeedItem({
@@ -40,14 +43,20 @@ export default function FeedItem({
   reactions,
   comments,
   onToggleReaction,
-  onAddComment,
+  onDiscuss,
+  vise,
 }: Props) {
   const anchor = events[0];
   const author = byId.get(anchor.player_id);
 
   return (
-    <li className="flex gap-3 rounded-2xl bg-surface px-4 py-3">
-      {author && <Avatar name={author.name} color={author.color} size={36} />}
+    <li
+      id={vise ? "moment-vise" : undefined}
+      className={`flex gap-3 rounded-2xl bg-surface px-4 py-3 ${
+        vise ? "moment-vise" : ""
+      }`}
+    >
+      {author && <Avatar name={author.name} color={author.color} photo={author.photo} size={36} />}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Le prénom sur la première ligne seulement : les suivantes
             s'enchaînent dessus ("Jordan bat sa meilleure série / a validé
@@ -80,7 +89,7 @@ export default function FeedItem({
           reactions={reactions}
           comments={comments}
           onToggleReaction={onToggleReaction}
-          onAddComment={onAddComment}
+          onDiscuss={onDiscuss}
         />
       </div>
     </li>

@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { CreateResult } from "@/hooks/useChallengeData";
 import { Entry, Player } from "@/lib/types";
-import { Avatar, BigButton } from "./ui";
+import { Avatar, BigButton, EditablePhotoAvatar } from "./ui";
 
 const MAX_PLAYERS = 12;
 
@@ -16,6 +16,7 @@ type Props = {
   onSelect: (player: Player) => void;
   onCreate: (name: string) => Promise<CreateResult>;
   onDelete: (playerId: string) => Promise<boolean>;
+  onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
 };
 
 export default function PlayerSelect({
@@ -24,6 +25,7 @@ export default function PlayerSelect({
   onSelect,
   onCreate,
   onDelete,
+  onSetPhoto,
 }: Props) {
   // Liste vide → champ de création affiché direct, sans détour.
   const [creating, setCreating] = useState(players.length === 0);
@@ -61,13 +63,17 @@ export default function PlayerSelect({
       <div className="flex flex-col gap-3">
         {players.map((p) => (
           <div key={p.id} className="flex items-center gap-2">
-            <button
-              onClick={() => onSelect(p)}
-              className="flex min-h-16 flex-1 items-center gap-4 rounded-2xl bg-surface px-4 text-left text-xl font-bold transition-transform active:scale-[0.98]"
-            >
-              <Avatar name={p.name} color={p.color} />
-              {p.name}
-            </button>
+            <div className="flex min-h-16 flex-1 items-center gap-3 rounded-2xl bg-surface pr-4 pl-3">
+              {/* L'avatar est un bouton à part : le taper change la photo,
+                  taper le prénom sélectionne le joueur. */}
+              <EditablePhotoAvatar player={p} onSetPhoto={onSetPhoto} />
+              <button
+                onClick={() => onSelect(p)}
+                className="flex-1 py-4 text-left text-xl font-bold transition-transform active:scale-[0.98]"
+              >
+                {p.name}
+              </button>
+            </div>
             {!hasEntries.has(p.id) &&
               (confirmDelete === p.id ? (
                 <button
@@ -120,7 +126,12 @@ export default function PlayerSelect({
                   onClick={() => onSelect(duplicate)}
                   className="mt-3 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-raised font-bold"
                 >
-                  <Avatar name={duplicate.name} color={duplicate.color} size={28} />
+                  <Avatar
+                    name={duplicate.name}
+                    color={duplicate.color}
+                    photo={duplicate.photo}
+                    size={28}
+                  />
                   Oui, je suis {duplicate.name}
                 </button>
               </div>

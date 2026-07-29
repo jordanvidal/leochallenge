@@ -1,7 +1,14 @@
 // Calculs de stats par joueur. Rien de plus que les 3 métriques de la phase 1,
 // plus, pour le bilan de clôture, la meilleure série et les jours à zéro.
 
-import { addDays, allChallengeDays, elapsedDays, parisToday } from "./challenge";
+import {
+  addDays,
+  allChallengeDays,
+  elapsedDays,
+  FENETRE_ENV,
+  Fenetre,
+  parisToday,
+} from "./challenge";
 import { Entry, entryCount, entryKey, Player } from "./types";
 
 export type PlayerStats = {
@@ -16,15 +23,16 @@ export type PlayerStats = {
 export type TimelineCell = { day: string; perfect: number };
 
 /**
- * Stats d'un joueur sur l'ensemble des jours écoulés du challenge.
+ * Stats d'un joueur sur l'ensemble des jours écoulés de sa ligue.
  * La série tolère un aujourd'hui incomplet : elle compte depuis hier
  * si le jour courant n'est pas (encore) parfait.
  */
 export function computeStats(
   playerId: string,
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): PlayerStats {
-  const days = elapsedDays(); // du plus récent au plus ancien
+  const days = elapsedDays(f); // du plus récent au plus ancien
   if (days.length === 0)
     return { perfectDays: 0, completion: 0, streak: 0, bestStreak: 0, zeroDays: 0 };
 
@@ -65,14 +73,70 @@ export function computeStats(
 }
 
 /**
- * La ligne du temps du groupe : pour chacun des 50 jours, combien de joueurs
- * ont été parfaits. Tout se calcule sur les entries déjà chargées.
+ * La série en sursis : ce que le serveur ne peut pas encore dire.
+ *
+ * Le joker est dérivé de l'historique (migration 24) et ne peut se
+ * déclencher qu'une fois le retour joué — un joker qui ne recolle rien
+ * n'existe pas. Conséquence : le matin qui suit le trou, `leaderboard()`
+ * rend encore `current_streak = 0` et `joker_day = null`. L'app annonce
+ * donc à celui qui vient de casser une série de 14 que tout est perdu ET
+ * que son joker est intact, deux phrases qu'un 3/3 dans la journée rendra
+ * fausses. C'est le moment de décrochage que le joker existe pour couvrir,
+ * et le seul où il est invisible.
+ *
+ * Cette fonction rend le nombre de jours en sursis, 0 s'il n'y a rien à
+ * sauver. Elle recopie les trois conditions de la CTE `joker` : joker
+ * jamais brûlé, exactement un jour manqué (hier), au moins 3 jours
+ * parfaits juste avant lui. Copie assumée et bornée — elle annonce, elle
+ * n'accorde rien. Le serveur reste seul à décider ce soir si le joker
+ * part ; au pire cette phrase aura promis un filet qui tombe quand même,
+ * jamais l'inverse.
+ */
+export function streakEnSursis(
+  playerId: string,
+  entries: Map<string, Entry>,
+  jokerDay: string | null | undefined,
+  today: string,
+  f: Fenetre = FENETRE_ENV,
+): number {
+  // undefined = on ne sait pas encore (ligne ou colonne absente) ; une date
+  // = déjà brûlé. Dans les deux cas on se tait, comme la tuile des Stats.
+  if (jokerDay !== null) return 0;
+
+  const isPerfect = (d: string) =>
+    entryCount(entries.get(entryKey(playerId, d))) === 3;
+
+  // Le 3/3 est fait : le serveur a repris la main, il dit la vérité.
+  if (isPerfect(today)) return 0;
+
+  // Le trou, c'est hier — et hier seulement. Deux jours ratés d'affilée et
+  // la série tombe pour de bon, joker ou pas.
+  const trou = addDays(today, -1);
+  if (trou < f.start || isPerfect(trou)) return 0;
+
+  let sursis = 0;
+  for (
+    let d = addDays(trou, -1);
+    d >= f.start && isPerfect(d);
+    d = addDays(d, -1)
+  ) {
+    sursis++;
+  }
+  // Sous 3 jours parfaits, le joker ne part pas : il n'y a rien à sauver et
+  // le brûler serait du gâchis. Même seuil que le ×1,5.
+  return sursis >= 3 ? sursis : 0;
+}
+
+/**
+ * La ligne du temps du groupe : pour chaque jour de la ligue, combien de
+ * joueurs ont été parfaits. Tout se calcule sur les entries déjà chargées.
  */
 export function groupTimeline(
   players: Player[],
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): TimelineCell[] {
-  return allChallengeDays().map((day) => {
+  return allChallengeDays(f).map((day) => {
     let perfect = 0;
     for (const p of players) {
       if (entryCount(entries.get(entryKey(p.id, day))) === 3) perfect++;

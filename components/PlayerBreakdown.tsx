@@ -6,6 +6,7 @@
 // player_breakdown — aucun calcul ici.
 
 import { useEffect, useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { frenchDateShort, saison3Started } from "@/lib/challenge";
 import {
   Breakdown,
@@ -16,7 +17,8 @@ import {
 } from "@/lib/breakdown";
 import { fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
 import { Player } from "@/lib/types";
-import { Avatar } from "./ui";
+import { Avatar, Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -111,10 +113,14 @@ function SourceRow({
 }
 
 export default function PlayerBreakdown({ player, row, from, until, label, onClose }: Props) {
+  const f = useFenetre();
+  // Le retour arrière refait le geste de la flèche « ← » en tête d'écran.
+  useCoucheRetour(onClose);
+
   // Le mini-barème décrit les règles EN VIGUEUR. C'est l'écran qu'on ouvre
   // quand on ne comprend pas son score : le faire passer à la S3 avant la
   // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
-  const s3 = saison3Started();
+  const s3 = saison3Started(f);
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
   const [showDays, setShowDays] = useState(false);
@@ -160,7 +166,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
       </div>
 
       <div className="mt-2 flex items-center gap-3">
-        <Avatar name={player.name} color={player.color} size={52} />
+        <Avatar name={player.name} color={player.color} photo={player.photo} size={52} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-bold">{player.name}</p>
           {/* Le rang est celui de la fenêtre affichée. « 1er au classement »
@@ -183,8 +189,28 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
         <p className="mt-8 text-muted">Impossible de charger le détail. Réessaie.</p>
       )}
 
+      {/* Le détail se calcule ligne à ligne côté serveur : la forme de la
+          page tient la place, l'en-tête (nom, rang, total) est déjà juste. */}
       {!data && !failed && (
-        <p className="mt-8 animate-pulse text-muted">Calcul en cours…</p>
+        <div
+          className="mt-6"
+          role="status"
+          aria-label="Détail des points en cours de calcul"
+        >
+          <Skeleton h={10} radius={999} />
+          <div className="mt-2 flex justify-between">
+            <Skeleton w={72} h={12} radius={6} />
+            <Skeleton w={72} h={12} radius={6} />
+          </div>
+          <Skeleton className="mt-7" w={70} h={14} radius={7} />
+          <ul className="mt-3 flex flex-col gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i}>
+                <Skeleton h={22} radius={6} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {data && total === 0 && (

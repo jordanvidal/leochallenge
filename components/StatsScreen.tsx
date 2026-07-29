@@ -25,14 +25,24 @@ import {
 } from "@/lib/profile";
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
-import { Avatar } from "./ui";
+import HistoryGrid from "./HistoryGrid";
+import { EditablePhotoAvatar, Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  /** Reprises épuisées : la tuile joker se tait plutôt que de faire
+      respirer un loader qui n'aboutira pas. */
+  gamificationEnPanne: boolean;
   onShareWeek: () => void;
+  /** Changer sa propre photo depuis son profil, sans repasser par
+      « Qui es-tu ? ». */
+  onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
+  /** Passé à la grille d'historique : ses cases expliquent au tap. */
+  showToast: (msg: string) => void;
 };
 
 /**
@@ -94,15 +104,23 @@ export default function StatsScreen({
   players,
   entries,
   gamification,
+  gamificationEnPanne,
   onShareWeek,
+  onSetPhoto,
+  showToast,
 }: Props) {
+  const f = useFenetre();
   const [profiles, setProfiles] = useState<Map<string, Profile> | null>(null);
   useEffect(() => {
-    fetchProfiles().then(setProfiles);
+    // Un rejet laisserait `profiles` à null pour toujours, donc des blocs
+    // gris qui respirent sans fin. La map vide, elle, dit « rien à montrer ».
+    fetchProfiles()
+      .then(setProfiles)
+      .catch(() => setProfiles(new Map()));
   }, []);
 
-  const elapsed = elapsedDays().length;
-  const mine = computeStats(player.id, entries);
+  const elapsed = elapsedDays(f).length;
+  const mine = computeStats(player.id, entries, f);
   const myProfile = profiles?.get(player.id);
   const mySlot = myProfile ? slotLabel(myProfile.hours) : null;
   const myBadges = gamification?.badges.get(player.id) ?? [];
@@ -122,7 +140,7 @@ export default function StatsScreen({
   // serait le Classement en double, et ce n'est pas la question ici.
   const others = players
     .filter((p) => p.id !== player.id)
-    .map((p) => ({ p, s: computeStats(p.id, entries) }))
+    .map((p) => ({ p, s: computeStats(p.id, entries, f) }))
     .sort((a, b) => b.s.bestStreak - a.s.bestStreak);
 
   return (
@@ -139,7 +157,7 @@ export default function StatsScreen({
         aria-label="Ton profil"
       >
         <div className="flex items-center gap-2.5">
-          <Avatar name={player.name} color={player.color} size={32} />
+          <EditablePhotoAvatar player={player} onSetPhoto={onSetPhoto} size={32} />
           <span className="font-bold">Toi</span>
           {jokerKnown && (
             <span
@@ -174,8 +192,19 @@ export default function StatsScreen({
           </span>
         </div>
 
-        {/* Le créneau : muet tant que le chargement n'a rien rendu, et
-            définitivement absent pour qui n'a jamais bouclé une journée. */}
+        {/* Le créneau : la place est tenue pendant le chargement (sinon la
+            carte grandit d'un coup sous le doigt), puis définitivement
+            absente pour qui n'a jamais bouclé une journée. */}
+        {profiles === null && (
+          <div
+            className="mt-3.5"
+            role="status"
+            aria-label="Ton créneau se charge"
+          >
+            <Skeleton w={110} h={12} radius={6} />
+            <Skeleton className="mt-2" h={26} radius={6} />
+          </div>
+        )}
         {mySlot && myProfile && (
           <div className="mt-3.5">
             <div className="flex items-baseline justify-between text-[11px] font-semibold text-muted">
@@ -202,6 +231,7 @@ export default function StatsScreen({
         )}
 
         <div className="mt-3.5 flex gap-2">
+          {profiles === null && <Skeleton className="flex-1" h={56} />}
           {myProfile?.fastestSeconds != null && (
             <Fact
               value={clockOf(myProfile.fastestSeconds)}
@@ -217,8 +247,18 @@ export default function StatsScreen({
             }
             label="jours parfaits"
           />
-          {jokerKnown && (
-            <Fact value="🛟" label={jokerDay ? "joker brûlé" : "joker intact"} />
+          {/* Le joker : une tuile grise pendant que le classement arrive,
+              plutôt qu'un trou qui se remplit après coup. Ligne absente
+              une fois chargé (jamais joué) : rien, comme avant. */}
+          {gamification === null && !gamificationEnPanne ? (
+            <Skeleton className="flex-1" h={56} />
+          ) : (
+            jokerKnown && (
+              <Fact
+                value="🛟"
+                label={jokerDay ? "joker brûlé" : "joker intact"}
+              />
+            )
           )}
         </div>
 
@@ -229,10 +269,17 @@ export default function StatsScreen({
       <h2 className="mt-5 mb-1 text-xs font-bold tracking-wide text-faint uppercase">
         Les autres · meilleure série
       </h2>
-      <ul className="flex flex-1 flex-col">
+      {/* Plus de `flex-1` ici : il servait à pousser le bouton de partage tout
+          en bas quand la liste finissait l'écran. Il y a maintenant la grille
+          derrière, et l'étirement ne ferait qu'un trou au milieu. */}
+      <ul className="flex flex-col">
         {others.map(({ p, s }) => {
           const prof = profiles?.get(p.id);
           const active = !!prof && prof.hours.length > 0;
+          // Tant que les profils ne sont pas là, on ne sait rien : écrire
+          // « pas encore de séance » à tout le monde pendant une seconde,
+          // c'est accuser à tort ceux qui ont coché ce matin.
+          const chargement = profiles === null;
           return (
             <li
               key={p.id}
@@ -240,11 +287,24 @@ export default function StatsScreen({
             >
               <span
                 className="w-16 shrink-0 truncate text-sm font-bold"
-                style={{ color: active ? p.color : "var(--color-faint)" }}
+                style={{
+                  color: chargement
+                    ? "var(--color-muted)"
+                    : active
+                      ? p.color
+                      : "var(--color-faint)",
+                }}
               >
                 {p.name}
               </span>
-              {active ? (
+              {chargement ? (
+                <>
+                  <div className="min-w-0 flex-1">
+                    <Skeleton h={14} radius={4} />
+                  </div>
+                  <Skeleton className="shrink-0" w={36} h={18} radius={6} />
+                </>
+              ) : active ? (
                 <>
                   <div className="min-w-0 flex-1">
                     <HourStrip hours={prof.hours} color={p.color} height={14} />
@@ -275,10 +335,22 @@ export default function StatsScreen({
 
       <button
         onClick={onShareWeek}
-        className="mt-4 mb-3 min-h-12 w-full rounded-2xl bg-surface text-sm font-bold"
+        className="mt-4 min-h-12 w-full shrink-0 rounded-2xl bg-surface text-sm font-bold"
       >
         Partager ma semaine 💬
       </button>
+
+      {/* La grille en dernier : c'est l'archive, on descend la chercher. Le
+          bouton de partage reste au-dessus d'elle — placé après 2 500 px de
+          tableau, plus personne ne l'atteindrait. */}
+      <HistoryGrid
+        player={player}
+        players={players}
+        entries={entries}
+        gamification={gamification}
+        showToast={showToast}
+      />
+      <div className="h-3 shrink-0" />
     </div>
   );
 }
