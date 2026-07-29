@@ -8,6 +8,7 @@
 // découpe, et il faut viser au pouce dans le noir. Une feuille arrive
 // par le bas, là où le pouce est déjà.
 
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { CHAT_EMOJIS, ChatReaction, NotifyPref } from "@/lib/chat";
 import { Player } from "@/lib/types";
 
@@ -21,6 +22,10 @@ function Sheet({
   label: string;
   children: React.ReactNode;
 }) {
+  // Le retour arrière ferme la feuille avant de toucher à l'écran :
+  // c'est elle qui est au-dessus. Posé sur le châssis, donc les deux
+  // feuilles du tchat en héritent.
+  useCoucheRetour(onClose);
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col justify-end"

@@ -18,6 +18,7 @@ import {
   todayClaimPoints,
   weekBonusPoints,
 } from "@/lib/bonus";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { fmtPoints } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 
@@ -210,6 +211,10 @@ function BonusSheet({
   onUnclaim,
   onClose,
 }: Props & { bonus: BonusState; onClose: () => void }) {
+  // Le retour arrière la ferme, comme le glissé vers le bas et Échap :
+  // trois chemins vers la même sortie, et aucun ne traverse la feuille.
+  useCoucheRetour(onClose);
+
   // Échap pour fermer (desktop / clavier)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
