@@ -4,12 +4,12 @@
 // Le récap du lundi matin racontera le résultat ; ici on crée l'urgence.
 
 import {
-  CHALLENGE_END,
-  CHALLENGE_START,
   mondayOf,
   weekdayIndex,
 } from "@/lib/challenge";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
+import { argLigue } from "@/lib/ligue";
+import { joueursNommes, TERRAIN_ENV, type Terrain } from "./ligues";
 
 type LbRow = { player_id: string; points: number; rank: number };
 
@@ -24,13 +24,13 @@ function fmtPoints(p: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-export async function sendWeeklyClose(): Promise<{
+export async function sendWeeklyClose(t: Terrain = TERRAIN_ENV): Promise<{
   skipped?: string;
   notified: number;
   sent: number;
 }> {
   const today = parisToday();
-  if (today < CHALLENGE_START || today > CHALLENGE_END) {
+  if (today < t.fenetre.start || today > t.fenetre.end) {
     return { skipped: "hors challenge", notified: 0, sent: 0 };
   }
   // Garde anti-cron mal réglé : ce push n'a de sens qu'un dimanche soir.
@@ -41,8 +41,8 @@ export async function sendWeeklyClose(): Promise<{
   const monday = mondayOf(today);
   const supabase = serverSupabase();
   const [week, players] = await Promise.all([
-    supabase.rpc("leaderboard", { p_from: monday, p_until: today }),
-    supabase.from("players").select("id, name"),
+    supabase.rpc("leaderboard", { ...argLigue(t.ligue?.id ?? null), p_from: monday, p_until: today }),
+    joueursNommes(supabase, t),
   ]);
   if (week.error || players.error) {
     throw new Error("lecture Supabase échouée");
