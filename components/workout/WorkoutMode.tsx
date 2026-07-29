@@ -5,6 +5,7 @@
 // chemin d'écriture existant (onValidate → upsert optimiste + triggers).
 
 import { useEffect, useRef, useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { useWorkout } from "@/hooks/useWorkout";
 import { parisToday } from "@/lib/challenge";
 import { Entry, entryCount, EXERCISES, Exercise, Player } from "@/lib/types";
@@ -64,6 +65,18 @@ export default function WorkoutMode({
       fetchDayBreakdown(player.id, parisToday()).then(setBreakdown);
     });
   }, [w.step, w.config, onValidate, player.id]);
+
+  // Le retour arrière passe par la même porte que le bouton « Abandonner » :
+  // un chrono tourne, et une séance qu'on perd d'un coup de pouce au bord
+  // de l'écran ne se rattrape pas. Sur la config et l'écran de fin, il n'y
+  // a rien à perdre — on sort directement, comme la croix.
+  useCoucheRetour(() => {
+    if (w.step && w.step.kind !== "done") setConfirmQuit(true);
+    else {
+      w.reset();
+      onClose();
+    }
+  });
 
   /** Abandon confirmé : les blocs déjà terminés restent comptés. */
   function quit() {
@@ -163,6 +176,9 @@ function QuitConfirm({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  // Un second retour referme la question au lieu de la traverser : c'est
+  // « Continuer », qui est aussi la réponse la moins coûteuse.
+  useCoucheRetour(onCancel);
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/60 px-5 pb-safe">
       <div className="rise-in mb-4 w-full rounded-3xl bg-raised p-5">

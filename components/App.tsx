@@ -3,13 +3,20 @@
 // L'orchestrateur : porte → joueur → installation → l'app.
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useChat } from "@/hooks/useChat";
 import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
+import {
+  empiler,
+  useCoucheRetour,
+  useGesteRetour,
+  useRetour,
+  viderSauts,
+} from "@/hooks/useRetour";
 import { useTodaySession } from "@/hooks/useTodaySession";
 import {
   addDays,
@@ -78,6 +85,51 @@ export default function App() {
   // « En parler » : le moment du fil qui attend dans la saisie du tchat.
   // Il vit ici et pas dans le tchat parce qu'il naît sur un autre écran.
   const [chatSeed, setChatSeed] = useState<FeedEvent | null>(null);
+
+  // ---- Retour arrière ----
+  // Le gestionnaire d'historique et le glissé depuis le bord gauche.
+  useRetour();
+  useGesteRetour();
+  // L'écran qui arrive après un retour s'annonce : sans ce signal, une
+  // barre d'onglets qui change toute seule ressemble à un bug.
+  const scene = useRef<HTMLDivElement>(null);
+  const revenu = useRef(false);
+
+  /** Un saut que l'app fait pour le joueur — « En parler » ouvre le tchat,
+      « Voir les scores » ouvre le classement. Il devient annulable ; un
+      tap sur un onglet, lui, n'empile rien. */
+  function sauter(vers: Tab) {
+    const avant = effTab;
+    if (avant === vers) return;
+    setTab(vers);
+    empiler(() => {
+      revenu.current = true;
+      setTab(avant);
+    }, true);
+  }
+
+  useEffect(() => {
+    if (!revenu.current) return;
+    revenu.current = false;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // L'écran entre par la gauche : c'est le sens du retour. Court et de
+    // faible amplitude — on remet le joueur où il était, on ne lui joue
+    // pas une transition.
+    scene.current?.animate(
+      [
+        { transform: "translateX(-22px)", opacity: 0.55 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }, [effTab]);
+
+  // Les couches que cet écran possède. Le mode séance a la sienne, posée
+  // chez lui : y revenir doit passer par la confirmation d'abandon, que
+  // seul WorkoutMode connaît.
+  useCoucheRetour(() => dismissEventModal(), showEventModal);
+  useCoucheRetour(() => setReplayTuto(false), replayTuto);
+  useCoucheRetour(() => setReplayLaunch(false), replayLaunch);
   // Le chemin retour : le moment que le fil doit retrouver et montrer,
   // demandé depuis une citation du tchat. Même raison de vivre ici.
   const [feedFocus, setFeedFocus] = useState<string | null>(null);
@@ -367,7 +419,7 @@ export default function App() {
           Hors ligne — dernier état connu
         </p>
       )}
-      <div className="flex flex-1 flex-col">
+      <div ref={scene} className="flex flex-1 flex-col">
         {!over && effTab === "today" && (
           <TodayScreen
             player={player}
@@ -383,7 +435,7 @@ export default function App() {
             onUnclaimBonus={(item) => unclaim(player.id, item)}
             onShareWeek={shareWeek}
             onInvite={invite}
-            onGoLeaderboard={() => setTab("leaderboard")}
+            onGoLeaderboard={() => sauter("leaderboard")}
             showToast={data.showToast}
           />
         )}
@@ -395,7 +447,7 @@ export default function App() {
             gamification={gamification}
             onShareFinal={shareFinal}
             onRematch={rematch}
-            onGoHistory={() => setTab("stats")}
+            onGoHistory={() => sauter("stats")}
           />
         )}
         {effTab === "feed" && (
@@ -403,12 +455,12 @@ export default function App() {
             player={player}
             players={data.players}
             feed={feed}
-            onGoLeaderboard={() => setTab("leaderboard")}
+            onGoLeaderboard={() => sauter("leaderboard")}
             onDiscuss={(events) => {
               // events[0] est l'ancre de la salve : c'est la ligne que le
               // fil affiche en tête, donc celle qu'on cite.
               setChatSeed(events[0]);
-              setTab("chat");
+              sauter("chat");
             }}
             focusEventId={feedFocus}
             onFocusDone={clearFeedFocus}
@@ -420,10 +472,10 @@ export default function App() {
             player={player}
             players={data.players}
             chat={chat}
-            onGoFeed={() => setTab("feed")}
+            onGoFeed={() => sauter("feed")}
             onGoFeedEvent={(eventId) => {
               setFeedFocus(eventId);
-              setTab("feed");
+              sauter("feed");
             }}
             seed={chatSeed}
             onSeedUsed={() => setChatSeed(null)}
@@ -491,7 +543,13 @@ export default function App() {
       </div>
       <TabBar
         tab={effTab}
-        onChange={setTab}
+        onChange={(cible) => {
+          // Choisir un onglet à la main annule les sauts en attente :
+          // revenir en arrière ramènerait dans un écran qu'on vient de
+          // quitter volontairement.
+          viderSauts();
+          setTab(cible);
+        }}
         feedUnread={feed.unread}
         chatUnread={chat.unread}
         over={over}
