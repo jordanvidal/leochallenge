@@ -10,7 +10,7 @@
 // doublon — ni dans le fil, ni en push.
 
 import { NextResponse } from "next/server";
-import { addDays } from "@/lib/challenge";
+import { addDays, mondayOf } from "@/lib/challenge";
 import { BADGES } from "@/lib/gamification";
 import {
   type VolumeClaim,
@@ -70,14 +70,14 @@ const KIND_PRIORITY: FeedInsert["kind"][] = [
   "badge",
 ];
 
-/** "et Hichem se partagent la tête" — la queue d'un ex-æquo en tête,
-    à accrocher derrière le prénom de l'auteur (rendu à part). */
-function coLeadText(coNames: string[]): string {
+/** "et Hichem se partagent la tête de la semaine" — la queue d'un ex-æquo
+    en tête, à accrocher derrière le prénom de l'auteur (rendu à part). */
+function coLeadText(coNames: string[], semaine: boolean): string {
   const list =
     coNames.length <= 1
       ? coNames[0] ?? ""
       : `${coNames.slice(0, -1).join(", ")} et ${coNames[coNames.length - 1]}`;
-  return `et ${list} se partagent la tête`;
+  return `et ${list} se partagent la tête${semaine ? " de la semaine" : ""}`;
 }
 
 /** La phrase d'un moment, sans le prénom (même ton que le fil). */
@@ -95,10 +95,18 @@ function momentPhrase(
       };
     }
     case "lead":
-      return { emoji: "👑", text: "prend la tête du classement" };
+      // « de la semaine » seulement si l'événement a été calculé sur la
+      // semaine : les cartes d'avant le 29/07 parlaient du général, elles
+      // gardent donc leur phrase. Même test que lib/feed.ts.
+      return {
+        emoji: "👑",
+        text: payload.week_monday
+          ? "prend la tête de la semaine"
+          : "prend la tête du classement",
+      };
     case "co_lead": {
       const co = Array.isArray(payload.co) ? (payload.co as string[]) : [];
-      return { emoji: "👑", text: coLeadText(co) };
+      return { emoji: "👑", text: coLeadText(co, Boolean(payload.week_monday)) };
     }
     case "badge": {
       const b = BADGES.find((x) => x.key === payload.badge);
@@ -224,8 +232,11 @@ export async function POST(request: Request) {
 
   const supabase = serverSupabase();
   const today = parisToday();
+  const monday = mondayOf(today);
   const [
     lb,
+    weekLb,
+    lastLead,
     snaps,
     players,
     badges,
@@ -239,6 +250,23 @@ export async function POST(request: Request) {
     volumeClaims,
   ] = await Promise.all([
       supabase.rpc("leaderboard"),
+      // 👑 Le classement de la semaine en cours : c'est LA compétition
+      // (components/LeaderboardScreen.tsx, qui s'ouvre dessus), donc c'est
+      // sur lui que se décide « prend la tête ». Le général sert encore au
+      // push de dépassement, qui se lit toujours sur la durée du challenge.
+      supabase.rpc("leaderboard", { p_from: monday }),
+      // La dernière tête annoncée cette semaine. Sans elle, on ne sait pas
+      // si la tête vient de changer : la semaine repart de zéro le lundi,
+      // il n'existe donc aucun rang hebdo figé à comparer (rank_snapshots
+      // ne garde que le général, et y ajouter une colonne serait une
+      // migration). Le préfixe du dedupe_key borne la lecture à la semaine.
+      supabase
+        .from("feed_events")
+        .select("payload")
+        .in("kind", ["lead", "co_lead"])
+        .like("dedupe_key", `${monday}:%`)
+        .order("created_at", { ascending: false })
+        .limit(1),
       supabase.from("rank_snapshots").select("player_id, rank"),
       supabase.from("players").select("id, name"),
       supabase.from("player_badges").select("player_id, badge"),
@@ -290,6 +318,10 @@ export async function POST(request: Request) {
     badges.error ||
     streaks.error ||
     todayEntries.error
+    // weekLb/lastLead volontairement absents, comme jokers/premier/volume :
+    // le bloc « tête de la semaine » se saute en entier si l'une des deux
+    // lectures a échoué. Sur des données partielles il couronnerait le
+    // mauvais joueur, ou réannoncerait une tête déjà connue.
     // jokers/premier/volume volontairement absents : cette route porte aussi
     // les records, les milestones, le jour parfait collectif et les push de
     // dépassement. Perdre l'annonce d'un joker ou d'un premier du jour vaut
@@ -382,40 +414,59 @@ export async function POST(request: Request) {
     });
   }
 
-  // 👑 Tête du classement. rank() rend le même rang 1 à un ex-æquo :
-  // deux joueurs à égalité en tête ne "prennent" pas la tête chacun de
-  // leur côté. On distingue donc le leader unique ("prend la tête") du
-  // partage ("se partagent la tête"), et on ne pousse qu'un seul
-  // événement — jamais deux "prend la tête" à la même seconde.
-  // points > 0 évite le "tout le monde en tête" du jour 1.
-  const leaders = lbRows
-    .filter((r) => Number(r.rank) === 1 && Number(r.points) > 0)
-    .sort((a, b) =>
-      (names.get(a.player_id) ?? "").localeCompare(names.get(b.player_id) ?? ""),
-    );
-  // Nouveau seulement si quelqu'un vient d'arriver en tête (rang > 1
-  // avant) : sinon on répéterait une tête inchangée à chaque coche.
-  const leadChanged = leaders.some((r) => {
-    const old = oldRanks.get(r.player_id);
-    return old !== undefined && old > 1;
-  });
-  if (leadChanged && leaders.length === 1) {
-    moments.push({
-      player_id: leaders[0].player_id,
-      kind: "lead",
-      dedupe_key: today,
-      payload: { day: today },
-    });
-  } else if (leadChanged && leaders.length >= 2) {
-    // Ex-æquo : un seul event, porté par le premier (ordre alphabétique,
-    // stable → la dédup du jour tient), les autres dans le payload.
-    const [owner, ...rest] = leaders;
-    moments.push({
-      player_id: owner.player_id,
-      kind: "co_lead",
-      dedupe_key: today,
-      payload: { day: today, co: rest.map((r) => names.get(r.player_id) ?? "?") },
-    });
+  // 👑 Tête de la SEMAINE. rank() rend le même rang 1 à un ex-æquo : deux
+  // joueurs à égalité en tête ne "prennent" pas la tête chacun de leur
+  // côté. On distingue donc le leader unique ("prend la tête") du partage
+  // ("se partagent la tête"), et on ne pousse qu'un seul événement.
+  // points > 0 évite le "tout le monde en tête" du lundi matin.
+  if (!weekLb.error && !lastLead.error) {
+    const weekLbRows = weekLb.data as LbRow[];
+    const marqueurs = weekLbRows.filter((r) => Number(r.points) > 0).length;
+    const leaders = weekLbRows
+      .filter((r) => Number(r.rank) === 1 && Number(r.points) > 0)
+      .sort((a, b) =>
+        (names.get(a.player_id) ?? "").localeCompare(names.get(b.player_id) ?? ""),
+      );
+    // Ordre canonique, indépendant des prénoms : c'est lui qui sert à
+    // comparer avec la dernière tête annoncée.
+    const cle = leaders.map((r) => r.player_id).sort().join(",");
+    const dernier = ((lastLead.data?.[0]?.payload as { leaders?: string[] })
+      ?.leaders ?? []) as string[];
+    const inchange = [...dernier].sort().join(",") === cle;
+
+    // Deux joueurs au moins ont marqué : avant ça, « prendre la tête » ne
+    // dit rien — le premier à cocher le lundi matin est mécaniquement en
+    // tête d'un classement où il est seul. Le groupe recevrait une notif
+    // chaque lundi pour un fait sans contenu.
+    if (marqueurs >= 2 && leaders.length > 0 && !inchange) {
+      // La date du jour est dans la clé : la tête peut changer deux fois
+      // dans la semaine, et repasser à celui qui l'avait déjà. Rejouer la
+      // route la même journée reste sans effet, c'est ce qui compte.
+      const dedupe_key = `${monday}:${today}:${cle}`;
+      const [owner, ...rest] = leaders;
+      moments.push(
+        leaders.length === 1
+          ? {
+              player_id: owner.player_id,
+              kind: "lead",
+              dedupe_key,
+              payload: { day: today, week_monday: monday, leaders: [owner.player_id] },
+            }
+          : {
+              // Ex-æquo : un seul event, porté par le premier dans l'ordre
+              // alphabétique, les autres dans le payload.
+              player_id: owner.player_id,
+              kind: "co_lead",
+              dedupe_key,
+              payload: {
+                day: today,
+                week_monday: monday,
+                leaders: leaders.map((r) => r.player_id),
+                co: rest.map((r) => names.get(r.player_id) ?? "?"),
+              },
+            },
+      );
+    }
   }
 
   // 🏅 Badges : on pousse tout, l'unicité en base ne garde que les nouveaux.
