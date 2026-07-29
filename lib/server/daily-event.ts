@@ -33,7 +33,7 @@ export async function notifyDailyEvent(t: Terrain = TERRAIN_ENV): Promise<{
   event: string | null;
   sent: number;
 }> {
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const day = parisToday();
 
   // Idempotent par construction : la RPC tire si personne ne l'a fait,

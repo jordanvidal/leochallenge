@@ -52,7 +52,7 @@ function doneCount(e: Entry | undefined): number {
     `count` = exos cochés aujourd'hui ; `active` = au moins une coche sur
     la fenêtre (les inscrits fantômes ne comptent pas dans la bande). */
 async function loadToday(t: Terrain) {
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const today = parisToday();
   // Cadrage par ligue : les joueurs par `league_id`, les coches par jointure
   // interne — une coche appartient à un joueur, qui appartient à une ligue.
@@ -226,7 +226,7 @@ export async function sendWinBack(t: Terrain = TERRAIN_ENV): Promise<{
   sent: number;
   reengaged: string[];
 }> {
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(t.schema);
   const today = parisToday();
   if (offSeason(today, t)) return { notified: 0, sent: 0, reengaged: [] };
 

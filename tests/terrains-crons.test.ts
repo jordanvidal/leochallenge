@@ -14,22 +14,21 @@ import {
   terrainsActifs,
 } from "@/lib/server/ligues";
 
-describe("terrainsActifs, en groupe unique", () => {
-  it("rend exactement un terrain", async () => {
-    const t = await terrainsActifs();
-    expect(t).toHaveLength(1);
-  });
-
-  it("ce terrain n'a pas de ligue et porte la fenêtre des variables d'env", async () => {
+describe("terrainsActifs, les deux mondes", () => {
+  it("ouvre toujours sur le challenge d'origine tant qu'il tourne", async () => {
     const [t] = await terrainsActifs();
     expect(t.ligue).toBeNull();
     expect(t.fenetre).toEqual(FENETRE_ENV);
+    expect(t.schema).toBe("public");
   });
 
-  it("ne touche pas la base : aucune ligue à aller chercher", async () => {
-    // Si cet appel partait en requête, il échouerait faute d'URL Supabase
-    // valide en test. Qu'il réponde prouve qu'il sort avant.
-    await expect(terrainsActifs()).resolves.toHaveLength(1);
+  it("rend le challenge même quand les ligues sont injoignables", async () => {
+    // En test il n'y a pas de Supabase : la requête sur `app` échoue. C'est
+    // exactement le scénario qui compte — les neuf joueurs ne doivent pas
+    // perdre un rappel parce que le schéma des ligues a hoqueté.
+    const t = await terrainsActifs();
+    expect(t).toHaveLength(1);
+    expect(t[0].schema).toBe("public");
   });
 });
 
