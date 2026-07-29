@@ -2,7 +2,14 @@
 // (RPC leaderboard, vue player_badges), catalogue des badges,
 // souscription push. Aucun calcul de points ici — une seule vérité.
 
-import { addDays, mondayOf, parisToday } from "./challenge";
+import {
+  addDays,
+  CHALLENGE_DAYS,
+  CHALLENGE_END,
+  frenchDayMonth,
+  mondayOf,
+  parisToday,
+} from "./challenge";
 import { Duel } from "./duels";
 import { argLigue, leGroupPass } from "./ligue";
 import { supabase } from "./supabase";
@@ -31,16 +38,49 @@ export type Gamification = {
   duels: Duel[]; // tous les appariements (table minuscule)
 };
 
-export const BADGES: { key: string; emoji: string; label: string; hint: string }[] = [
-  { key: "premiere_semaine", emoji: "🌱", label: "Première semaine", hint: "7 jours parfaits d'affilée" },
-  { key: "machine", emoji: "⚙️", label: "Machine", hint: "14 jours parfaits d'affilée" },
-  { key: "increvable", emoji: "🛡️", label: "Increvable", hint: "30 jours parfaits d'affilée" },
-  { key: "sans_faute", emoji: "💎", label: "Sans faute", hint: "Aucun jour raté depuis le début" },
-  { key: "retour_de_flamme", emoji: "🔥", label: "Retour de flamme", hint: "Reprendre une série de 5+ après l'avoir cassée" },
-  { key: "premier_de_la_classe", emoji: "👑", label: "Premier de la classe", hint: "N°1 pendant 7 jours consécutifs" },
-  { key: "finisseur", emoji: "🏁", label: "Le finisseur", hint: "Les 3 exos validés le 31 août" },
-  { key: "centurion", emoji: "🏛️", label: "Centurion", hint: "100 exercices validés au total" },
-];
+export type Badge = { key: string; emoji: string; label: string; hint: string };
+
+/**
+ * Les seuils des badges suivent la durée de la ligue, pas une valeur en dur.
+ * Ce sont EXACTEMENT les formules de `supabase/migration40-badges-proportionnels.sql`
+ * — si l'une bouge, l'autre doit bouger, sinon l'app promet un seuil que la base
+ * n'applique pas. À 50 jours (le challenge d'origine) elles redonnent 7 / 14 / 30
+ * / 100, les valeurs historiques.
+ *
+ * Les pourcentages sont écrits en entiers (14/100 et non 0.14) : `0.14 * 50` vaut
+ * 7.000000000000001 en flottant, `Math.ceil` renverrait 8, et le groupe d'origine
+ * verrait son seuil bouger le jour de sa migration. Postgres n'a pas ce problème,
+ * il calcule en `numeric` — raison de plus pour que les deux côtés soient exacts.
+ */
+export const seuilsBadges = (nJours: number) => ({
+  premiereSemaine: Math.max(3, Math.ceil((14 * nJours) / 100)),
+  machine: Math.max(3, Math.ceil((28 * nJours) / 100)),
+  increvable: Math.max(3, Math.ceil((60 * nJours) / 100)),
+  centurion: 2 * nJours,
+});
+
+/** Le catalogue des badges pour une ligue de `nJours` jours, finissant le `finDeLigue`. */
+export function badgesFor(nJours: number, finDeLigue: string): Badge[] {
+  const s = seuilsBadges(nJours);
+  return [
+    { key: "premiere_semaine", emoji: "🌱", label: "Première semaine", hint: `${s.premiereSemaine} jours parfaits d'affilée` },
+    { key: "machine", emoji: "⚙️", label: "Machine", hint: `${s.machine} jours parfaits d'affilée` },
+    { key: "increvable", emoji: "🛡️", label: "Increvable", hint: `${s.increvable} jours parfaits d'affilée` },
+    { key: "sans_faute", emoji: "💎", label: "Sans faute", hint: "Aucun jour raté depuis le début" },
+    { key: "retour_de_flamme", emoji: "🔥", label: "Retour de flamme", hint: "Reprendre une série de 5+ après l'avoir cassée" },
+    { key: "premier_de_la_classe", emoji: "👑", label: "Premier de la classe", hint: "N°1 pendant 7 jours consécutifs" },
+    { key: "finisseur", emoji: "🏁", label: "Le finisseur", hint: `Les 3 exos validés le ${frenchDayMonth(finDeLigue)}` },
+    { key: "centurion", emoji: "🏛️", label: "Centurion", hint: `${s.centurion} exercices validés au total` },
+  ];
+}
+
+/**
+ * Le catalogue de la ligue courante. Tant qu'il n'y a qu'un challenge, c'est
+ * celui des constantes d'env — 50 jours, donc les libellés d'aujourd'hui au
+ * caractère près. En multi-ligues, les écrans liront `badgesFor()` avec la durée
+ * de leur ligue.
+ */
+export const BADGES: Badge[] = badgesFor(CHALLENGE_DAYS, CHALLENGE_END);
 
 /** "1er", "2e", "3e"… */
 export function frenchRank(n: number): string {
