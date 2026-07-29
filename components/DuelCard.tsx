@@ -62,7 +62,7 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
       </p>
       <div className="mt-2 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Avatar name={player.name} color={player.color} size={36} />
+          <Avatar name={player.name} color={player.color} photo={player.photo} size={36} />
           <span className="truncate font-bold">Toi</span>
         </div>
         <span className="num-display shrink-0 text-3xl">
@@ -72,7 +72,7 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
         </span>
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate font-bold">{opp.name}</span>
-          <Avatar name={opp.name} color={opp.color} size={36} />
+          <Avatar name={opp.name} color={opp.color} photo={opp.photo} size={36} />
         </div>
       </div>
       {mine === theirs && (

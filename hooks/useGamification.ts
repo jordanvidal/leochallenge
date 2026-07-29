@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchGamification, Gamification } from "@/lib/gamification";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
 
 // Le classement coûte cher (trois RPC qui recalculent tout depuis les
 // entries, ~300 ms chacune) et il échoue pour de vrai : réseau du métro,
@@ -20,6 +21,7 @@ import { fetchGamification, Gamification } from "@/lib/gamification";
 const REPRISES = [800, 2000, 5000]; // ms
 
 export function useGamification(enabled: boolean) {
+  const ligueId = useLigueCourante()?.id ?? null;
   const [data, setData] = useState<Gamification | null>(null);
   // Vrai quand les reprises sont épuisées et qu'on n'a toujours rien.
   // Sans ça, l'écran restait sur « Calcul en cours… » — un message qui
@@ -64,7 +66,7 @@ export function useGamification(enabled: boolean) {
       inflight.current = true;
       let g: Gamification | null = null;
       try {
-        g = await fetchGamification();
+        g = await fetchGamification(ligueId);
       } catch {
         // Un rejet se traite comme un échec : la reprise s'en occupe.
       } finally {
@@ -96,7 +98,9 @@ export function useGamification(enabled: boolean) {
         timer.current = setTimeout(() => void load(true), attente);
       }
     },
-    [],
+    // `ligueId` en dépendance : sans lui, changer de ligue laisserait cette
+    // fonction rappeler l'ancienne — un classement d'une autre ligue.
+    [ligueId],
   );
 
   const reload = useCallback(() => load(false), [load]);

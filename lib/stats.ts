@@ -4,8 +4,9 @@
 import {
   addDays,
   allChallengeDays,
-  CHALLENGE_START,
   elapsedDays,
+  FENETRE_ENV,
+  Fenetre,
   parisToday,
 } from "./challenge";
 import { Entry, entryCount, entryKey, Player } from "./types";
@@ -22,15 +23,16 @@ export type PlayerStats = {
 export type TimelineCell = { day: string; perfect: number };
 
 /**
- * Stats d'un joueur sur l'ensemble des jours écoulés du challenge.
+ * Stats d'un joueur sur l'ensemble des jours écoulés de sa ligue.
  * La série tolère un aujourd'hui incomplet : elle compte depuis hier
  * si le jour courant n'est pas (encore) parfait.
  */
 export function computeStats(
   playerId: string,
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): PlayerStats {
-  const days = elapsedDays(); // du plus récent au plus ancien
+  const days = elapsedDays(f); // du plus récent au plus ancien
   if (days.length === 0)
     return { perfectDays: 0, completion: 0, streak: 0, bestStreak: 0, zeroDays: 0 };
 
@@ -95,6 +97,7 @@ export function streakEnSursis(
   entries: Map<string, Entry>,
   jokerDay: string | null | undefined,
   today: string,
+  f: Fenetre = FENETRE_ENV,
 ): number {
   // undefined = on ne sait pas encore (ligne ou colonne absente) ; une date
   // = déjà brûlé. Dans les deux cas on se tait, comme la tuile des Stats.
@@ -109,12 +112,12 @@ export function streakEnSursis(
   // Le trou, c'est hier — et hier seulement. Deux jours ratés d'affilée et
   // la série tombe pour de bon, joker ou pas.
   const trou = addDays(today, -1);
-  if (trou < CHALLENGE_START || isPerfect(trou)) return 0;
+  if (trou < f.start || isPerfect(trou)) return 0;
 
   let sursis = 0;
   for (
     let d = addDays(trou, -1);
-    d >= CHALLENGE_START && isPerfect(d);
+    d >= f.start && isPerfect(d);
     d = addDays(d, -1)
   ) {
     sursis++;
@@ -125,14 +128,15 @@ export function streakEnSursis(
 }
 
 /**
- * La ligne du temps du groupe : pour chacun des 50 jours, combien de joueurs
- * ont été parfaits. Tout se calcule sur les entries déjà chargées.
+ * La ligne du temps du groupe : pour chaque jour de la ligue, combien de
+ * joueurs ont été parfaits. Tout se calcule sur les entries déjà chargées.
  */
 export function groupTimeline(
   players: Player[],
   entries: Map<string, Entry>,
+  f: Fenetre = FENETRE_ENV,
 ): TimelineCell[] {
-  return allChallengeDays().map((day) => {
+  return allChallengeDays(f).map((day) => {
     let perfect = 0;
     for (const p of players) {
       if (entryCount(entries.get(entryKey(p.id, day))) === 3) perfect++;

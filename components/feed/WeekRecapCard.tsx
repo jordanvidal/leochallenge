@@ -20,6 +20,8 @@ import { eventPhrase, FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 import Interactions from "./Interactions";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
+import { useFenetre } from "@/components/ligue/LigueContexte";
 
 type Props = {
   events: FeedEvent[]; // le récit + les duel_start / duel_result d'une même semaine
@@ -28,8 +30,11 @@ type Props = {
   reactions: FeedReaction[];
   comments: FeedComment[];
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
-  onAddComment: (event: FeedEvent, body: string) => void;
+  onDiscuss: (events: FeedEvent[]) => void;
   onGoLeaderboard: () => void;
+  /** Rejointe depuis une citation du tchat : le bilan se cite comme
+      n'importe quel moment, il se retrouve donc pareil. */
+  vise?: boolean;
 };
 
 /** Un appariement prêt à afficher, résolu ou non. */
@@ -60,9 +65,12 @@ export default function WeekRecapCard({
   reactions,
   comments,
   onToggleReaction,
-  onAddComment,
+  onDiscuss,
   onGoLeaderboard,
+  vise,
 }: Props) {
+  const f = useFenetre();
+  const ligueId = useLigueCourante()?.id ?? null;
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
   const recit = events.find((e) => e.kind === "recit") ?? null;
@@ -79,7 +87,7 @@ export default function WeekRecapCard({
   const closedMonday =
     recit?.payload.week_monday ?? (openedMonday ? addDays(openedMonday, -7) : null);
 
-  const weeks = challengeWeeks();
+  const weeks = challengeWeeks(f);
   const closedWeek = closedMonday
     ? (weeks.find((w) => mondayOf(w.from) === closedMonday) ?? null)
     : null;
@@ -93,13 +101,13 @@ export default function WeekRecapCard({
   useEffect(() => {
     if (!closedWeek) return;
     let cancelled = false;
-    fetchWeekLeaderboard(closedWeek.from, closedWeek.until).then((r) => {
+    fetchWeekLeaderboard(closedWeek.from, closedWeek.until, ligueId).then((r) => {
       if (!cancelled) setRows(r);
     });
     return () => {
       cancelled = true;
     };
-  }, [closedWeek?.from, closedWeek?.until]);
+  }, [closedWeek?.from, closedWeek?.until, ligueId]);
 
   const winner = rows?.find((r) => r.rank === 1) ?? null;
   const winnerPlayer = winner ? (byId.get(winner.player_id) ?? null) : null;
@@ -152,7 +160,8 @@ export default function WeekRecapCard({
 
   return (
     <li
-      className="flex flex-col rounded-2xl px-4 py-4"
+      id={vise ? "moment-vise" : undefined}
+      className={`flex flex-col rounded-2xl px-4 py-4 ${vise ? "moment-vise" : ""}`}
       style={{ background: "var(--color-raised)" }}
       aria-label="Bilan de la semaine"
     >
@@ -225,7 +234,7 @@ export default function WeekRecapCard({
                       : undefined
                   }
                 >
-                  <Avatar name={p.a.name} color={p.a.color} size={24} />
+                  <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
                   <Name p={p.a} me={me} />
                   {p.b ? (
                     <>
@@ -233,7 +242,7 @@ export default function WeekRecapCard({
                         ⚔️
                       </span>
                       <Name p={p.b} me={me} />
-                      <Avatar name={p.b.name} color={p.b.color} size={24} />
+                      <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
                     </>
                   ) : (
                     <span className="text-muted">— exempt cette semaine</span>
@@ -267,7 +276,7 @@ export default function WeekRecapCard({
           reactions={reactions}
           comments={comments}
           onToggleReaction={onToggleReaction}
-          onAddComment={onAddComment}
+          onDiscuss={onDiscuss}
           pillBg="var(--color-surface)"
         />
       </div>

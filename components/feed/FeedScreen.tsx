@@ -3,7 +3,7 @@
 // Le fil : antéchronologique, groupé par jour. Personne n'écrit de
 // post — le feed raconte ce qui s'est passé, le groupe réagit dessus.
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Feed } from "@/hooks/useFeed";
 import { addDays } from "@/lib/challenge";
 import { dayLabel, FeedEvent, parisDayOf } from "@/lib/feed";
@@ -17,7 +17,22 @@ type Props = {
   players: Player[];
   feed: Feed;
   onGoLeaderboard: () => void;
+  /** « En parler » : emmène le moment dans le tchat, cité. C'est ce
+      rebond qui donne au salon de la matière dès le premier jour —
+      personne n'a jamais à décider d'ouvrir une conversation. */
+  onDiscuss: (events: FeedEvent[]) => void;
+  /** Le moment qu'on vient rejoindre depuis sa citation dans le tchat.
+      Le fil le cherche, remonte s'il le faut, l'amène au centre de
+      l'écran et l'allume une fois. */
+  focusEventId: string | null;
+  onFocusDone: () => void;
+  showToast: (msg: string) => void;
 };
+
+/** Pages qu'on accepte de charger en plus pour retrouver un moment cité.
+    Quatre pages de 50, soit environ dix jours de vie du groupe : au-delà,
+    on le dit plutôt que de faire tourner la roue en silence. */
+const REMONTEES_MAX = 4;
 
 /** Les lignes de bascule d'une semaine à l'autre : les duels, écrits par
     le job du lundi matin, et le récit, écrit par pg_cron à minuit. Elles
@@ -104,14 +119,68 @@ function blocksOf(items: FeedEvent[]): Block[] {
   return blocks.sort((a, b) => (a.at > b.at ? -1 : 1));
 }
 
-export default function FeedScreen({ player, players, feed, onGoLeaderboard }: Props) {
+export default function FeedScreen({
+  player,
+  players,
+  feed,
+  onGoLeaderboard,
+  onDiscuss,
+  focusEventId,
+  onFocusDone,
+  showToast,
+}: Props) {
   const byId = new Map(players.map((p) => [p.id, p]));
+
+  // Le moment allumé en ce moment. Distinct de focusEventId : la consigne
+  // vient d'ailleurs et se consomme, l'allumage est à nous et s'éteint.
+  const [vise, setVise] = useState<string | null>(null);
+  const remontees = useRef(0);
 
   // L'onglet est ouvert : tout est vu, la pastille s'éteint.
   const { markSeen } = feed;
   useEffect(() => {
     markSeen();
   }, [markSeen]);
+
+  // La recherche du moment cité. La première page couvre le cas courant ;
+  // pour un moment plus vieux, on remonte le fil page par page. L'effet se
+  // rejoue à chaque page reçue, donc la boucle s'écrit toute seule — d'où
+  // le compteur, qui l'empêche de tourner indéfiniment.
+  const { events, hasMore, loadingMore, loadMore } = feed;
+  useEffect(() => {
+    // On attend la page en cours : sans ce garde-fou, chaque rendu de
+    // l'écran pendant le chargement compterait une remontée de plus et
+    // le budget serait mangé avant d'avoir tourné une seule page.
+    if (!focusEventId || events === null || loadingMore) return;
+    if (events.some((e) => e.id === focusEventId)) {
+      remontees.current = 0;
+      setVise(focusEventId);
+      onFocusDone();
+      return;
+    }
+    if (hasMore && remontees.current < REMONTEES_MAX) {
+      remontees.current += 1;
+      loadMore();
+      return;
+    }
+    remontees.current = 0;
+    onFocusDone();
+    showToast("Ce moment est trop loin dans le fil");
+  }, [focusEventId, events, hasMore, loadingMore, loadMore, onFocusDone, showToast]);
+
+  // Trouvé : on l'amène au centre. Le défilement est doux — arriver d'un
+  // autre écran et se retrouver déjà ailleurs dans le fil, sans mouvement,
+  // donne l'impression d'avoir raté quelque chose.
+  useEffect(() => {
+    if (!vise) return;
+    const sobre = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("moment-vise")?.scrollIntoView({
+      block: "center",
+      behavior: sobre ? "auto" : "smooth",
+    });
+    const t = setTimeout(() => setVise(null), 1400);
+    return () => clearTimeout(t);
+  }, [vise]);
 
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
@@ -154,8 +223,9 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
                     reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
                     comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
                     onToggleReaction={feed.toggleReaction}
-                    onAddComment={feed.addComment}
+                    onDiscuss={onDiscuss}
                     onGoLeaderboard={onGoLeaderboard}
+                    vise={block.events.some((e) => e.id === vise)}
                   />
                 ) : (
                   <FeedItem
@@ -168,7 +238,11 @@ export default function FeedScreen({ player, players, feed, onGoLeaderboard }: P
                     reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
                     comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
                     onToggleReaction={feed.toggleReaction}
-                    onAddComment={feed.addComment}
+                    onDiscuss={onDiscuss}
+                    // Le moment cité peut être n'importe lequel de la
+                    // salve, pas seulement l'ancre : c'est la carte
+                    // entière qu'on allume.
+                    vise={block.events.some((e) => e.id === vise)}
                   />
                 ),
               )}

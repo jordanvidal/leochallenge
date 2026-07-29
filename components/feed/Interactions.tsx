@@ -8,7 +8,7 @@
 // Le bloc porte plusieurs événements : une coche en écrit trois, le job du
 // lundi en écrit huit. Les lignes en base ne bougent pas, seul l'affichage
 // les rassemble. events[0] est l'ancre : c'est elle qui reçoit les
-// nouvelles réactions et les nouveaux commentaires.
+// nouvelles réactions, et c'est elle que « En parler » cite dans le tchat.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -144,94 +144,77 @@ function ReactionPill({
   );
 }
 
-/** Zone commentaires : repliée sur un compteur, dépliée = liste + saisie. */
-function Comments({
-  event,
+/**
+ * Ce qui se dit autour d'un moment. Depuis le 28/07, on ne l'écrit plus
+ * ici : « Commenter » est devenu « En parler », qui emmène la carte dans
+ * le tchat.
+ *
+ * La raison est entière dans docs/spec-tchat.md §9. Laisser les deux
+ * ouverts donnerait le pire scénario possible pour un groupe de six : la
+ * vanne se répartit entre les commentaires du fil et le salon, aucun des
+ * deux n'atteint la masse critique, et les deux meurent. Le fil raconte,
+ * le tchat discute.
+ *
+ * Rien n'est effacé. Les commentaires déjà écrits restent lisibles, la
+ * table et sa policy d'insertion sont intactes en base : on cesse
+ * d'écrire, on ne détruit pas.
+ */
+function Echanges({
+  events,
   byId,
   comments,
-  onAddComment,
+  onDiscuss,
 }: {
-  event: FeedEvent;
+  events: FeedEvent[];
   byId: Map<string, Player>;
   comments: FeedComment[];
-  onAddComment: (event: FeedEvent, body: string) => void;
+  onDiscuss: (events: FeedEvent[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState("");
-
-  function send() {
-    const text = draft.trim();
-    if (!text) return;
-    onAddComment(event, text);
-    setDraft("");
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mt-1 min-h-8 self-start text-xs font-medium text-faint"
-      >
-        {comments.length === 0
-          ? "Commenter"
-          : comments.length === 1
-            ? "1 commentaire"
-            : `${comments.length} commentaires`}
-      </button>
-    );
-  }
 
   return (
-    <div className="mt-2 flex flex-col gap-2">
-      {comments.map((c) => {
-        const author = byId.get(c.player_id);
-        return (
-          <p key={c.id} className="text-sm leading-snug">
-            <span
-              className="font-bold"
-              style={{ color: author?.color ?? "var(--color-muted)" }}
-            >
-              {author?.name ?? "?"}
-            </span>{" "}
-            {c.body}
-          </p>
-        );
-      })}
-      <div className="flex items-center gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-          }}
-          maxLength={140}
-          placeholder="Une pique, un bravo…"
-          aria-label="Commenter cet événement"
-          className="min-h-11 min-w-0 flex-1 rounded-full bg-raised px-4 text-base text-ink placeholder:text-muted focus:outline-none focus:ring-2"
-          style={{ "--tw-ring-color": "var(--pc)" } as React.CSSProperties}
-        />
+    <div className="mt-1 flex flex-col">
+      <div className="flex items-center gap-3">
         <button
-          onClick={send}
-          disabled={draft.trim().length === 0}
-          aria-label="Envoyer le commentaire"
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-full font-bold transition-transform active:scale-95 disabled:opacity-40"
-          style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+          onClick={() => onDiscuss(events)}
+          className="min-h-8 text-xs font-bold"
+          style={{ color: "var(--pc)" }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M5 12h13M13 6l6 6-6 6"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          En parler →
         </button>
+        {comments.length > 0 && (
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="min-h-8 text-xs font-medium text-faint"
+          >
+            {comments.length === 1
+              ? "1 commentaire"
+              : `${comments.length} commentaires`}
+          </button>
+        )}
       </div>
-      {draft.length > 110 && (
-        <p className="text-right text-[11px] text-faint">
-          {140 - draft.length} caractères restants
-        </p>
+
+      {open && (
+        <div className="mt-1.5 flex flex-col gap-1.5">
+          {comments.map((c) => {
+            const author = byId.get(c.player_id);
+            return (
+              <p key={c.id} className="text-sm leading-snug">
+                <span
+                  className="font-bold"
+                  style={{ color: author?.color ?? "var(--color-muted)" }}
+                >
+                  {author?.name ?? "?"}
+                </span>{" "}
+                {c.body}
+              </p>
+            );
+          })}
+          <p className="text-[11px] text-faint">
+            Les commentaires sont fermés. La suite se passe dans le tchat.
+          </p>
+        </div>
       )}
     </div>
   );
@@ -244,7 +227,8 @@ type Props = {
   reactions: FeedReaction[]; // du groupe entier
   comments: FeedComment[]; // du groupe entier
   onToggleReaction: (event: FeedEvent, emoji: string) => void;
-  onAddComment: (event: FeedEvent, body: string) => void;
+  /** Emmène le moment dans le tchat, cité. Remplace l'ancien commentaire. */
+  onDiscuss: (events: FeedEvent[]) => void;
   /** Marge au-dessus de la rangée d'emojis. La carte de bilan respire plus. */
   gap?: string;
   /** Fond des pastilles non cochées. À passer plus sombre quand le bloc
@@ -259,7 +243,7 @@ export default function Interactions({
   reactions,
   comments,
   onToggleReaction,
-  onAddComment,
+  onDiscuss,
   gap = "mt-2",
   pillBg = "var(--color-raised)",
 }: Props) {
@@ -307,11 +291,11 @@ export default function Interactions({
           );
         })}
       </div>
-      <Comments
-        event={anchor}
+      <Echanges
+        events={events}
         byId={byId}
         comments={ordered}
-        onAddComment={onAddComment}
+        onDiscuss={onDiscuss}
       />
     </>
   );

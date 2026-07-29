@@ -6,6 +6,7 @@
 // player_breakdown — aucun calcul ici.
 
 import { useEffect, useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { frenchDateShort, saison3Started } from "@/lib/challenge";
 import {
   Breakdown,
@@ -17,6 +18,7 @@ import {
 import { fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import { Avatar, Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -111,10 +113,14 @@ function SourceRow({
 }
 
 export default function PlayerBreakdown({ player, row, from, until, label, onClose }: Props) {
+  const f = useFenetre();
+  // Le retour arrière refait le geste de la flèche « ← » en tête d'écran.
+  useCoucheRetour(onClose);
+
   // Le mini-barème décrit les règles EN VIGUEUR. C'est l'écran qu'on ouvre
   // quand on ne comprend pas son score : le faire passer à la S3 avant la
   // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
-  const s3 = saison3Started();
+  const s3 = saison3Started(f);
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
   const [showDays, setShowDays] = useState(false);
@@ -160,7 +166,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
       </div>
 
       <div className="mt-2 flex items-center gap-3">
-        <Avatar name={player.name} color={player.color} size={52} />
+        <Avatar name={player.name} color={player.color} photo={player.photo} size={52} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-bold">{player.name}</p>
           {/* Le rang est celui de la fenêtre affichée. « 1er au classement »

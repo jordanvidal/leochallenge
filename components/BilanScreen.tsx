@@ -6,16 +6,15 @@
 
 import {
   bilanProvisoire,
-  CHALLENGE_DAYS,
-  CHALLENGE_END,
-  CHALLENGE_START,
   frenchDayMonth,
   hoursUntilFinalLock,
+  joursDeFenetre,
 } from "@/lib/challenge";
 import { BADGES, fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
 import { computeStats, groupTimeline, PlayerStats, TimelineCell } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import { Avatar, BigButton, Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -24,6 +23,7 @@ type Props = {
   gamification: Gamification | null;
   onShareFinal: () => void;
   onRematch: () => void;
+  /** Emmène à la grille jour par jour, qui vit dans Stats depuis le 28/07. */
   onGoHistory: () => void;
 };
 
@@ -33,12 +33,13 @@ const frNum = (n: number) => n.toLocaleString("fr-FR");
 /** Bandeau provisoire le dernier jour, définitif dès le lendemain : seul le
     jour en cours reste éditable (EDIT_WINDOW_DAYS = 0). */
 function Banner({ onGoHistory }: { onGoHistory: () => void }) {
-  if (!bilanProvisoire()) {
+  const f = useFenetre();
+  if (!bilanProvisoire(f)) {
     return (
       <p className="mt-4 text-sm font-medium text-faint">🔒 Scores définitifs.</p>
     );
   }
-  const h = hoursUntilFinalLock();
+  const h = hoursUntilFinalLock(f);
   return (
     <div
       className="mt-4 rounded-2xl p-4 text-sm"
@@ -48,7 +49,7 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
         Scores provisoires
       </p>
       <p className="mt-1 text-muted">
-        Il reste {h} h pour compléter le {frenchDayMonth(CHALLENGE_END)}. Les
+        Il reste {h} h pour compléter le {frenchDayMonth(f.end)}. Les
         jours d&apos;avant sont verrouillés.
       </p>
       <button
@@ -56,7 +57,7 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
         className="mt-2 min-h-8 font-bold"
         style={{ color: "var(--pc)" }}
       >
-        Corriger dans l&apos;Historique →
+        Voir l&apos;historique →
       </button>
     </div>
   );
@@ -73,7 +74,7 @@ function Podium({ rows, byId }: { rows: LeaderboardRow[]; byId: Map<string, Play
         const first = r.rank === 1;
         return (
           <div key={r.player_id} className="flex flex-col items-center gap-1.5">
-            <Avatar name={p.name} color={p.color} size={first ? 76 : 54} />
+            <Avatar name={p.name} color={p.color} photo={p.photo} size={first ? 76 : 54} />
             <span className="max-w-24 truncate text-sm font-bold">{p.name}</span>
             <span
               className={`num-display ${first ? "text-5xl" : "text-3xl"}`}
@@ -100,6 +101,7 @@ function cellBg(perfect: number, total: number): string {
 
 /** La bande des 50 jours, découpée en semaines pour se lire d'un coup d'œil. */
 function TimelineBand({ cells, total }: { cells: TimelineCell[]; total: number }) {
+  const f = useFenetre();
   const weeks: TimelineCell[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return (
@@ -111,7 +113,7 @@ function TimelineBand({ cells, total }: { cells: TimelineCell[]; total: number }
       <div
         className="mt-3 flex gap-1.5"
         role="img"
-        aria-label={`Jours parfaits du groupe sur les ${CHALLENGE_DAYS} jours du challenge`}
+        aria-label={`Jours parfaits du groupe sur les ${joursDeFenetre(f)} jours du challenge`}
       >
         {weeks.map((week, wi) => (
           <div key={wi} className="flex gap-0.5" style={{ flexGrow: week.length }}>
@@ -192,12 +194,13 @@ function PlayerCard(props: {
   badges: string[];
   open: boolean;
 }) {
+  const f = useFenetre();
   const { player, row, stats, badges, open } = props;
   return (
     <details open={open} className="rounded-2xl bg-surface [&[open]_.chev]:rotate-180">
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
         <span className="num-display w-6 text-xl text-faint">{row.rank}</span>
-        <Avatar name={player.name} color={player.color} size={38} />
+        <Avatar name={player.name} color={player.color} photo={player.photo} size={38} />
         <span className="min-w-0 flex-1 truncate font-bold">{player.name}</span>
         <span className="num-display text-xl" style={{ color: player.color }}>
           {fmtPoints(row.points)}
@@ -208,7 +211,7 @@ function PlayerCard(props: {
       </summary>
       <div className="px-4 pb-4">
         <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-          <Metric value={`${stats.perfectDays} / ${CHALLENGE_DAYS}`} label="jours parfaits" color={player.color} />
+          <Metric value={`${stats.perfectDays} / ${joursDeFenetre(f)}`} label="jours parfaits" color={player.color} />
           <Metric value={`${stats.bestStreak}`} label="plus longue série" />
           <Metric value={frNum(row.exos_done * 100)} label="répétitions au total" hero />
           <Metric value={`${stats.zeroDays}`} label="jours à zéro" />
@@ -228,14 +231,15 @@ export default function BilanScreen({
   onRematch,
   onGoHistory,
 }: Props) {
-  const range = `${frenchDayMonth(CHALLENGE_START)} → ${frenchDayMonth(CHALLENGE_END)}`;
+  const f = useFenetre();
+  const range = `${frenchDayMonth(f.start)} → ${frenchDayMonth(f.end)}`;
 
   const header = (
     <header className="rise-in pt-safe">
       <p className="mt-4 text-sm font-medium text-muted">🏁 Challenge 100-100-100</p>
       <h1 className="mt-1 text-4xl font-bold">C&apos;est fini.</h1>
       <p className="mt-1 text-muted">
-        {range} · {CHALLENGE_DAYS} jours
+        {range} · {joursDeFenetre(f)} jours
       </p>
       <Banner onGoHistory={onGoHistory} />
     </header>
@@ -263,7 +267,7 @@ export default function BilanScreen({
   const rows = [...gamification.total]
     .filter((r) => byId.has(r.player_id))
     .sort((a, b) => a.rank - b.rank);
-  const timeline = groupTimeline(players, entries);
+  const timeline = groupTimeline(players, entries, f);
 
   return (
     <div className="flex flex-1 flex-col px-5 pb-8">
@@ -282,7 +286,7 @@ export default function BilanScreen({
               key={r.player_id}
               player={p}
               row={r}
-              stats={computeStats(p.id, entries)}
+              stats={computeStats(p.id, entries, f)}
               badges={gamification.badges.get(p.id) ?? []}
               open={i === 0 || p.id === player.id}
             />

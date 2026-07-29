@@ -12,6 +12,7 @@ import { useState } from "react";
 import { saison3Started } from "@/lib/challenge";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -43,11 +44,12 @@ function EventRow({ emoji, children }: { emoji: string; children: React.ReactNod
 }
 
 export default function TutorialScreen({ player, replay = false, onDone }: Props) {
+  const f = useFenetre();
   // Le tuto décrit le barème EN VIGUEUR, pas celui qui arrive. Sans cette
   // bascule, merger la branche avant lundi ferait mentir l'écran des règles
   // pendant tout le week-end — celui où la prime hebdo et les duels de la
   // S2 se jouent encore sous l'ancien barème.
-  const s3 = saison3Started();
+  const s3 = saison3Started(f);
   const cards = [
     // 1 — Le principe
     <div key="principe">

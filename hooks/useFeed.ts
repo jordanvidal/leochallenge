@@ -6,6 +6,7 @@
 // + toast si la base dit non.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
 import {
   deleteReaction,
   FeedComment,
@@ -43,6 +44,7 @@ export function useFeed(
   myId: string | null,
   showToast: (msg: string) => void,
 ) {
+  const ligueId = useLigueCourante()?.id ?? null;
   const [events, setEvents] = useState<FeedEvent[] | null>(null);
   const [annex, setAnnex] = useState<AnnexMaps>({
     reactions: new Map(),
@@ -62,7 +64,7 @@ export function useFeed(
     if (inflight.current) return;
     inflight.current = true;
     try {
-      const page = await fetchFeedPage(0);
+      const page = await fetchFeedPage(0, ligueId);
       if (!page) return;
       const extra = await fetchFeedAnnex(page.events.map((e) => e.id));
       if (!extra) return;
@@ -72,7 +74,9 @@ export function useFeed(
     } finally {
       inflight.current = false;
     }
-  }, []);
+    // `ligueId` en dépendance : changer de ligue doit recharger le fil, pas
+    // continuer à raconter celui d'avant.
+  }, [ligueId]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -89,7 +93,7 @@ export function useFeed(
     if (loadingMore || events === null) return;
     setLoadingMore(true);
     try {
-      const page = await fetchFeedPage(events.length);
+      const page = await fetchFeedPage(events.length, ligueId);
       if (!page) return;
       const known = new Set(events.map((e) => e.id));
       const fresh = page.events.filter((e) => !known.has(e.id));
@@ -108,7 +112,7 @@ export function useFeed(
     } finally {
       setLoadingMore(false);
     }
-  }, [events, loadingMore]);
+  }, [events, loadingMore, ligueId]);
 
   /** Ajoute/retire une réaction dans l'état local. */
   const patchReaction = useCallback((rx: FeedReaction, add: boolean) => {
@@ -150,7 +154,16 @@ export function useFeed(
     [annex.reactions, myId, patchReaction, showToast],
   );
 
-  /** Poste un commentaire. Optimiste, rollback visible si refus. */
+  /**
+   * Poste un commentaire. Optimiste, rollback visible si refus.
+   *
+   * PLUS BRANCHÉ DEPUIS LE 28/07 : « Commenter » est devenu « En parler »,
+   * qui emmène le moment dans le tchat (docs/spec-tchat.md §9). Rien n'est
+   * supprimé — ni les commentaires existants, ni la policy d'insertion en
+   * base, ni cette fonction. Le tchat a un critère de sortie à trois
+   * semaines ; s'il ne prend pas, rebrancher `onAddComment` dans
+   * Interactions.tsx suffit à tout retrouver.
+   */
   const addComment = useCallback(
     async (event: FeedEvent, body: string) => {
       const text = body.trim();

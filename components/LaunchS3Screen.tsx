@@ -12,19 +12,23 @@
 // écrites — c'est la seule chose qu'une requête ne saura jamais rendre.
 
 import { useEffect, useState } from "react";
-import { addDays, CHALLENGE_START, diffDays, SAISON3_START } from "@/lib/challenge";
+import { addDays, diffDays } from "@/lib/challenge";
+import { useFenetre } from "./ligue/LigueContexte";
 import { BilanSaison, fetchBilanSaison } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
+import { useLigueCourante } from "./ligue/LigueContexte";
 
 /** Les jours joués avant la S3. Calculé, jamais écrit en toutes lettres :
     la phrase disait « douze jours » alors que du 13/07 au 26/07 il y en a
     quatorze, et une saison décalée d'un jour la referait mentir. */
-const JOURS_AVANT_S3 = diffDays(CHALLENGE_START, SAISON3_START);
+// Dérivés de la fenêtre, plus des constantes de module : cet écran ne
+// s'affiche que pour une fenêtre qui bascule vraiment (voir
+// `aUneBasculeDeBareme`), et c'est la sienne qui compte.
 
 /** Dernier jour compté : la veille de la S3. Borné, sinon la première
     séance du lundi matin entrerait dans le bilan de la saison d'avant. */
-const DERNIER_JOUR = addDays(SAISON3_START, -1);
+
 
 const MEDAILLES = ["🥇", "🥈", "🥉"];
 
@@ -39,8 +43,8 @@ const NOTES: Record<string, string> = {
   Jordan: "Toujours dans le coup.",
 };
 
-function noteDe(nom: string, joursParfaits: number): string {
-  return NOTES[nom] ?? `${joursParfaits} jours parfaits sur ${JOURS_AVANT_S3}.`;
+function noteDe(nom: string, joursParfaits: number, joursAvant: number): string {
+  return NOTES[nom] ?? `${joursParfaits} jours parfaits sur ${joursAvant}.`;
 }
 
 type Props = {
@@ -93,10 +97,12 @@ function PodiumReveal({
   color: string;
   podium: BilanSaison["podium"];
 }) {
+  const f = useFenetre();
+  const joursAvant = diffDays(f.start, f.saison3);
   const rows = podium.map((p, i) => ({
     medaille: MEDAILLES[i],
     nom: p.nom,
-    note: noteDe(p.nom, p.joursParfaits),
+    note: noteDe(p.nom, p.joursParfaits, joursAvant),
   }));
   const [step, setStep] = useState(prefersReducedMotion() ? rows.length : 0);
   useEffect(() => {
@@ -164,6 +170,10 @@ export default function LaunchS3Screen({
   onDone,
   onLaunchSession,
 }: Props) {
+  const ligueId = useLigueCourante()?.id ?? null;
+  const f = useFenetre();
+  const JOURS_AVANT_S3 = diffDays(f.start, f.saison3);
+  const DERNIER_JOUR = addDays(f.saison3, -1);
   // undefined = en cours, null = échec. Un bilan raté ne bloque pas le
   // lancement de la saison : les trois slides de chiffres sautent, le
   // reste passe. Mieux vaut un carrousel plus court qu'un zéro affiché
@@ -172,13 +182,13 @@ export default function LaunchS3Screen({
   useEffect(() => {
     let vivant = true;
     const noms = new Map(players.map((p) => [p.id, p.name]));
-    fetchBilanSaison(DERNIER_JOUR, JOURS_AVANT_S3, noms).then((b) => {
+    fetchBilanSaison(DERNIER_JOUR, JOURS_AVANT_S3, noms, ligueId).then((b) => {
       if (vivant) setBilan(b);
     });
     return () => {
       vivant = false;
     };
-  }, [players]);
+  }, [players, ligueId]);
 
   const accent = { color: player.color } as React.CSSProperties;
   const eyebrow = "text-sm font-semibold uppercase tracking-widest";

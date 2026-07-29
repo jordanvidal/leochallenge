@@ -168,19 +168,41 @@ self.addEventListener("push", (event) => {
       body: payload.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: "lc100", // une seule notif visible à la fois, pas d'empilement
+      // Deux notifications de même tag se remplacent au lieu de s'empiler.
+      //
+      // Le tag était « lc100 » pour tout le monde, et c'était bien tant
+      // qu'il n'existait qu'une famille de notifications. Le tchat en
+      // envoie une par message : sans tag à lui, sa dixième vanne
+      // effacerait le rappel « ta série est en jeu » tombé juste avant.
+      // La seule notification qui compte vraiment dans cette app serait
+      // devenue effaçable par un « lol ».
+      //
+      // Le repli sur « lc100 » n'est pas une précaution de style : les
+      // sept notifications déjà en production n'envoient pas de tag, et
+      // leur comportement ne doit pas bouger d'un iota.
+      tag: payload.tag || "lc100",
+      data: { url: payload.url || "/" },
     }),
   );
 });
 
-// Tap sur la notification : on ouvre (ou focus) l'app.
+// Tap sur la notification : on ouvre (ou focus) l'app, sur l'écran que la
+// notification désigne. Une notification de tchat qui ouvre l'accueil
+// oblige à retrouver l'onglet soi-même — deux gestes pour rien, sur le
+// chemin le plus court que l'app possède.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       const existing = list.find((c) => c.url.includes(self.location.origin));
-      if (existing) return existing.focus();
-      return clients.openWindow("/");
+      if (existing) {
+        // L'app est déjà ouverte : elle ne se recharge pas, on lui dit
+        // simplement où aller. Le client écoute ce message (components/App.tsx).
+        existing.postMessage({ type: "navigate", url });
+        return existing.focus();
+      }
+      return clients.openWindow(url);
     }),
   );
 });

@@ -12,7 +12,11 @@ Depuis le 21/07, « Lancer ma séance » est un passage obligé : les trois cart
 
 ## Product Purpose
 
-Tracker un challenge quotidien (100 pompes, 100 abdos, 100 squats, du 13/07 au 31/08/2026) par pression sociale : chacun coche, tout le monde voit tout. L'app alimente le groupe WhatsApp existant (partage texte façon Wordle), elle ne le concurrence pas.
+Tracker un challenge quotidien (100 pompes, 100 abdos, 100 squats, du 13/07 au 31/08/2026) par pression sociale : chacun coche, tout le monde voit tout.
+
+Jusqu'au 28/07, cette section disait : « L'app alimente le groupe WhatsApp existant, elle ne le concurrence pas. » C'est terminé, et c'est une décision, pas une dérive. Pendant les sept semaines du challenge, on cherche à ce que la conversation du groupe se déplace dans l'app (`docs/spec-tchat.md`). L'app fabriquait la matière sociale et la donnait à une autre app ; le tchat la garde.
+
+Le pari est risqué et il a un critère de sortie écrit à froid : moins de 5 messages par jour ouvré à trois semaines, l'onglet du tchat est retiré. Un salon mort dans la barre de navigation coûte plus cher au produit que l'absence de salon.
 
 ## Brand Personality
 
@@ -29,7 +33,7 @@ Physique, direct, nocturne. Un objet qu'on frappe avec le pouce, pas une interfa
 1. **10 secondes, point.** Chaque écran se juge au temps entre ouverture et coche. La seule étape jamais ajoutée à ce chemin est le lancement de séance (21/07) : elle défend l'honnêteté du score, pas le confort. Toute autre feature qui allonge le chemin est refusée d'office.
 2. **La couleur, c'est les joueurs.** Une couleur d'accent par joueur (palette fixe de 8), cohérente partout — pastilles, historique, stats. Le reste est neutre pur (chroma 0), sombre.
 3. **Le tap est physique.** Touch targets ≥ 44px, feedback immédiat (couleur + coche + vibration), optimistic UI sans spinner bloquant.
-4. **La pression sociale est l'interface.** La ligne des potes du jour et l'historique visible par tous sont la seule mécanique de rétention (phase 1).
+4. **La pression sociale est l'interface.** La ligne des potes du jour et l'historique visible par tous portent la rétention ; le fil raconte ce qui s'est passé, et le tchat (28/07) héberge ce que le groupe en dit. Un salon n'est jamais sur le chemin d'une coche : c'est une destination, jamais une interception.
 5. **Dire la vérité.** Écriture échouée = rollback visible + toast, pas de faux succès.
 
 ## Accessibility & Inclusion
