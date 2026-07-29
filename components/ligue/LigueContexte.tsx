@@ -12,9 +12,9 @@
 // (schéma `public`), c'est celle des variables d'environnement, et les écrans
 // n'ont pas à savoir dans quel monde ils tournent.
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { FENETRE_ENV, type Fenetre } from "@/lib/challenge";
-import { fenetreDeLigue, type Ligue } from "@/lib/ligue";
+import { fenetreDeLigue, poseLePass, type Ligue } from "@/lib/ligue";
 
 type ValeurLigue = {
   /** `null` en groupe unique : il n'y a pas de ligue, il y a le challenge. */
@@ -41,6 +41,12 @@ export function FournisseurLigue({
     }),
     [ligue],
   );
+  // Le code de ligue devient le secret des routes POST, à la place du mot de
+  // passe du groupe. Posé ici parce que c'est ici qu'on sait quelle ligue.
+  useEffect(() => {
+    poseLePass(ligue?.invite_code ?? null);
+  }, [ligue]);
+
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;
 }
 

@@ -11,6 +11,7 @@
 
 import { dayLabel, FeedEvent, parisDayOf } from "./feed";
 import { supabase } from "./supabase";
+import { leGroupPass } from "./ligue";
 
 export const CHAT_PAGE_SIZE = 50;
 
@@ -508,7 +509,7 @@ export function notifyChatMessage(messageId: string, actorId: string): void {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+      "x-group-pass": leGroupPass(),
     },
     body: JSON.stringify({ messageId, actorId }),
   }).catch(() => {

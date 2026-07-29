@@ -30,7 +30,7 @@ const PRESENT_MS = 90_000;
 type Pref = "tous" | "mentions" | "aucune";
 
 export async function POST(request: Request) {
-  if (!isAuthorizedApp(request)) {
+  if (!(await isAuthorizedApp(request))) {
     return NextResponse.json({ error: "non autorisé" }, { status: 401 });
   }
   const { messageId, actorId } = (await request.json().catch(() => ({}))) as {

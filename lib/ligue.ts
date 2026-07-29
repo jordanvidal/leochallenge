@@ -292,3 +292,29 @@ export function semainesDeLigue(l: Ligue): number {
 export function argLigue(ligueId: string | null | undefined) {
   return ligueId ? { p_league: ligueId } : {};
 }
+
+// ---------------------------------------------------------------------------
+// Le secret partagé des routes POST
+// ---------------------------------------------------------------------------
+
+/**
+ * Le code de ligue joue exactement le rôle qu'avait le mot de passe du
+ * groupe : un secret que se partagent les gens qui sont dedans. Il ne bloque
+ * pas le NSA, il bloque le passant qui a trouvé l'URL — et c'est tout ce
+ * qu'on lui demande depuis le début.
+ *
+ * Il vit ici plutôt que d'être passé de main en main : `notifyMoments`,
+ * `notifyFeed` et `notifyChat` sont des fonctions simples appelées depuis
+ * cinq endroits, et leur faire traverser un paramètre d'identification
+ * n'apprendrait rien à personne. Le fournisseur de ligue le pose au montage.
+ */
+let passCourant: string | null = null;
+
+export function poseLePass(code: string | null): void {
+  passCourant = code;
+}
+
+/** Ce qu'on met dans l'en-tête `x-group-pass`. Jamais vide côté ligue. */
+export function leGroupPass(): string {
+  return passCourant ?? process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "";
+}

@@ -6,6 +6,7 @@ import { addDays, frenchDate, frenchDayMonth, parisToday } from "./challenge";
 import { BADGES, fmtPoints, frenchRank } from "./gamification";
 import { supabase } from "./supabase";
 import { formatClock } from "./workout";
+import { leGroupPass } from "./ligue";
 
 export const FEED_PAGE_SIZE = 50;
 
@@ -491,7 +492,7 @@ export function notifyFeedActivity(eventId: string, actorId: string): void {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+      "x-group-pass": leGroupPass(),
     },
     body: JSON.stringify({ eventId, actorId }),
   }).catch(() => {

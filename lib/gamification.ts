@@ -4,7 +4,7 @@
 
 import { addDays, mondayOf, parisToday } from "./challenge";
 import { Duel } from "./duels";
-import { argLigue } from "./ligue";
+import { argLigue, leGroupPass } from "./ligue";
 import { supabase } from "./supabase";
 
 export type LeaderboardRow = {
@@ -278,7 +278,7 @@ export function notifyMoments(actorId: string): Promise<void> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-group-pass": process.env.NEXT_PUBLIC_GROUP_PASSWORD ?? "",
+      "x-group-pass": leGroupPass(),
     },
     body: JSON.stringify({ actorId }),
   })
