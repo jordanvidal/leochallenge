@@ -299,7 +299,7 @@ export default function LeaderboardScreen({
                   aria-label={`Voir le détail des points de ${p.name}`}
                   className="flex flex-col items-center gap-1 rounded-xl p-1 transition-transform active:scale-95"
                 >
-                  <Avatar name={p.name} color={p.color} size={first ? 64 : 48} />
+                  <Avatar name={p.name} color={p.color} photo={p.photo} size={first ? 64 : 48} />
                   <span className="max-w-20 truncate text-sm font-bold">
                     {isPastWeek && first && r.points > 0 ? "🏆 " : ""}
                     {p.name}
@@ -337,7 +337,7 @@ export default function LeaderboardScreen({
                     }}
                   >
                     <span className="num-display w-8 text-2xl text-faint">{r.rank}</span>
-                    <Avatar name={p.name} color={p.color} size={36} />
+                    <Avatar name={p.name} color={p.color} photo={p.photo} size={36} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-bold">
                         {me ? "Toi" : p.name}
