@@ -82,6 +82,13 @@ export default function App() {
   // Il vit ici et pas dans le tchat parce qu'il naît sur un autre écran.
   const [chatSeed, setChatSeed] = useState<FeedEvent | null>(null);
 
+  // Les identifiants des joueurs de la ligue : le tchat s'en sert pour
+  // ignorer le temps réel des autres ligues.
+  const joueursDeLaLigue = useMemo(
+    () => new Set((data.players ?? []).map((p) => p.id)),
+    [data.players],
+  );
+
   const player: Player | undefined = useMemo(
     () => (data.players ?? []).find((p) => p.id === playerId),
     [data.players, playerId],
@@ -127,7 +134,7 @@ export default function App() {
   // l'onglet, le hook ne charge que le compteur de la pastille, pas une
   // ligne de message. Ouvrir l'app pour cocher ne traîne pas un salon
   // derrière elle (docs/spec-tchat.md §3).
-  const chat = useChat(effTab === "chat", playerId, data.showToast);
+  const chat = useChat(effTab === "chat", playerId, data.showToast, joueursDeLaLigue);
 
   /** Après toute écriture qui compte : classement rechargé, moments
       détectés côté serveur (/api/moments), puis fil rafraîchi. */
