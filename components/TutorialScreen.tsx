@@ -9,7 +9,7 @@
 // (flag localStorage), ou rouvert depuis « Revoir les règles ».
 
 import { useState } from "react";
-import { saison3Started } from "@/lib/challenge";
+import { saison3Started, frenchDayMonth } from "@/lib/challenge";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
@@ -56,7 +56,9 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       <p className="num-display text-4xl" style={{ color: player.color }}>
         100·100·100
       </p>
-      <h1 className="mt-4 text-2xl font-bold">Chaque jour, jusqu&apos;au 31 août</h1>
+      <h1 className="mt-4 text-2xl font-bold">
+        Chaque jour, jusqu&apos;au {frenchDayMonth(f.end)}
+      </h1>
       <p className="mt-3 text-muted">
         100 pompes, 100 abdos, 100 squats. Tu lances ta séance, tu les fais,
         tu coches. Les trois cartes restent fermées tant que la séance

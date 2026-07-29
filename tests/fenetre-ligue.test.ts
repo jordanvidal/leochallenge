@@ -19,15 +19,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   allChallengeDays,
   bilanProvisoire,
-  challengeIsOver,
-  challengeWeeks,
   CHALLENGE_DAYS,
   CHALLENGE_END,
   CHALLENGE_START,
+  challengeIsOver,
+  challengeWeeks,
   daysLeft,
   elapsedDays,
-  FENETRE_ENV,
   fenetre,
+  FENETRE_ENV,
+  frenchDayMonth,
   isEditable,
   joursDeFenetre,
   saison3Started,
@@ -160,5 +161,21 @@ describe("fenetre()", () => {
   it("laisse préciser une bascule de barème distincte, comme le challenge d'origine", () => {
     const f = fenetre("2026-07-13", "2026-08-31", "2026-07-27");
     expect(f).toEqual(FENETRE_ENV);
+  });
+});
+
+describe("frenchDayMonth", () => {
+  it("dit « 1er » et pas « 1 » pour le premier du mois", () => {
+    // Intl ne fait pas l'ordinal. Une ligue qui finit un 1er l'annonce dans
+    // l'aperçu WhatsApp de son lien : « du 29 juillet au 1er septembre ».
+    expect(frenchDayMonth("2026-09-01")).toBe("1er septembre");
+    expect(frenchDayMonth("2026-08-01")).toBe("1er août");
+  });
+
+  it("laisse les autres jours tels quels", () => {
+    expect(frenchDayMonth("2026-07-29")).toBe("29 juillet");
+    expect(frenchDayMonth("2026-08-31")).toBe("31 août");
+    // Le 11 et le 21 commencent par « 1 » et « 2 » : pas d'ordinal pour eux.
+    expect(frenchDayMonth("2026-08-11")).toBe("11 août");
   });
 });
