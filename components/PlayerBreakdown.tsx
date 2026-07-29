@@ -6,6 +6,7 @@
 // player_breakdown — aucun calcul ici.
 
 import { useEffect, useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { frenchDateShort, saison3Started } from "@/lib/challenge";
 import {
   Breakdown,
@@ -111,6 +112,9 @@ function SourceRow({
 }
 
 export default function PlayerBreakdown({ player, row, from, until, label, onClose }: Props) {
+  // Le retour arrière refait le geste de la flèche « ← » en tête d'écran.
+  useCoucheRetour(onClose);
+
   // Le mini-barème décrit les règles EN VIGUEUR. C'est l'écran qu'on ouvre
   // quand on ne comprend pas son score : le faire passer à la S3 avant la
   // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
