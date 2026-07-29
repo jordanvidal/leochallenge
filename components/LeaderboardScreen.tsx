@@ -28,6 +28,7 @@ import DuelCard from "./DuelCard";
 import PlayerBreakdown from "./PlayerBreakdown";
 import { Avatar, Skeleton } from "./ui";
 import { useLigueCourante } from "./ligue/LigueContexte";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -91,9 +92,10 @@ export default function LeaderboardScreen({
   enPanne,
   onRetry,
 }: Props) {
+  const f = useFenetre();
   const ligueId = useLigueCourante()?.id ?? null;
   const [view, setView] = useState<"total" | "week">("week");
-  const weeks = challengeWeeks();
+  const weeks = challengeWeeks(f);
   const currentWeek = weeks.find((w) => w.current) ?? null;
   // Semaine affichée dans la vue hebdo. Par défaut : celle en cours.
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
@@ -179,7 +181,7 @@ export default function LeaderboardScreen({
   const nDays = Math.max(
     selectedWeek
       ? diffDays(selectedWeek.from, selectedWeek.until < today ? selectedWeek.until : today) + 1
-      : elapsedDays().length,
+      : elapsedDays(f).length,
     1,
   );
 

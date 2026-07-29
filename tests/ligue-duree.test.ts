@@ -2,7 +2,7 @@
 // 6 semaines qui doit tomber exactement là où le trigger SQL la met.
 
 import { describe, expect, it } from "vitest";
-import { addDays, joursDeFenetre } from "@/lib/challenge";
+import { addDays, aUneBasculeDeBareme, fenetre, joursDeFenetre } from "@/lib/challenge";
 import {
   fenetreDeLigue,
   finDeLigue,
@@ -99,5 +99,26 @@ describe("semainesDeLigue", () => {
     // 13/07 → 31/08/2026 : 50 jours, soit 7 semaines pleines et un jour.
     // La phase 5 importera cette ligue-là en désactivant le trigger de durée.
     expect(semainesDeLigue(ligue("2026-07-13", "2026-08-31"))).toBe(8);
+  });
+});
+
+describe("aUneBasculeDeBareme", () => {
+  it("est vrai pour le challenge d'origine, qui a basculé en S3 à mi-parcours", () => {
+    expect(aUneBasculeDeBareme(fenetre("2026-07-13", "2026-08-31", "2026-07-27"))).toBe(true);
+  });
+
+  it("est faux pour une ligue neuve, en S3 pur du premier au dernier jour", () => {
+    // C'est le piège : `saison3Started` est vrai dès le jour 1 d'une ligue
+    // neuve, puisque sa saison 3 est calée sur son début. Sans cette
+    // distinction, l'écran qui raconte la bascule s'afficherait à la création
+    // de chaque ligue — le récit d'un changement qui n'a jamais eu lieu.
+    expect(aUneBasculeDeBareme(fenetreDeLigue(ligue("2026-03-02", "2026-03-29")))).toBe(false);
+  });
+
+  it("est faux quelle que soit la durée de la ligue", () => {
+    for (const s of [1, 2, 3, 4, 5, 6]) {
+      const l = ligue("2026-03-02", finDeLigue("2026-03-02", s));
+      expect(aUneBasculeDeBareme(fenetreDeLigue(l))).toBe(false);
+    }
   });
 });

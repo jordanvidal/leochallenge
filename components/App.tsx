@@ -13,6 +13,7 @@ import { useIdentity } from "@/hooks/useIdentity";
 import { useTodaySession } from "@/hooks/useTodaySession";
 import {
   addDays,
+  aUneBasculeDeBareme,
   challengeIsOver,
   parisToday,
   saison3Started,
@@ -295,7 +296,7 @@ export default function App() {
   // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
   if (
     !over &&
-    (forceLaunch || replayLaunch || (saison3Started(f) && !id.launchS3Seen))
+    (forceLaunch || replayLaunch || (saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen))
   ) {
     return (
       <div style={accent}>
@@ -463,7 +464,7 @@ export default function App() {
         >
           Revoir les règles
         </button>
-        {saison3Started(f) && parisToday() <= addDays(f.saison3, 6) && (
+        {saison3Started(f) && aUneBasculeDeBareme(f) && parisToday() <= addDays(f.saison3, 6) && (
           <>
             <span className="text-[11px] text-faint" aria-hidden>
               ·

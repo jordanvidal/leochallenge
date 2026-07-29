@@ -17,6 +17,7 @@ import { streakEnSursis } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
 import { Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -53,6 +54,7 @@ export default function RankLine({
   perfect,
   onGoLeaderboard,
 }: Props) {
+  const f = useFenetre();
   const [beating, setBeating] = useState(false);
   const onIncrement = useCallback(() => setBeating(true), []);
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function RankLine({
     const multIfDone = multFor(posIfDone);
     if (multIfDone > 1) {
       body = `Série : ${streak} j en jeu — ton 3/3 vaut ${fmtMult(multIfDone)}`;
-    } else if (daysLeft() - 1 >= 3 - posIfDone) {
+    } else if (daysLeft(f) - 1 >= 3 - posIfDone) {
       // posIfDone < 3 ⇒ le ×1,5 tombe dans (3 - posIfDone) jours
       const k = 3 - posIfDone;
       body = `Série : ${streak} j en jeu — ×1,5 ${k === 1 ? "demain" : `dans ${k} j`}`;
@@ -130,7 +132,7 @@ export default function RankLine({
       // plus fort) et avant la fin du challenge — pas de promesse en l'air.
       const next = streak < 3 ? 3 : streak < 7 ? 7 : null;
       const tail =
-        next && next - streak === 1 && daysLeft() > 1
+        next && next - streak === 1 && daysLeft(f) > 1
           ? ` — ${fmtMult(multFor(next))} demain`
           : "";
       body = (

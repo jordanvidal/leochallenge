@@ -6,16 +6,15 @@
 
 import {
   bilanProvisoire,
-  CHALLENGE_DAYS,
-  CHALLENGE_END,
-  CHALLENGE_START,
   frenchDayMonth,
   hoursUntilFinalLock,
+  joursDeFenetre,
 } from "@/lib/challenge";
 import { BADGES, fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
 import { computeStats, groupTimeline, PlayerStats, TimelineCell } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import { Avatar, BigButton, Skeleton } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -34,12 +33,13 @@ const frNum = (n: number) => n.toLocaleString("fr-FR");
 /** Bandeau provisoire le dernier jour, définitif dès le lendemain : seul le
     jour en cours reste éditable (EDIT_WINDOW_DAYS = 0). */
 function Banner({ onGoHistory }: { onGoHistory: () => void }) {
-  if (!bilanProvisoire()) {
+  const f = useFenetre();
+  if (!bilanProvisoire(f)) {
     return (
       <p className="mt-4 text-sm font-medium text-faint">🔒 Scores définitifs.</p>
     );
   }
-  const h = hoursUntilFinalLock();
+  const h = hoursUntilFinalLock(f);
   return (
     <div
       className="mt-4 rounded-2xl p-4 text-sm"
@@ -49,7 +49,7 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
         Scores provisoires
       </p>
       <p className="mt-1 text-muted">
-        Il reste {h} h pour compléter le {frenchDayMonth(CHALLENGE_END)}. Les
+        Il reste {h} h pour compléter le {frenchDayMonth(f.end)}. Les
         jours d&apos;avant sont verrouillés.
       </p>
       <button
@@ -101,6 +101,7 @@ function cellBg(perfect: number, total: number): string {
 
 /** La bande des 50 jours, découpée en semaines pour se lire d'un coup d'œil. */
 function TimelineBand({ cells, total }: { cells: TimelineCell[]; total: number }) {
+  const f = useFenetre();
   const weeks: TimelineCell[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return (
@@ -112,7 +113,7 @@ function TimelineBand({ cells, total }: { cells: TimelineCell[]; total: number }
       <div
         className="mt-3 flex gap-1.5"
         role="img"
-        aria-label={`Jours parfaits du groupe sur les ${CHALLENGE_DAYS} jours du challenge`}
+        aria-label={`Jours parfaits du groupe sur les ${joursDeFenetre(f)} jours du challenge`}
       >
         {weeks.map((week, wi) => (
           <div key={wi} className="flex gap-0.5" style={{ flexGrow: week.length }}>
@@ -193,6 +194,7 @@ function PlayerCard(props: {
   badges: string[];
   open: boolean;
 }) {
+  const f = useFenetre();
   const { player, row, stats, badges, open } = props;
   return (
     <details open={open} className="rounded-2xl bg-surface [&[open]_.chev]:rotate-180">
@@ -209,7 +211,7 @@ function PlayerCard(props: {
       </summary>
       <div className="px-4 pb-4">
         <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-          <Metric value={`${stats.perfectDays} / ${CHALLENGE_DAYS}`} label="jours parfaits" color={player.color} />
+          <Metric value={`${stats.perfectDays} / ${joursDeFenetre(f)}`} label="jours parfaits" color={player.color} />
           <Metric value={`${stats.bestStreak}`} label="plus longue série" />
           <Metric value={frNum(row.exos_done * 100)} label="répétitions au total" hero />
           <Metric value={`${stats.zeroDays}`} label="jours à zéro" />
@@ -229,14 +231,15 @@ export default function BilanScreen({
   onRematch,
   onGoHistory,
 }: Props) {
-  const range = `${frenchDayMonth(CHALLENGE_START)} → ${frenchDayMonth(CHALLENGE_END)}`;
+  const f = useFenetre();
+  const range = `${frenchDayMonth(f.start)} → ${frenchDayMonth(f.end)}`;
 
   const header = (
     <header className="rise-in pt-safe">
       <p className="mt-4 text-sm font-medium text-muted">🏁 Challenge 100-100-100</p>
       <h1 className="mt-1 text-4xl font-bold">C&apos;est fini.</h1>
       <p className="mt-1 text-muted">
-        {range} · {CHALLENGE_DAYS} jours
+        {range} · {joursDeFenetre(f)} jours
       </p>
       <Banner onGoHistory={onGoHistory} />
     </header>
@@ -264,7 +267,7 @@ export default function BilanScreen({
   const rows = [...gamification.total]
     .filter((r) => byId.has(r.player_id))
     .sort((a, b) => a.rank - b.rank);
-  const timeline = groupTimeline(players, entries);
+  const timeline = groupTimeline(players, entries, f);
 
   return (
     <div className="flex flex-1 flex-col px-5 pb-8">
@@ -283,7 +286,7 @@ export default function BilanScreen({
               key={r.player_id}
               player={p}
               row={r}
-              stats={computeStats(p.id, entries)}
+              stats={computeStats(p.id, entries, f)}
               badges={gamification.badges.get(p.id) ?? []}
               open={i === 0 || p.id === player.id}
             />

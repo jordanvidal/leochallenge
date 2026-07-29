@@ -15,6 +15,7 @@ import { elapsedDays, isEditable } from "@/lib/challenge";
 import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, Player } from "@/lib/types";
 import { Avatar } from "./ui";
+import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -48,7 +49,8 @@ export default function HistoryGrid({
   gamification,
   showToast,
 }: Props) {
-  const days = elapsedDays();
+  const f = useFenetre();
+  const days = elapsedDays(f);
 
   // L'ordre des colonnes : soi d'abord, les autres ensuite.
   const columns = [player, ...players.filter((p) => p.id !== player.id)];
@@ -99,7 +101,7 @@ export default function HistoryGrid({
                   {columns.map((p) => {
                     const count = entryCount(entries.get(entryKey(p.id, day)));
                     const isMine = p.id === player.id;
-                    const editable = isMine && isEditable(day);
+                    const editable = isMine && isEditable(day, f);
                     const isJoker = jokerDayByPlayer.get(p.id) === day;
                     return (
                       <td key={p.id}>

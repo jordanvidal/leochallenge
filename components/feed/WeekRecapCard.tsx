@@ -21,6 +21,7 @@ import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 import Interactions from "./Interactions";
 import { useLigueCourante } from "@/components/ligue/LigueContexte";
+import { useFenetre } from "@/components/ligue/LigueContexte";
 
 type Props = {
   events: FeedEvent[]; // le récit + les duel_start / duel_result d'une même semaine
@@ -64,6 +65,7 @@ export default function WeekRecapCard({
   onDiscuss,
   onGoLeaderboard,
 }: Props) {
+  const f = useFenetre();
   const ligueId = useLigueCourante()?.id ?? null;
   const starts = events.filter((e) => e.kind === "duel_start");
   const results = events.filter((e) => e.kind === "duel_result");
@@ -81,7 +83,7 @@ export default function WeekRecapCard({
   const closedMonday =
     recit?.payload.week_monday ?? (openedMonday ? addDays(openedMonday, -7) : null);
 
-  const weeks = challengeWeeks();
+  const weeks = challengeWeeks(f);
   const closedWeek = closedMonday
     ? (weeks.find((w) => mondayOf(w.from) === closedMonday) ?? null)
     : null;

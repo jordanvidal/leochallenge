@@ -209,6 +209,21 @@ export function challengeIsOver(f: Fenetre = FENETRE_ENV): boolean {
 
 /** La saison 3 a-t-elle commencé ? Garde de l'écran de lancement et repère
     d'affichage. Vrai à partir du jour de bascule (Paris) inclus. */
+/**
+ * Cette fenêtre connaît-elle un changement de barème en cours de route ?
+ *
+ * Le challenge d'origine, oui : il a basculé en S3 le 27/07, à mi-parcours.
+ * Une ligue neuve, non — `fenetreDeLigue` cale sa saison 3 sur son premier
+ * jour, elle est en S3 pur du début à la fin.
+ *
+ * Sans cette distinction, `saison3Started()` est vrai dès le jour 1 de toute
+ * ligue, et l'écran qui raconte la bascule s'afficherait à la création de
+ * chacune — un récit d'un changement qui n'a jamais eu lieu.
+ */
+export function aUneBasculeDeBareme(f: Fenetre = FENETRE_ENV): boolean {
+  return f.saison3 > f.start;
+}
+
 export function saison3Started(f: Fenetre = FENETRE_ENV): boolean {
   return parisToday() >= f.saison3;
 }
