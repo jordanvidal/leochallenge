@@ -1,44 +1,20 @@
 "use client";
 
-// Le retour arrière : le glissé depuis le bord gauche sur iPhone installé,
-// et le bouton retour d'Android, branchés sur la même pile.
+// Le retour arrière : ce que fait le bouton retour d'Android, et le glissé
+// natif de Safari dans un onglet.
 //
-// L'app n'a pas de routeur. Un seul écran est monté à la fois et les
-// onglets ne s'empilent pas, donc « revenir » ne veut dire quelque chose
-// que dans deux cas — les seuls que cette pile connaisse :
+// Il ne connaît qu'une chose, les couches posées par-dessus l'écran :
+// feuilles, modales, mode séance. Changer d'onglet ne passe pas par ici —
+// les cinq onglets sont une rangée qu'on traverse au glissé
+// (hooks/useGestePage), pas une pile où l'on entre et d'où l'on ressort.
 //
-//  · une couche par-dessus (feuille, modale, mode séance) : on la ferme ;
-//  · un saut que l'app a fait pour le joueur (« En parler » ouvre le
-//    tchat, « Voir les scores » ouvre le classement) : on le défait.
-//
-// Un tap sur un onglet n'empile rien. C'est un choix délibéré, la barre
-// reste là pour en changer, et empiler les allers-retours d'onglets
-// obligerait à glisser six fois pour revenir d'où l'on vient.
-//
-// Tout passe par l'historique du navigateur : le geste appelle
-// history.back() au lieu de dépiler lui-même, donc le bouton d'Android et
-// le glissé suivent exactement le même chemin — un seul comportement à
-// tenir juste. L'URL n'est jamais touchée (pushState sans argument
-// d'URL), le lien ?tab=chat des notifications reste intact.
+// Tout passe par l'historique du navigateur, et l'URL n'est jamais touchée
+// (pushState sans argument d'URL) : le lien ?tab=chat des notifications
+// reste intact.
 
 import { useEffect, useRef } from "react";
 
-/** Largeur de la zone de départ, depuis le bord gauche. 24 px : assez
-    pour être atteignable au pouce, assez peu pour ne pas manger les
-    gestes du contenu — au premier rang, la réponse par glissé d'une
-    bulle de tchat, qui commence elle aussi à gauche. */
-export const ZONE_BORD_PX = 24;
-
-/** Distance horizontale au-delà de laquelle le glissé est un retour. */
-const SEUIL_PX = 64;
-
-type Couche = {
-  id: number;
-  fermer: () => void;
-  /** Un saut d'écran, par opposition à une couche posée par-dessus. Seuls
-      les sauts se vident quand le joueur choisit un onglet à la main. */
-  saut: boolean;
-};
+type Couche = { id: number; fermer: () => void };
 
 let pile: Couche[] = [];
 let prochainId = 1;
@@ -47,9 +23,6 @@ let profondeur = 0;
 /** Les popstate provoqués par nos propres corrections : à ne pas dépiler. */
 let aIgnorer = 0;
 let accordPrevu = false;
-/** Nombre de retours d'historique observés. Sert à savoir si le système
-    a fait le retour lui-même pendant qu'un glissé était en cours. */
-let popCompteur = 0;
 
 /**
  * Accorde l'historique sur la pile.
@@ -88,8 +61,8 @@ function accorder(): void {
  * quand la couche se ferme par un autre chemin (tap dehors, bouton
  * « Annuler »), sinon le bouton retour demanderait deux appuis.
  */
-export function empiler(fermer: () => void, saut = false): () => void {
-  const couche: Couche = { id: prochainId++, fermer, saut };
+export function empiler(fermer: () => void): () => void {
+  const couche: Couche = { id: prochainId++, fermer };
   pile.push(couche);
   accorder();
   return () => {
@@ -97,43 +70,6 @@ export function empiler(fermer: () => void, saut = false): () => void {
     pile = pile.filter((c) => c.id !== couche.id);
     accorder();
   };
-}
-
-/**
- * Un écran couvrant est-il ouvert sans avoir posé de couche ?
- *
- * Filet de sécurité, pas mécanisme : une feuille qui s'enregistre passe
- * en tête de pile et ce test la laisse tranquille. Il n'attrape que
- * l'overlay qu'on aurait oublié de brancher — auquel cas défaire un saut
- * d'écran derrière lui changerait un écran que le joueur ne voit même
- * pas, et il ne s'en apercevrait qu'en refermant.
- */
-function bloqueParUnOverlay(): boolean {
-  const dessus = pile[pile.length - 1];
-  if (dessus && !dessus.saut) return false;
-  return document.querySelector('[aria-modal="true"]') !== null;
-}
-
-/** Y a-t-il quelque chose à défaire ? */
-export function peutRevenir(): boolean {
-  return pile.length > 0 && !bloqueParUnOverlay();
-}
-
-/**
- * Le joueur a choisi un onglet lui-même : les sauts en attente n'ont plus
- * de sens, revenir en arrière le ramènerait dans un écran qu'il vient de
- * quitter volontairement.
- *
- * Une couche ouverte fait renoncer : ses entrées sont au-dessus des sauts,
- * et les retirer par le milieu n'a pas de sens dans un historique. Le cas
- * ne se produit pas — une feuille couvre l'écran, on ne peut pas taper un
- * onglet derrière — et on préfère ne rien faire plutôt que de le gérer à
- * moitié.
- */
-export function viderSauts(): void {
-  if (pile.length === 0 || pile.some((c) => !c.saut)) return;
-  pile = [];
-  accorder();
 }
 
 /** La pile est un module : les tests et les remontages ne doivent pas en
@@ -146,23 +82,18 @@ function reinitialiser(): void {
 
 /**
  * Le gestionnaire, monté une seule fois (App). Il écoute l'historique —
- * donc le bouton retour d'Android, le glissé natif de Safari et notre
- * propre geste, qui passent tous par là.
+ * donc le bouton retour d'Android et le glissé natif de Safari.
  */
 export function useRetour(): void {
   useEffect(() => {
     const onPop = () => {
-      popCompteur += 1;
       // Nos propres corrections : la profondeur a déjà été ajustée.
       if (aIgnorer > 0) {
         aIgnorer -= 1;
         return;
       }
       profondeur = Math.max(0, profondeur - 1);
-      // Le bouton d'Android a déjà consommé l'entrée quand on arrive ici.
-      // Refuser de dépiler ne suffit donc pas : c'est accorder() qui la
-      // repousse, sinon un retour bloqué décalerait tout pour la session.
-      if (!bloqueParUnOverlay()) pile.pop()?.fermer();
+      pile.pop()?.fermer();
       accorder();
     };
     window.addEventListener("popstate", onPop);
@@ -189,126 +120,4 @@ export function useCoucheRetour(fermer: () => void, actif = true): void {
     if (!actif) return;
     return empiler(() => ref.current());
   }, [actif]);
-}
-
-/** Un ancêtre défile-t-il horizontalement ? Les puces de semaines du
-    classement commencent au bord gauche : sans ce test, les faire défiler
-    déclencherait un retour. */
-function dansUnDefilement(cible: EventTarget | null): boolean {
-  let el = cible instanceof Element ? cible : null;
-  while (el) {
-    if (el.scrollWidth > el.clientWidth + 4) {
-      const ox = getComputedStyle(el).overflowX;
-      if (ox === "auto" || ox === "scroll") return true;
-    }
-    el = el.parentElement;
-  }
-  return false;
-}
-
-/**
- * Étouffe le clic que le glissé vient de produire.
- *
- * Le voile d'une feuille est un bouton « Fermer » plein écran : relâcher
- * un glissé dessus déclenche son clic en plus du retour, et la feuille se
- * ferme deux fois — une par le retour, une par le voile. Deux crans
- * remontés pour un seul geste, ce qui est pire que zéro.
- *
- * La fenêtre est courte et se referme d'elle-même : un clic étouffé par
- * erreur serait un tap qui ne répond pas, et c'est le pire défaut qu'une
- * app puisse avoir.
- */
-function avalerLeClic(): void {
-  const avaler = (e: Event) => {
-    e.stopPropagation();
-    e.preventDefault();
-    fini();
-  };
-  const fini = () => {
-    clearTimeout(minuteur);
-    document.removeEventListener("click", avaler, true);
-  };
-  const minuteur = setTimeout(fini, 400);
-  document.addEventListener("click", avaler, true);
-}
-
-/**
- * Le glissé depuis le bord gauche.
- *
- * Il ne s'installe que là où le système n'en propose pas déjà un :
- * l'iPhone en PWA installée, où Safari a retiré le sien avec sa barre
- * d'adresse. Dans un onglet Safari, le glissé natif fait le travail ; sur
- * Android, c'est le geste système. Les deux passent par popstate, donc le
- * retour marche partout — ici on évite seulement de le déclencher deux
- * fois.
- *
- * Reconnu au relâché, pas en cours de route : le doigt peut revenir sur
- * ses pas et le geste ne compte pas. Un retour déclenché à mi-parcours
- * est impossible à annuler, et c'est un écran qu'on perd.
- */
-export function useGesteRetour(): void {
-  useEffect(() => {
-    // Même définition d'« installée » que hooks/useIdentity : navigator
-    // .standalone seul est une propriété non standard d'iOS, et le reste
-    // de l'app ne s'y fie déjà pas. Android est exclu par le haut — son
-    // geste système fait le travail et passe par popstate, en doubler un
-    // second remonterait deux écrans d'un coup.
-    const installee =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (!installee || /Android/i.test(navigator.userAgent)) return;
-
-    let depart: { x: number; y: number } | null = null;
-    let dernier: { x: number; y: number } | null = null;
-    let popAuDepart = 0;
-
-    const onDown = (e: PointerEvent) => {
-      depart = null;
-      dernier = null;
-      if (e.clientX > ZONE_BORD_PX) return;
-      if (dansUnDefilement(e.target)) return;
-      depart = { x: e.clientX, y: e.clientY };
-      dernier = depart;
-      popAuDepart = popCompteur;
-    };
-    const onMove = (e: PointerEvent) => {
-      if (depart) dernier = { x: e.clientX, y: e.clientY };
-    };
-    /** Fin du geste, quelle qu'en soit la cause. */
-    const conclure = () => {
-      const d = depart;
-      const f = dernier;
-      depart = null;
-      dernier = null;
-      if (!d || !f) return;
-      const dx = f.x - d.x;
-      const dy = f.y - d.y;
-      // Franchement horizontal, sinon c'est un défilement de la page.
-      if (dx < SEUIL_PX || Math.abs(dy) > Math.abs(dx)) return;
-      // L'historique a bougé pendant le geste : c'est le système qui a
-      // fait le retour. iOS a ajouté son propre glissé aux apps
-      // installées, et il coupe le pointeur en chemin. On compare les
-      // compteurs plutôt qu'un délai, sinon deux glissés d'affilée pour
-      // remonter deux crans se bloqueraient l'un l'autre.
-      if (popCompteur !== popAuDepart) return;
-      if (!peutRevenir()) return;
-      navigator.vibrate?.(10);
-      avalerLeClic();
-      history.back();
-    };
-
-    document.addEventListener("pointerdown", onDown, { passive: true });
-    document.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerup", conclure, { passive: true });
-    // Le pointeur coupé compte comme une fin : sur iPhone, c'est
-    // exactement ce qui arrive quand le doigt part du bord de l'écran,
-    // et ignorer ce cas revient à ignorer le geste.
-    document.addEventListener("pointercancel", conclure, { passive: true });
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", conclure);
-      document.removeEventListener("pointercancel", conclure);
-    };
-  }, []);
 }

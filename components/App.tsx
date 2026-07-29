@@ -10,13 +10,8 @@ import { useChat } from "@/hooks/useChat";
 import { useFeed } from "@/hooks/useFeed";
 import { useGamification } from "@/hooks/useGamification";
 import { useIdentity } from "@/hooks/useIdentity";
-import {
-  empiler,
-  useCoucheRetour,
-  useGesteRetour,
-  useRetour,
-  viderSauts,
-} from "@/hooks/useRetour";
+import { useGestePage } from "@/hooks/useGestePage";
+import { useCoucheRetour, useRetour } from "@/hooks/useRetour";
 import { useTodaySession } from "@/hooks/useTodaySession";
 import {
   addDays,
@@ -44,7 +39,7 @@ import InstallScreen from "./InstallScreen";
 import PasswordGate from "./PasswordGate";
 import PlayerSelect from "./PlayerSelect";
 import StatsScreen from "./StatsScreen";
-import TabBar, { Tab } from "./TabBar";
+import TabBar, { ordreOnglets, Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import LaunchS3Screen from "./LaunchS3Screen";
 import TutorialScreen from "./TutorialScreen";
@@ -97,38 +92,38 @@ export default function App() {
     [data.players],
   );
 
-  // ---- Retour arrière ----
-  // Le gestionnaire d'historique et le glissé depuis le bord gauche.
+  // ---- Navigation ----
+  // Le gestionnaire d'historique : il ne sert plus qu'aux couches posées
+  // par-dessus l'écran (feuilles, modales, mode séance), pour le bouton
+  // retour d'Android et le glissé natif de Safari. Changer d'onglet ne
+  // touche pas à l'historique — c'est une rangée, pas une pile.
   useRetour();
-  useGesteRetour();
-  // L'écran qui arrive après un retour s'annonce : sans ce signal, une
-  // barre d'onglets qui change toute seule ressemble à un bug.
   const scene = useRef<HTMLDivElement>(null);
-  const revenu = useRef(false);
+  // Le sens du dernier changement d'onglet, quand il vient du glissé :
+  // c'est lui qui décide du côté par lequel l'écran entre.
+  const sensEntree = useRef<1 | -1 | 0>(0);
 
-  /** Un saut que l'app fait pour le joueur — « En parler » ouvre le tchat,
-      « Voir les scores » ouvre le classement. Il devient annulable ; un
-      tap sur un onglet, lui, n'empile rien. */
-  function sauter(vers: Tab) {
-    const avant = effTab;
-    if (avant === vers) return;
-    setTab(vers);
-    empiler(() => {
-      revenu.current = true;
-      setTab(avant);
-    }, true);
-  }
+  /** Un glissé : l'onglet voisin, s'il existe. Aux deux bouts, rien —
+      un enroulement ferait passer de Stats à Aujourd'hui, ce qui n'a
+      aucun sens dans une rangée qu'on voit en entier. */
+  useGestePage((sens) => {
+    const liste = ordreOnglets(over);
+    const cible = liste[liste.indexOf(effTab) + sens];
+    if (!cible) return;
+    sensEntree.current = sens;
+    setTab(cible);
+  });
 
+  // L'écran entre par le côté d'où il vient. Court et de faible
+  // amplitude : on accompagne le doigt, on ne joue pas une transition.
   useEffect(() => {
-    if (!revenu.current) return;
-    revenu.current = false;
+    const sens = sensEntree.current;
+    sensEntree.current = 0;
+    if (sens === 0) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // L'écran entre par la gauche : c'est le sens du retour. Court et de
-    // faible amplitude — on remet le joueur où il était, on ne lui joue
-    // pas une transition.
     scene.current?.animate(
       [
-        { transform: "translateX(-22px)", opacity: 0.55 },
+        { transform: `translateX(${sens * 26}px)`, opacity: 0.55 },
         { transform: "none", opacity: 1 },
       ],
       { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
@@ -447,7 +442,7 @@ export default function App() {
             onUnclaimBonus={(item) => unclaim(player.id, item)}
             onShareWeek={shareWeek}
             onInvite={invite}
-            onGoLeaderboard={() => sauter("leaderboard")}
+            onGoLeaderboard={() => setTab("leaderboard")}
             showToast={data.showToast}
           />
         )}
@@ -459,7 +454,7 @@ export default function App() {
             gamification={gamification}
             onShareFinal={shareFinal}
             onRematch={rematch}
-            onGoHistory={() => sauter("stats")}
+            onGoHistory={() => setTab("stats")}
           />
         )}
         {effTab === "feed" && (
@@ -467,12 +462,12 @@ export default function App() {
             player={player}
             players={data.players}
             feed={feed}
-            onGoLeaderboard={() => sauter("leaderboard")}
+            onGoLeaderboard={() => setTab("leaderboard")}
             onDiscuss={(events) => {
               // events[0] est l'ancre de la salve : c'est la ligne que le
               // fil affiche en tête, donc celle qu'on cite.
               setChatSeed(events[0]);
-              sauter("chat");
+              setTab("chat");
             }}
             focusEventId={feedFocus}
             onFocusDone={clearFeedFocus}
@@ -484,10 +479,10 @@ export default function App() {
             player={player}
             players={data.players}
             chat={chat}
-            onGoFeed={() => sauter("feed")}
+            onGoFeed={() => setTab("feed")}
             onGoFeedEvent={(eventId) => {
               setFeedFocus(eventId);
-              sauter("feed");
+              setTab("feed");
             }}
             seed={chatSeed}
             onSeedUsed={() => setChatSeed(null)}
@@ -556,13 +551,7 @@ export default function App() {
       </div>
       <TabBar
         tab={effTab}
-        onChange={(cible) => {
-          // Choisir un onglet à la main annule les sauts en attente :
-          // revenir en arrière ramènerait dans un écran qu'on vient de
-          // quitter volontairement.
-          viderSauts();
-          setTab(cible);
-        }}
+        onChange={setTab}
         feedUnread={feed.unread}
         chatUnread={chat.unread}
         over={over}

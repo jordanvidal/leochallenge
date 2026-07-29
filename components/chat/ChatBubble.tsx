@@ -12,7 +12,6 @@
 // salon lisible en diagonale.
 
 import { useRef, useState } from "react";
-import { ZONE_BORD_PX } from "@/hooks/useRetour";
 import { apercu, ChatMessage, ChatReaction, segmentsOf } from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
@@ -172,11 +171,6 @@ export default function ChatBubble({
 
   function onPointerDown(e: React.PointerEvent) {
     if (enVol) return;
-    // Le bord gauche appartient au retour arrière : les deux gestes vont
-    // dans le même sens, et une bulle alignée à gauche commence à 20 px
-    // du bord. Sans cette réserve, répondre et sortir du tchat se
-    // disputeraient le même glissé.
-    if (e.clientX <= ZONE_BORD_PX) return;
     consomme.current = false;
     depart.current = { x: e.clientX, y: e.clientY };
     // Même durée et même vibration que l'appui long des réactions du fil
@@ -230,12 +224,6 @@ export default function ChatBubble({
         transform: dx ? `translateX(${dx}px)` : undefined,
         transition: dx ? "none" : "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onPointerLeave={onPointerUp}
-      onContextMenu={(e) => e.preventDefault()}
     >
       {/* La citation vient AVANT le prénom de l'auteur de la réponse :
           au-dessus, le prénom se lirait comme l'étiquette de la citation
@@ -283,6 +271,17 @@ export default function ChatBubble({
       )}
 
       <div
+        // Les gestes appartiennent à la bulle, pas à la ligne : celle-ci
+        // court sur toute la largeur, et le vide à côté d'un message
+        // court doit rester au glissé entre onglets (hooks/useGestePage).
+        // `data-geste` est ce qui le lui dit.
+        data-geste="horizontal"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={onPointerUp}
+        onContextMenu={(e) => e.preventDefault()}
         // La marge du haut réserve la place que la pastille prend en
         // débordant : sans elle, elle irait mordre le message précédent.
         className={`relative max-w-[78%] ${emojis.length > 0 ? "mt-5" : ""}`}
