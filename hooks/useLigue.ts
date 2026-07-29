@@ -196,24 +196,31 @@ export function oublieSlug(): void {
  * l'app tourne en groupe unique : les écrans n'ont alors rien de spécial à
  * faire, ils prennent la fenêtre des variables d'env comme aujourd'hui.
  */
-export function useLigue() {
+export function useLigue(slugUrl?: string | null) {
   const [etat, setEtat] = useState<EtatLigue>(() =>
     MULTI_LIGUES ? { etat: "chargement" } : { etat: "prete", ligue: null },
   );
 
   const charge = useCallback(async () => {
     if (!MULTI_LIGUES) return;
-    const slug = slugMemorise();
+    // L'URL prime sur la mémoire : arriver par `/l/<slug>`, c'est justement
+    // dire « celle-là, maintenant ». C'est aussi la seule façon de changer de
+    // ligue, faute de sélecteur.
+    const slug = slugUrl ?? slugMemorise();
     if (!slug) {
       setEtat({ etat: "aucune" });
       return;
     }
     setEtat({ etat: "chargement" });
     const t = await chercheParSlug(slug);
-    if (t.statut === "trouvee") setEtat({ etat: "prete", ligue: t.ligue });
-    else if (t.statut === "injoignable") setEtat({ etat: "injoignable" });
+    if (t.statut === "trouvee") {
+      // On ne retient qu'une ligue qui existe : un lien mort ne doit pas
+      // remplacer celle qui marchait hier.
+      memoriseSlug(t.ligue.slug);
+      setEtat({ etat: "prete", ligue: t.ligue });
+    } else if (t.statut === "injoignable") setEtat({ etat: "injoignable" });
     else setEtat({ etat: "introuvable", slug });
-  }, []);
+  }, [slugUrl]);
 
   useEffect(() => {
     charge();
