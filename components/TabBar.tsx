@@ -113,14 +113,6 @@ const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
   { key: "stats", label: "Stats", icon: IconStats },
 ];
 
-/** L'ordre des onglets, de gauche à droite. Exporté parce que le glissé
-    entre onglets s'en sert (hooks/useGestePage) : deux listes qui
-    divergeraient feraient sauter le doigt vers un écran que la barre ne
-    montre pas à côté. */
-export function ordreOnglets(over: boolean): Tab[] {
-  return [over ? BILAN_TAB : TODAY_TAB, ...REST_TABS].map((t) => t.key);
-}
-
 export default function TabBar({
   tab,
   onChange,
