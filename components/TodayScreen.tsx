@@ -14,6 +14,7 @@ import {
 import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, EXERCISES, Player } from "@/lib/types";
 import BonusSection from "./BonusSection";
+import EventBanner from "./EventBanner";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
@@ -29,6 +30,11 @@ type Props = {
       tait au lieu de faire respirer un loader qui n'aboutira pas. */
   gamificationEnPanne: boolean;
   bonus: BonusState | null;
+  /** L'événement du jour à annoncer, ou null s'il est déjà vu / absent.
+      Un bandeau non bloquant, plus une modale à l'accueil. */
+  showEvent: BonusCatalogItem | null;
+  onOpenEvent: () => void;
+  onDismissEvent: () => void;
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
   onStartWorkout: () => void;
@@ -48,6 +54,9 @@ export default function TodayScreen({
   gamification,
   gamificationEnPanne,
   bonus,
+  showEvent,
+  onOpenEvent,
+  onDismissEvent,
   sessionStarted,
   onStartWorkout,
   onClaimBonus,
@@ -127,6 +136,16 @@ export default function TodayScreen({
           </div>
         )}
       </header>
+
+      {/* L'événement du jour, annoncé sans bloquer. Tap → la roue et le
+          détail ; ✕ → écarté pour la journée. */}
+      {!over && showEvent && (
+        <EventBanner
+          event={showEvent}
+          onOpen={onOpenEvent}
+          onDismiss={onDismissEvent}
+        />
+      )}
 
       {/* La ligne de statut : rang + série, et la série seule quand elle
           est en jeu. C'est cette phrase qui fait faire les pompes. */}
