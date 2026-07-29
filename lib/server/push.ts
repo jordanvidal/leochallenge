@@ -18,7 +18,12 @@ export function serverSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } },
+    {
+      auth: { persistSession: false },
+      // Même schéma que le client navigateur, pour la même raison — voir
+      // lib/supabase.ts. `public` tant que la variable n'est pas posée.
+      db: { schema: process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public" },
+    },
   );
 }
 

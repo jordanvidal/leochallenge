@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CHALLENGE_END, CHALLENGE_START, parisToday } from "@/lib/challenge";
 import { nextColor, normalizeName } from "@/lib/palette";
-import { supabase } from "@/lib/supabase";
+import { SUPABASE_SCHEMA, supabase } from "@/lib/supabase";
 import { Entry, entryCount, entryKey, Exercise, Player } from "@/lib/types";
 
 /** Traduit une erreur Postgres (message des triggers) en phrase humaine. */
@@ -39,6 +39,12 @@ export function useChallengeData() {
   useEffect(() => {
     entriesRef.current = entries;
   }, [entries]);
+  // Les joueurs que cet appareil connaît — c'est-à-dire ceux de sa ligue.
+  // Sert à trier les événements temps réel : voir l'abonnement plus bas.
+  const knownPlayersRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    knownPlayersRef.current = new Set((players ?? []).map((p) => p.id));
+  }, [players]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -83,15 +89,27 @@ export function useChallengeData() {
   // Temps réel : la coche d'un pote arrive toute seule, sans re-fetch.
   // À 23h tout le monde est dans la même fenêtre — voir que l'autre vient
   // de finir pendant qu'on hésite, c'est la mécanique du produit en direct.
+  //
+  // L'abonnement porte sur TOUTE la table `entries`. Avec plusieurs ligues dans
+  // le même schéma, cet appareil reçoit donc aussi les coches des autres
+  // ligues : sans filtre, la ligne des potes se mettrait à pulser pour des
+  // inconnus. On trie côté client — le hook connaît déjà les joueurs de sa
+  // ligue, un événement dont le player_id n'y est pas est ignoré.
+  //
+  // Aujourd'hui ce filtre ne change rien (une seule ligue, tout le monde est
+  // connu). Au volume visé — une poignée de ligues — c'est suffisant, et ça
+  // évite un canal Supabase par ligue.
   useEffect(() => {
     const channel = supabase
       .channel("entries-live")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "entries" },
+        { event: "*", schema: SUPABASE_SCHEMA, table: "entries" },
         (payload) => {
           const row = payload.new as Entry | undefined;
           if (!row?.player_id || !row.day) return; // DELETE : new est vide
+          // Joueur d'une autre ligue : on ne l'affiche pas, on ne le stocke pas.
+          if (!knownPlayersRef.current.has(row.player_id)) return;
           const key = entryKey(row.player_id, row.day);
           const before = entriesRef.current.get(key);
           const next: Entry = {
