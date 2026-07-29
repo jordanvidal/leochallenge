@@ -253,14 +253,25 @@ pour cassées.
 
 ---
 
-## Phase 4 — Crons multi-ligues *(2 soirées)*
+## Phase 4 — Crons multi-ligues — **complète, PR #89**
 
-- [ ] Passer la `Fenetre` aux 4 fichiers `lib/server/` (`reminders`, `recap`,
-      `weekly-close`, `duels`), qui portent encore `CHALLENGE_START/END`
-      → hérité de la phase 3, voir la correction ci-dessus
-- [ ] Helper unique **« ligue active » = démarrée, non finie, ≥ 2 joueurs**
-- [ ] Les 7 routes `app/api/cron/*` bouclent sur les ligues actives
-- [ ] Push cadrées par ligue (destinataires + contenu propres à chaque ligue)
+- [x] Passer la fenêtre aux 4 fichiers `lib/server/` — c'est un « terrain »
+      (ligue + fenêtre) qui circule, en dernier paramètre et avec un défaut
+      qui est exactement le challenge d'origine
+- [x] Helper **« ligue active » = démarrée, non finie, ≥ 2 joueurs**
+      → le seuil de deux n'est pas une optimisation : « plus que 3 jours, ne
+      lâche pas » envoyé à quelqu'un qui n'a encore invité personne ne parle
+      de personne. Liste vide en cas d'erreur — un cron qui ne sait pas à qui
+      parler se tait.
+- [x] Les 7 routes `app/api/cron/*` bouclent sur les ligues actives, chaque
+      terrain isolé : une ligue qui échoue n'en fait pas taire six
+- [x] Push cadrées par ligue (destinataires calculés par terrain)
+- [x] `daily-event` : le **tirage** reste global (un événement par jour civil),
+      les **destinataires** non — sinon quelqu'un dont la ligue n'a pas encore
+      commencé recevrait « aujourd'hui, double pompes »
+
+> **Aucun cron ajouté, `vercel.json` inchangé.** Même nombre de rendez-vous,
+> mêmes horaires : ces routes font simplement leur travail pour la bonne ligue.
 - [ ] **Ne pas ajouter ni déplacer de cron** : 2 sur Vercel (`vercel.json`) + 5
       sur GitHub Actions (`.github/workflows/`) inchangés
 - [ ] Test : une ligue vide ou pas encore commencée ne reçoit **aucune** notif
