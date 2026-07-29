@@ -3,7 +3,9 @@
 // Petites pièces partagées : avatar, pastilles d'exos, toast, boutons.
 // Un seul vocabulaire visuel sur tous les écrans.
 
-import { Entry, EXERCISES } from "@/lib/types";
+import { useRef, useState } from "react";
+import { fileToAvatarDataUri } from "@/lib/image";
+import { Entry, EXERCISES, Player } from "@/lib/types";
 
 /**
  * Avatar du joueur : sa photo si elle existe, sinon l'initiale du prénom.
@@ -62,6 +64,74 @@ export function Avatar({
     >
       {name.trim().charAt(0).toUpperCase()}
     </span>
+  );
+}
+
+/**
+ * Avatar tappable qui ouvre le sélecteur photo pour ce joueur : l'unique
+ * point d'entrée « changer ma photo », réutilisé partout où on l'expose
+ * (écran « Qui es-tu ? » et son propre profil dans Stats). L'image est
+ * recadrée et réduite côté client avant d'être remontée via onSetPhoto.
+ */
+export function EditablePhotoAvatar({
+  player,
+  size = 44,
+  onSetPhoto,
+}: {
+  player: Player;
+  size?: number;
+  onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const badge = Math.max(14, Math.round(size * 0.4));
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // autorise re-choisir le même fichier
+    if (!file) return;
+    setBusy(true);
+    const uri = await fileToAvatarDataUri(file);
+    if (uri) await onSetPhoto(player.id, uri);
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        aria-label={`Changer la photo de ${player.name}`}
+        className="relative shrink-0 rounded-full transition-transform active:scale-95"
+        style={busy ? { opacity: 0.5 } : undefined}
+      >
+        <Avatar
+          name={player.name}
+          color={player.color}
+          photo={player.photo}
+          size={size}
+        />
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -bottom-0.5 flex items-center justify-center rounded-full bg-raised leading-none"
+          style={{
+            width: badge,
+            height: badge,
+            fontSize: badge * 0.6,
+            boxShadow: "0 0 0 2px var(--color-surface)",
+          }}
+        >
+          📷
+        </span>
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onPick}
+      />
+    </>
   );
 }
 
