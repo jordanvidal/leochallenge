@@ -279,3 +279,16 @@ export function fenetreDeLigue(l: Ligue): Fenetre {
 export function semainesDeLigue(l: Ligue): number {
   return Math.ceil((diffDays(l.start_day, l.end_day) + 1) / 7);
 }
+
+/**
+ * Le paramètre de ligue des RPC, vide en groupe unique.
+ *
+ * `app.leaderboard(p_league uuid, …)` exige la ligue en premier argument et
+ * ne lui donne **aucun défaut** — l'appeler sans rien répond `PGRST202`. Mais
+ * `public.leaderboard()` n'a pas ce paramètre du tout, et le lui passer
+ * échouerait tout autant. D'où ce petit objet à étaler : il porte la ligue
+ * quand il y en a une, et rien du tout sinon.
+ */
+export function argLigue(ligueId: string | null | undefined) {
+  return ligueId ? { p_league: ligueId } : {};
+}

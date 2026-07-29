@@ -4,6 +4,7 @@
 // chrono, il le lit.
 
 import { parisToday } from "./challenge";
+import { argLigue } from "./ligue";
 import { supabase } from "./supabase";
 import { Exercise, EXERCISES } from "./types";
 
@@ -211,8 +212,10 @@ export type DayBreakdown = { points: number; bonusPoints: number };
 export async function fetchDayBreakdown(
   playerId: string,
   day: string,
+  ligueId: string | null,
 ): Promise<DayBreakdown | null> {
   const { data, error } = await supabase.rpc("leaderboard", {
+    ...argLigue(ligueId),
     p_from: day,
     p_until: day,
   });

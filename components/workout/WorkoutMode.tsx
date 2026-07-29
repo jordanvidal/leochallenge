@@ -20,6 +20,7 @@ import {
 import ConfigScreen from "./ConfigScreen";
 import DoneScreen from "./DoneScreen";
 import { BlockScreen, RestScreen } from "./SessionScreens";
+import { useLigueCourante } from "@/components/ligue/LigueContexte";
 
 type Props = {
   player: Player;
@@ -44,6 +45,7 @@ export default function WorkoutMode({
   onClose,
   showToast,
 }: Props) {
+  const ligueId = useLigueCourante()?.id ?? null;
   const w = useWorkout(player.id, showToast, onSessionStart);
   const [presets, setPresets] = useState<WorkoutPreset[] | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
@@ -61,9 +63,9 @@ export default function WorkoutMode({
     validated.current = true;
     const exos = coveredExos(w.config);
     onValidate(exos).then(() => {
-      fetchDayBreakdown(player.id, parisToday()).then(setBreakdown);
+      fetchDayBreakdown(player.id, parisToday(), ligueId).then(setBreakdown);
     });
-  }, [w.step, w.config, onValidate, player.id]);
+  }, [w.step, w.config, onValidate, player.id, ligueId]);
 
   /** Abandon confirmé : les blocs déjà terminés restent comptés. */
   function quit() {
