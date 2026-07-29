@@ -47,6 +47,9 @@ let profondeur = 0;
 /** Les popstate provoqués par nos propres corrections : à ne pas dépiler. */
 let aIgnorer = 0;
 let accordPrevu = false;
+/** Nombre de retours d'historique observés. Sert à savoir si le système
+    a fait le retour lui-même pendant qu'un glissé était en cours. */
+let popCompteur = 0;
 
 /**
  * Accorde l'historique sur la pile.
@@ -149,6 +152,7 @@ function reinitialiser(): void {
 export function useRetour(): void {
   useEffect(() => {
     const onPop = () => {
+      popCompteur += 1;
       // Nos propres corrections : la profondeur a déjà été ajustée.
       if (aIgnorer > 0) {
         aIgnorer -= 1;
@@ -203,6 +207,32 @@ function dansUnDefilement(cible: EventTarget | null): boolean {
 }
 
 /**
+ * Étouffe le clic que le glissé vient de produire.
+ *
+ * Le voile d'une feuille est un bouton « Fermer » plein écran : relâcher
+ * un glissé dessus déclenche son clic en plus du retour, et la feuille se
+ * ferme deux fois — une par le retour, une par le voile. Deux crans
+ * remontés pour un seul geste, ce qui est pire que zéro.
+ *
+ * La fenêtre est courte et se referme d'elle-même : un clic étouffé par
+ * erreur serait un tap qui ne répond pas, et c'est le pire défaut qu'une
+ * app puisse avoir.
+ */
+function avalerLeClic(): void {
+  const avaler = (e: Event) => {
+    e.stopPropagation();
+    e.preventDefault();
+    fini();
+  };
+  const fini = () => {
+    clearTimeout(minuteur);
+    document.removeEventListener("click", avaler, true);
+  };
+  const minuteur = setTimeout(fini, 400);
+  document.addEventListener("click", avaler, true);
+}
+
+/**
  * Le glissé depuis le bord gauche.
  *
  * Il ne s'installe que là où le système n'en propose pas déjà un :
@@ -218,41 +248,67 @@ function dansUnDefilement(cible: EventTarget | null): boolean {
  */
 export function useGesteRetour(): void {
   useEffect(() => {
-    const ios =
+    // Même définition d'« installée » que hooks/useIdentity : navigator
+    // .standalone seul est une propriété non standard d'iOS, et le reste
+    // de l'app ne s'y fie déjà pas. Android est exclu par le haut — son
+    // geste système fait le travail et passe par popstate, en doubler un
+    // second remonterait deux écrans d'un coup.
+    const installee =
+      window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (!ios) return;
+    if (!installee || /Android/i.test(navigator.userAgent)) return;
 
     let depart: { x: number; y: number } | null = null;
+    let dernier: { x: number; y: number } | null = null;
+    let popAuDepart = 0;
 
     const onDown = (e: PointerEvent) => {
       depart = null;
+      dernier = null;
       if (e.clientX > ZONE_BORD_PX) return;
       if (dansUnDefilement(e.target)) return;
       depart = { x: e.clientX, y: e.clientY };
+      dernier = depart;
+      popAuDepart = popCompteur;
     };
-    const onUp = (e: PointerEvent) => {
+    const onMove = (e: PointerEvent) => {
+      if (depart) dernier = { x: e.clientX, y: e.clientY };
+    };
+    /** Fin du geste, quelle qu'en soit la cause. */
+    const conclure = () => {
       const d = depart;
+      const f = dernier;
       depart = null;
-      if (!d) return;
-      const dx = e.clientX - d.x;
-      const dy = e.clientY - d.y;
+      dernier = null;
+      if (!d || !f) return;
+      const dx = f.x - d.x;
+      const dy = f.y - d.y;
       // Franchement horizontal, sinon c'est un défilement de la page.
       if (dx < SEUIL_PX || Math.abs(dy) > Math.abs(dx)) return;
+      // L'historique a bougé pendant le geste : c'est le système qui a
+      // fait le retour. iOS a ajouté son propre glissé aux apps
+      // installées, et il coupe le pointeur en chemin. On compare les
+      // compteurs plutôt qu'un délai, sinon deux glissés d'affilée pour
+      // remonter deux crans se bloqueraient l'un l'autre.
+      if (popCompteur !== popAuDepart) return;
       if (!peutRevenir()) return;
       navigator.vibrate?.(10);
+      avalerLeClic();
       history.back();
-    };
-    const onCancel = () => {
-      depart = null;
     };
 
     document.addEventListener("pointerdown", onDown, { passive: true });
-    document.addEventListener("pointerup", onUp, { passive: true });
-    document.addEventListener("pointercancel", onCancel, { passive: true });
+    document.addEventListener("pointermove", onMove, { passive: true });
+    document.addEventListener("pointerup", conclure, { passive: true });
+    // Le pointeur coupé compte comme une fin : sur iPhone, c'est
+    // exactement ce qui arrive quand le doigt part du bord de l'écran,
+    // et ignorer ce cas revient à ignorer le geste.
+    document.addEventListener("pointercancel", conclure, { passive: true });
     return () => {
       document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointerup", onUp);
-      document.removeEventListener("pointercancel", onCancel);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", conclure);
+      document.removeEventListener("pointercancel", conclure);
     };
   }, []);
 }
