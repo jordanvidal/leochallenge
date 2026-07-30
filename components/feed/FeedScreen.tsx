@@ -131,6 +131,19 @@ export default function FeedScreen({
 }: Props) {
   const byId = new Map(players.map((p) => [p.id, p]));
 
+  // On ouvre le fil pour voir ce qui vient de se passer, jamais pour
+  // reprendre là où on s'était arrêté. Or la page défile dans la fenêtre,
+  // et la fenêtre garde sa position d'un onglet à l'autre : revenir au
+  // fil rouvrait sur un moment d'il y a deux jours, avec le plus récent
+  // hors champ au-dessus. On remonte donc en tête à l'ouverture — sauf
+  // quand on arrive du tchat pour rejoindre un moment cité, qui a son
+  // propre défilement et gagne.
+  const citation = useRef(focusEventId);
+  useEffect(() => {
+    if (citation.current) return;
+    window.scrollTo(0, 0);
+  }, []);
+
   // Le moment allumé en ce moment. Distinct de focusEventId : la consigne
   // vient d'ailleurs et se consomme, l'allumage est à nous et s'éteint.
   const [vise, setVise] = useState<string | null>(null);
