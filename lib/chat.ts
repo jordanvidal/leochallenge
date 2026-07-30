@@ -20,9 +20,15 @@ export const CHAT_PAGE_SIZE = 50;
     base retoque au-delà (contrainte chat_body_500). */
 export const CHAT_BODY_MAX = 500;
 
+/** Le cœur du double-tap. Nommé plutôt que recopié : « ❤️ » s'écrit avec
+    un sélecteur de variante invisible, et une deuxième copie tapée à la
+    main donnerait une chaîne différente — donc une deuxième réaction en
+    base, à côté de celle de la feuille, sur le même message. */
+export const COEUR = "❤️";
+
 /** La même liste que le fil (lib/feed.ts). Deux vocabulaires d'emojis
     dans la même app seraient une incohérence gratuite. */
-export const CHAT_EMOJIS = ["❤️", "🔥", "💪", "😂", "💀"] as const;
+export const CHAT_EMOJIS = [COEUR, "🔥", "💪", "😂", "💀"] as const;
 
 /** Au-delà, deux messages du même auteur ne forment plus une salve :
     le prénom réapparaît et l'espacement se desserre. */
