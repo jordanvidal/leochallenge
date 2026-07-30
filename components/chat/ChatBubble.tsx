@@ -110,8 +110,10 @@ const SWIPE_PX = 56;
 // emoji qu'on met neuf fois sur dix.
 //
 // Deuxième tap au-delà de ces bornes : ce sont deux taps distincts sur
-// deux messages qu'on parcourt, pas un double-tap.
-const DOUBLE_MS = 320;
+// deux messages qu'on parcourt, pas un double-tap. Le délai se mesure
+// d'un relâchement à l'autre, donc il contient le deuxième appui : 400 ms
+// laissent la place à un pouce normal là où 300 exigeraient de pianoter.
+const DOUBLE_MS = 400;
 const DOUBLE_PX = 28;
 
 type Props = {
@@ -212,7 +214,13 @@ export default function ChatBubble({
 
   /** Fin du geste. `tap` distingue le vrai relâchement du doigt (pointerup)
       de l'abandon (le pointeur quitte la bulle, le système annule) : seul
-      le premier peut compter comme la moitié d'un double-tap. */
+      le premier peut compter comme la moitié d'un double-tap.
+
+      Et l'abandon ne doit RIEN effacer. Au doigt, le navigateur envoie
+      pointerout puis pointerleave juste après chaque pointerup — le doigt
+      a quitté l'écran, donc il a quitté la bulle. Cet abandon-là arrivait
+      dans la milliseconde et oubliait le premier tap : le deuxième ne
+      trouvait jamais de paire, et le geste ne marchait qu'à la souris. */
   function finirGeste(e: React.PointerEvent, tap: boolean) {
     annulerAppui();
     const d = depart.current;
@@ -225,6 +233,7 @@ export default function ChatBubble({
       return;
     }
     setDx(0);
+    if (!tap) return;
 
     // Un tap net : le doigt n'a pas bougé, l'appui long n'a rien pris, et
     // le message est réagissable. Un message supprimé ne l'est pas — la
@@ -232,7 +241,7 @@ export default function ChatBubble({
     // dire de toute façon.
     const immobile =
       !!d && Math.abs(e.clientX - d.x) <= 8 && Math.abs(e.clientY - d.y) <= 8;
-    if (!tap || consomme.current || supprime || enVol || !immobile) {
+    if (consomme.current || supprime || enVol || !immobile) {
       tapPrecedent.current = null;
       return;
     }
