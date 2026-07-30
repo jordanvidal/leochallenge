@@ -162,19 +162,36 @@ function isMovement(c: BonusCatalogItem): boolean {
   return c.key === PAS_KEY || c.key.startsWith("course_");
 }
 
+/** Le noyau de la règle : un autre déplacement déjà retenu ferme-t-il
+    cette puce ? « Retenu » est volontairement plus large que « déclaré » —
+    depuis que la feuille se valide d'un bloc, une puce cochée mais pas
+    encore envoyée doit fermer les autres tout de suite. Sinon la règle ne
+    s'appliquerait qu'entre deux ouvertures de la feuille, et cocher les
+    10 km puis les 10 000 pas dans la même passe la contournerait. */
+export function movementLockedBy(
+  catalog: BonusCatalogItem[],
+  retenues: Iterable<string>,
+  item: BonusCatalogItem,
+): boolean {
+  if (!saison3Started() || !isMovement(item)) return false;
+  const others = new Set(catalog.filter(isMovement).map((c) => c.key));
+  others.delete(item.key); // décocher la sienne reste toujours possible
+  for (const cle of retenues) if (others.has(cle)) return true;
+  return false;
+}
+
 /** Un autre déplacement déclaré aujourd'hui ferme-t-il cette puce ? */
 export function movementLocked(
   state: BonusState,
   playerId: string,
   item: BonusCatalogItem,
 ): boolean {
-  if (!saison3Started() || !isMovement(item)) return false;
-  const others = new Set(
-    state.catalog.filter(isMovement).map((c) => c.key),
-  );
-  others.delete(item.key); // décocher la sienne reste toujours possible
-  return state.todayClaims.some(
-    (c) => c.player_id === playerId && others.has(c.bonus_key),
+  return movementLockedBy(
+    state.catalog,
+    state.todayClaims
+      .filter((c) => c.player_id === playerId)
+      .map((c) => c.bonus_key),
+    item,
   );
 }
 

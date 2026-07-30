@@ -13,7 +13,7 @@ import {
   BonusState,
   claimableGroups,
   doubledToday,
-  movementLocked,
+  movementLockedBy,
   pointsToday,
   todayClaimPoints,
   weekBonusPoints,
@@ -27,6 +27,7 @@ type Props = {
   bonus: BonusState | null;
   onClaim: (item: BonusCatalogItem) => void;
   onUnclaim: (item: BonusCatalogItem) => void;
+  showToast: (msg: string) => void;
 };
 
 export default function BonusSection({
@@ -34,6 +35,7 @@ export default function BonusSection({
   bonus,
   onClaim,
   onUnclaim,
+  showToast,
 }: Props) {
   const [open, setOpen] = useState(false);
   if (!bonus) return null;
@@ -129,6 +131,7 @@ export default function BonusSection({
           bonus={bonus}
           onClaim={onClaim}
           onUnclaim={onUnclaim}
+          showToast={showToast}
           onClose={() => setOpen(false)}
         />
       )}
@@ -202,28 +205,23 @@ function useGlisserPourFermer(onClose: () => void) {
 }
 
 /** La feuille de déclaration : tout le catalogue, même pattern que
-    DayEditor (fond cliquable, poignée, Échap). Elle reste ouverte après
-    une déclaration — une grosse séance en fait plusieurs d'affilée. */
+    DayEditor (fond cliquable, poignée, Échap).
+
+    Un tap sur une puce ne déclare rien : il coche un brouillon. Rien ne
+    part en base — donc rien ne réveille les cinq autres — tant que
+    « Valider » n'est pas touché. Avant, le pouce qui glissait à 23h
+    envoyait une notification au groupe, et la seule réparation était de
+    re-taper pour décocher, ce qui n'efface pas la notification déjà
+    partie. Sortir autrement (glissé, fond, Échap, retour) jette le
+    brouillon : c'est la contrepartie, et elle est dite au passage. */
 function BonusSheet({
   player,
   bonus,
   onClaim,
   onUnclaim,
+  showToast,
   onClose,
 }: Props & { bonus: BonusState; onClose: () => void }) {
-  // Le retour arrière la ferme, comme le glissé vers le bas et Échap :
-  // trois chemins vers la même sortie, et aucun ne traverse la feuille.
-  useCoucheRetour(onClose);
-
-  // Échap pour fermer (desktop / clavier)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const { dy, tire, feuille, prise } = useGlisserPourFermer(onClose);
-
   const capDay =
     bonus.catalog.find((c) => c.key === "cap_claims_jour")?.points ?? 3;
   const capWeek =
@@ -232,11 +230,94 @@ function BonusSheet({
     bonus.catalog.filter((c) => c.kind === "exercise").map((c) => c.key),
   );
   const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
-  const mineCount = mineToday.filter((c) =>
-    exerciseKeys.has(c.bonus_key),
-  ).length;
-  const weekUsed = weekBonusPoints(bonus, player.id);
   const groups = claimableGroups(bonus);
+
+  // Les puces que cette feuille affiche : c'est sur elles, et elles
+  // seules, que « Valider » a le droit d'écrire. Le boss du dimanche se
+  // déclare dans son bandeau, il ne doit pas se faire retirer ici.
+  const affichees = new Map<string, BonusCatalogItem>();
+  for (const g of groups) for (const i of g.items) affichees.set(i.key, i);
+
+  // Le brouillon, parti de ce qui est déjà déclaré aujourd'hui : rouvrir
+  // la feuille montre son état du jour, et décocher redevient possible.
+  const [choisies, setChoisies] = useState<Set<string>>(
+    () =>
+      new Set(
+        mineToday
+          .filter((c) => affichees.has(c.bonus_key))
+          .map((c) => c.bonus_key),
+      ),
+  );
+  const initiales = useRef(choisies); // le point de départ, pour le diff
+
+  function basculer(cle: string) {
+    setChoisies((prev) => {
+      const s = new Set(prev);
+      if (s.has(cle)) s.delete(cle);
+      else s.add(cle);
+      return s;
+    });
+  }
+
+  const ajouts = [...affichees.values()].filter(
+    (i) => choisies.has(i.key) && !initiales.current.has(i.key),
+  );
+  const retraits = [...affichees.values()].filter(
+    (i) => !choisies.has(i.key) && initiales.current.has(i.key),
+  );
+  const enAttente = ajouts.length + retraits.length;
+  // Ce que le bouton promet : le montant du jour, doublement compris,
+  // pour que la somme annoncée soit celle que les puces viennent d'écrire.
+  const gainNet =
+    ajouts.reduce((s, i) => s + pointsToday(bonus, i), 0) -
+    retraits.reduce((s, i) => s + pointsToday(bonus, i), 0);
+
+  /** Envoie le brouillon. Les retraits d'abord : sans ça, échanger les
+      10 km contre les 10 000 pas se ferait retoquer par le filet de
+      useBonus, qui verrait encore la course déclarée au moment où la
+      marche part. */
+  function valider() {
+    for (const item of retraits) onUnclaim(item);
+    for (const item of ajouts) onClaim(item);
+    onClose();
+  }
+
+  /** Sortie sans validation : le brouillon est jeté. Silencieusement,
+      ce serait un travail perdu sans un mot — la ligne ne s'affiche donc
+      que s'il y avait vraiment quelque chose à valider. */
+  function abandonner() {
+    if (enAttente > 0) showToast("Bonus non validés");
+    onClose();
+  }
+
+  // Le retour arrière la ferme, comme le glissé vers le bas et Échap :
+  // trois chemins vers la même sortie, et aucun ne traverse la feuille.
+  useCoucheRetour(abandonner);
+
+  // Échap pour fermer (desktop / clavier)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && abandonner();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const { dy, tire, feuille, prise } = useGlisserPourFermer(abandonner);
+
+  // Les règles se jugent sur le brouillon, pas sur la base : une puce
+  // cochée compte tout de suite, sinon cocher les 10 km puis les 10 000
+  // pas dans la même passe contournerait l'exclusion de déplacement.
+  // S'y ajoute ce qui est déclaré aujourd'hui hors de cette feuille.
+  const retenues = new Set(choisies);
+  for (const c of mineToday) {
+    if (!affichees.has(c.bonus_key)) retenues.add(c.bonus_key);
+  }
+
+  const mineCount = [...choisies].filter((k) => exerciseKeys.has(k)).length;
+  // Le plafond hebdo se juge sur ce que la feuille s'apprête à envoyer.
+  const weekUsed =
+    weekBonusPoints(bonus, player.id) +
+    ajouts.reduce((s, i) => s + i.points, 0) -
+    retraits.reduce((s, i) => s + i.points, 0);
 
   /** Une puce est déclarable tant que les plafonds le permettent. Les
       paliers d'une même échelle se cumulent depuis la migration 22 :
@@ -250,14 +331,12 @@ function BonusSheet({
       éteinte sans un mot passerait pour un bug — c'est la seule raison de
       fermeture que le joueur ne peut pas deviner.
 
-      Lu sur les groupes aplatis, pas sur le catalogue : la phrase doit
-      décrire les puces réellement affichées, jamais une de plus. */
-  const movementClash = groups.some((g) =>
-    g.items.some(
-      (item) =>
-        !mineToday.some((c) => c.bonus_key === item.key) &&
-        movementLocked(bonus, player.id, item),
-    ),
+      Lu sur les puces réellement affichées, pas sur le catalogue : la
+      phrase doit décrire ce que le joueur voit, jamais une puce de plus. */
+  const movementClash = [...affichees.values()].some(
+    (item) =>
+      !choisies.has(item.key) &&
+      movementLockedBy(bonus.catalog, retenues, item),
   );
 
   // Le bandeau de l'événement est derrière la feuille : sans cette
@@ -279,7 +358,7 @@ function BonusSheet({
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60"
-      onClick={onClose}
+      onClick={abandonner}
       role="dialog"
       aria-modal="true"
       aria-label="Déclarer un bonus"
@@ -346,9 +425,10 @@ function BonusSheet({
                   }`}
                 >
                   {g.items.map((item) => {
-                    const claimed = mineToday.some(
-                      (c) => c.bonus_key === item.key,
-                    );
+                    // Cochée dans le brouillon, ce qui inclut ce qui est
+                    // déjà déclaré aujourd'hui : la puce a exactement
+                    // l'allure qu'elle avait quand elle écrivait direct.
+                    const claimed = choisies.has(item.key);
                     // Doublée par le tirage du jour : la puce le dit, et
                     // le dit avant le tap. Pas de réordonnancement — on
                     // vise une pastille connue, la déplacer coûterait
@@ -359,7 +439,8 @@ function BonusSheet({
                     // sous les groupes — l'autre est déjà lisible au compteur.
                     const off =
                       !claimed &&
-                      (blocked(item) || movementLocked(bonus, player.id, item));
+                      (blocked(item) ||
+                        movementLockedBy(bonus.catalog, retenues, item));
                     return (
                       <button
                         key={item.key}
@@ -367,8 +448,7 @@ function BonusSheet({
                         disabled={off}
                         onClick={() => {
                           navigator.vibrate?.(claimed ? 8 : 18);
-                          if (claimed) onUnclaim(item);
-                          else onClaim(item);
+                          basculer(item.key);
                         }}
                         className="relative flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
                         style={
@@ -455,11 +535,27 @@ function BonusSheet({
             </p>
           )}
 
+          {/* Le seul chemin qui écrit. Il s'allume à la couleur du joueur
+            dès qu'il y a quelque chose à envoyer, et annonce le gain net,
+            doublement compris — c'est le même montant que celui promis
+            par les puces juste au-dessus. Sans rien à valider, il reste
+            gris et ne fait que fermer : un bouton de sortie, comme avant. */}
           <button
-            onClick={onClose}
-            className="mt-4 mb-2 min-h-12 w-full rounded-2xl bg-surface font-bold"
+            onClick={valider}
+            className="mt-4 mb-2 min-h-12 w-full rounded-2xl font-bold transition-transform active:scale-[0.99]"
+            style={
+              enAttente > 0
+                ? { background: player.color, color: "oklch(0.15 0 0)" }
+                : {
+                    background: "var(--color-surface)",
+                    color: "var(--color-ink)",
+                  }
+            }
           >
-            Fermer
+            Valider
+            {gainNet > 0 && (
+              <span className="num-display ml-1.5">+{fmtPoints(gainNet)}</span>
+            )}
           </button>
         </div>
       </div>

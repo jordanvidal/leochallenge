@@ -11,7 +11,12 @@
 // fonction qu'il teste ne prouve rien.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BonusCatalogItem, BonusState, movementLocked } from "../lib/bonus";
+import {
+  BonusCatalogItem,
+  BonusState,
+  movementLocked,
+  movementLockedBy,
+} from "../lib/bonus";
 
 const MOI = "jordan";
 const AUTRE = "doren";
@@ -178,6 +183,44 @@ describe("l'isolation entre joueurs", () => {
     ]);
     expect(ferme(s, "pas_10000")).toBe(true);
     expect(ferme(s, "pas_10000", AUTRE)).toBe(false); // lui n'a pas couru
+  });
+});
+
+describe("la feuille se valide d'un bloc : le brouillon compte déjà", () => {
+  // Depuis que « Valider » remplace « Fermer », un tap ne déclare plus
+  // rien tout de suite. Si la règle ne regardait que la base, cocher les
+  // 10 km puis les 10 000 pas dans la même passe passerait les deux —
+  // 24 points pour une seule sortie. C'est le trou que ces tests ferment.
+  function fermePar(retenues: string[], cle: string): boolean {
+    const item = CATALOGUE.find((c) => c.key === cle);
+    if (!item) throw new Error(`Puce absente du catalogue de test : ${cle}`);
+    return movementLockedBy(CATALOGUE, retenues, item);
+  }
+
+  it("une puce seulement cochée ferme déjà les autres", () => {
+    expect(fermePar(["course_10km"], "pas_10000")).toBe(true);
+    expect(fermePar(["course_10km"], "course_5km")).toBe(true);
+    expect(fermePar(["pas_10000"], "course_10km")).toBe(true);
+  });
+
+  it("décocher rouvre les autres dans la même passe", () => {
+    // Changer d'avis sans fermer la feuille : on retire la course, la
+    // marche redevient disponible immédiatement.
+    expect(fermePar([], "pas_10000")).toBe(false);
+  });
+
+  it("ne ferme jamais la puce cochée elle-même", () => {
+    expect(fermePar(["course_10km"], "course_10km")).toBe(false);
+  });
+
+  it("laisse le reste du catalogue tranquille", () => {
+    expect(fermePar(["course_10km"], "pompes_100")).toBe(false);
+    expect(fermePar(["course_10km"], "marches_500")).toBe(false);
+  });
+
+  it("dort avant le 27/07, comme la règle qu'elle sert", () => {
+    onEstLe("2026-07-26");
+    expect(fermePar(["course_10km"], "pas_10000")).toBe(false);
   });
 });
 
