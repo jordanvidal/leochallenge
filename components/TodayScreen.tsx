@@ -257,6 +257,7 @@ export default function TodayScreen({
           bonus={bonus}
           onClaim={onClaimBonus}
           onUnclaim={onUnclaimBonus}
+          showToast={showToast}
         />
       )}
 

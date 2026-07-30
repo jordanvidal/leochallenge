@@ -15,6 +15,7 @@ import {
   fetchBonus,
   humanBonusError,
   insertClaim,
+  movementLocked,
 } from "@/lib/bonus";
 import { parisToday } from "@/lib/challenge";
 
@@ -25,13 +26,21 @@ export function useBonus(
 ) {
   const [state, setState] = useState<BonusState | null>(null);
   const inflight = useRef(false);
+  // Le même état, lisible tout de suite. La feuille valide plusieurs
+  // déclarations d'affilée : entre deux, `state` n'a pas encore été
+  // re-rendu, et un garde qui le lirait raisonnerait sur l'avant-dernier
+  // coup. Le ref, lui, est à jour dès le patch.
+  const stateRef = useRef<BonusState | null>(null);
 
   const reload = useCallback(async () => {
     if (inflight.current) return;
     inflight.current = true;
     try {
       const s = await fetchBonus();
-      if (s) setState(s);
+      if (s) {
+        stateRef.current = s;
+        setState(s);
+      }
     } finally {
       inflight.current = false;
     }
@@ -49,29 +58,41 @@ export function useBonus(
 
   /** Ajoute/retire une déclaration dans l'état local. */
   const patch = useCallback((claim: BonusClaim, add: boolean) => {
-    setState((prev) => {
-      if (!prev) return prev;
-      const keep = (c: BonusClaim) =>
-        !(
-          c.player_id === claim.player_id &&
-          c.day === claim.day &&
-          c.bonus_key === claim.bonus_key
-        );
-      return {
-        ...prev,
-        todayClaims: add
-          ? [...prev.todayClaims, claim]
-          : prev.todayClaims.filter(keep),
-        weekClaims: add
-          ? [...prev.weekClaims, claim]
-          : prev.weekClaims.filter(keep),
-      };
-    });
+    const prev = stateRef.current;
+    if (!prev) return;
+    const keep = (c: BonusClaim) =>
+      !(
+        c.player_id === claim.player_id &&
+        c.day === claim.day &&
+        c.bonus_key === claim.bonus_key
+      );
+    const next: BonusState = {
+      ...prev,
+      todayClaims: add
+        ? [...prev.todayClaims, claim]
+        : prev.todayClaims.filter(keep),
+      weekClaims: add
+        ? [...prev.weekClaims, claim]
+        : prev.weekClaims.filter(keep),
+    };
+    stateRef.current = next;
+    setState(next);
   }, []);
 
   /** Déclare un bonus pour aujourd'hui. Optimiste. */
   const claim = useCallback(
     async (playerId: string, item: BonusCatalogItem) => {
+      // Dernier filet sur « un seul déplacement par jour ». La feuille
+      // éteint déjà les puces concernées ; ce garde-là couvre ce qu'elle
+      // ne voit pas — un deuxième appareil, un état chargé avant la
+      // déclaration, une autre entrée que la feuille. La règle vit en
+      // deux endroits parce qu'il n'y en a aucun en base : le trigger
+      // laisserait passer les 20 + 4 points sans broncher.
+      const now = stateRef.current;
+      if (now && movementLocked(now, playerId, item)) {
+        showToast("Un seul déplacement par jour 🚶");
+        return;
+      }
       const optimistic: BonusClaim = {
         player_id: playerId,
         day: parisToday(),
