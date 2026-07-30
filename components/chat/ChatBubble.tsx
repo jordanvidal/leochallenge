@@ -104,6 +104,18 @@ function BulleCitee({
 /** Au-delà, le geste est une réponse et pas un défilement. */
 const SWIPE_PX = 56;
 
+// Le double-tap pose un cœur. C'est le geste que tout le monde connaît
+// d'ailleurs, et il remplace un aller-retour par la feuille d'actions
+// (appui long → choisir l'emoji → la feuille se ferme) pour le seul
+// emoji qu'on met neuf fois sur dix.
+//
+// Deuxième tap au-delà de ces bornes : ce sont deux taps distincts sur
+// deux messages qu'on parcourt, pas un double-tap. Le délai se mesure
+// d'un relâchement à l'autre, donc il contient le deuxième appui : 400 ms
+// laissent la place à un pouce normal là où 300 exigeraient de pianoter.
+const DOUBLE_MS = 400;
+const DOUBLE_PX = 28;
+
 type Props = {
   message: ChatMessage;
   author: Player | undefined;
@@ -126,6 +138,8 @@ type Props = {
   flash: boolean;
   onOpenMenu: (m: ChatMessage) => void;
   onReply: (m: ChatMessage) => void;
+  /** Double-tap : le cœur se pose, ou se retire s'il était de moi. */
+  onDoubleTap: (m: ChatMessage) => void;
   onJumpTo: (id: string) => void;
   /** Le chemin retour vers le fil : on est parti de là, on doit pouvoir
       y revenir. */
@@ -149,6 +163,7 @@ export default function ChatBubble({
   flash,
   onOpenMenu,
   onReply,
+  onDoubleTap,
   onJumpTo,
   onJumpToFeed,
 }: Props) {
@@ -156,6 +171,8 @@ export default function ChatBubble({
   const depart = useRef<{ x: number; y: number } | null>(null);
   const presse = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consomme = useRef(false);
+  /** Le tap précédent, s'il est encore assez frais pour faire la paire. */
+  const tapPrecedent = useRef<{ t: number; x: number; y: number } | null>(null);
 
   const supprime = message.deleted_at !== null;
   // L'optimiste porte un id temporaire tant que la base n'a pas répondu.
@@ -195,14 +212,52 @@ export default function ChatBubble({
     setDx(Math.max(0, Math.min(ex, SWIPE_PX + 12)));
   }
 
-  function onPointerUp() {
+  /** Fin du geste. `tap` distingue le vrai relâchement du doigt (pointerup)
+      de l'abandon (le pointeur quitte la bulle, le système annule) : seul
+      le premier peut compter comme la moitié d'un double-tap.
+
+      Et l'abandon ne doit RIEN effacer. Au doigt, le navigateur envoie
+      pointerout puis pointerleave juste après chaque pointerup — le doigt
+      a quitté l'écran, donc il a quitté la bulle. Cet abandon-là arrivait
+      dans la milliseconde et oubliait le premier tap : le deuxième ne
+      trouvait jamais de paire, et le geste ne marchait qu'à la souris. */
+  function finirGeste(e: React.PointerEvent, tap: boolean) {
     annulerAppui();
+    const d = depart.current;
+    depart.current = null;
     if (dx >= SWIPE_PX && !consomme.current) {
       navigator.vibrate?.(10);
       onReply(message);
+      tapPrecedent.current = null; // une réponse n'ouvre pas un double-tap
+      setDx(0);
+      return;
     }
     setDx(0);
-    depart.current = null;
+    if (!tap) return;
+
+    // Un tap net : le doigt n'a pas bougé, l'appui long n'a rien pris, et
+    // le message est réagissable. Un message supprimé ne l'est pas — la
+    // base refuserait, et un cœur sur « Message supprimé » ne veut rien
+    // dire de toute façon.
+    const immobile =
+      !!d && Math.abs(e.clientX - d.x) <= 8 && Math.abs(e.clientY - d.y) <= 8;
+    if (consomme.current || supprime || enVol || !immobile) {
+      tapPrecedent.current = null;
+      return;
+    }
+
+    const prec = tapPrecedent.current;
+    const paire =
+      !!prec &&
+      e.timeStamp - prec.t <= DOUBLE_MS &&
+      Math.abs(e.clientX - prec.x) <= DOUBLE_PX &&
+      Math.abs(e.clientY - prec.y) <= DOUBLE_PX;
+    if (paire) {
+      tapPrecedent.current = null; // un triple tap ne relance pas la bascule
+      onDoubleTap(message);
+    } else {
+      tapPrecedent.current = { t: e.timeStamp, x: e.clientX, y: e.clientY };
+    }
   }
 
   // Les emojis distincts, dans l'ordre où ils sont tombés. Trois au plus :
@@ -278,9 +333,9 @@ export default function ChatBubble({
         data-geste="horizontal"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerUp={(e) => finirGeste(e, true)}
+        onPointerCancel={(e) => finirGeste(e, false)}
+        onPointerLeave={(e) => finirGeste(e, false)}
         onContextMenu={(e) => e.preventDefault()}
         // La marge du haut réserve la place que la pastille prend en
         // débordant : sans elle, elle irait mordre le message précédent.
@@ -352,6 +407,11 @@ export default function ChatBubble({
           // conversation sous le pouce de celui qui est en train de lire.
           <button
             onClick={() => onOpenMenu(message)}
+            // La pastille garde ses taps pour elle : sans ça, deux taps
+            // dessus ouvriraient la feuille ET poseraient un cœur, alors
+            // qu'on voulait seulement voir qui a réagi.
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
             aria-label={`Réactions : ${emojis.join(" ")}${
               compteUtile ? `, ${compteUtile} en tout` : ""
             }`}

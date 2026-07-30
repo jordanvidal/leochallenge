@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chat } from "@/hooks/useChat";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
-import { apercu, buildRows, ChatMessage } from "@/lib/chat";
+import { apercu, buildRows, ChatMessage, COEUR } from "@/lib/chat";
 import { eventPhrase, FeedEvent } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import ChatBubble from "./ChatBubble";
@@ -240,6 +240,7 @@ export default function ChatScreen({
                   byId={byId}
                   flash={flash === row.message.id}
                   onOpenMenu={setMenu}
+                  onDoubleTap={(m) => toggleReaction(m.id, COEUR)}
                   onReply={setReply}
                   onJumpTo={rejoindre}
                   onJumpToFeed={onGoFeedEvent}
