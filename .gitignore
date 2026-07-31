@@ -47,3 +47,5 @@ next-env.d.ts
 # outillage local Claude
 .claude/
 .claude-flow/
+# sessions du mode live d'Impeccable : état local de reprise, pas du source
+.impeccable/live/sessions/
