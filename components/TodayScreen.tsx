@@ -344,7 +344,7 @@ export default function TodayScreen({
                     />
                     {live ? (
                       <span
-                        className="text-[10px] font-bold leading-none"
+                        className="text-[11px] font-bold leading-none"
                         style={{ color: p.color }}
                       >
                         à l&apos;instant

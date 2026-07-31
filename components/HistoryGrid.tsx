@@ -84,7 +84,7 @@ export default function HistoryGrid({
                   <th key={p.id} className="pb-1">
                     <div className="flex flex-col items-center gap-0.5">
                       <Avatar name={p.name} color={p.color} photo={p.photo} size={30} />
-                      <span className="max-w-12 truncate text-[10px] font-medium text-muted">
+                      <span className="max-w-12 truncate text-[11px] font-medium text-muted">
                         {p.id === player.id ? "toi" : p.name}
                       </span>
                     </div>
