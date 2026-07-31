@@ -14,7 +14,7 @@
 import { elapsedDays, isEditable } from "@/lib/challenge";
 import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, Player } from "@/lib/types";
-import { Avatar } from "./ui";
+import { Avatar, IconJoker } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
@@ -58,7 +58,8 @@ export default function HistoryGrid({
   // Le jour où chaque joueur a brûlé son joker (null/absent = intact). La
   // case correspondante est vide côté coches — c'est justement le jour
   // sauvé — mais on la marque 🛟 pour qu'elle ne se confonde pas avec un
-  // simple jour manqué.
+  // simple jour manqué. La bouée est dessinée (components/ui.tsx) et prend
+  // la couleur du joueur : l'emoji 🛟 est un anneau sombre, illisible ici.
   const jokerDayByPlayer = new Map(
     (gamification?.total ?? []).map((r) => [r.player_id, r.joker_day ?? null]),
   );
@@ -115,7 +116,7 @@ export default function HistoryGrid({
                           onClick={() =>
                             showToast(
                               isJoker
-                                ? "🛟 Joker : la série a tenu malgré ce jour manqué"
+                                ? "Joker : la série a tenu malgré ce jour manqué"
                                 : editable
                                   ? "C'est ta séance qui coche ▶"
                                   : "Ce jour est verrouillé 🔒",
@@ -125,8 +126,8 @@ export default function HistoryGrid({
                           style={cellStyle(count, p.color)}
                         >
                           {isJoker && (
-                            <span className="text-base" aria-hidden>
-                              🛟
+                            <span style={{ color: p.color }}>
+                              <IconJoker size={18} />
                             </span>
                           )}
                         </button>

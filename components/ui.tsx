@@ -169,6 +169,49 @@ export function ExoDots({
 }
 
 /**
+ * La bouée du joker, dessinée.
+ *
+ * C'était l'emoji 🛟 partout — et sur un fond à `oklch(0.115)`, cet
+ * emoji-là est un anneau sombre : à 12 px dans une ligne du Classement,
+ * il se lit comme une tache noire sur du noir. Le 🔥 juste à côté, lui,
+ * est orange et se voit très bien ; la bouée était le seul symbole de
+ * l'app dont le sens reposait sur des pixels invisibles.
+ *
+ * Dessinée, elle prend `currentColor` : elle hérite de la couleur du
+ * joueur au Classement, de `muted` dans une tuile de Stats, et elle est
+ * lisible partout sans qu'on ait à lui fabriquer un fond clair. C'est
+ * aussi le vocabulaire des icônes de la barre d'onglets — trait de 1,8,
+ * bouts ronds, grille de 24.
+ */
+export function IconJoker({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M14.48 9.52 18.01 5.99M9.52 9.52 5.99 5.99M14.48 14.48l3.53 3.53M9.52 14.48l-3.53 3.53"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
  * Le bloc d'attente : la forme de ce qui arrive, à sa place définitive.
  * Une seule pièce pour toute l'app — un écran qui charge se reconnaît
  * partout pareil, et personne n'invente son propre « Chargement… ».

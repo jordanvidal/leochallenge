@@ -26,7 +26,7 @@ import {
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
 import PlayerBreakdown from "./PlayerBreakdown";
-import { Avatar, Skeleton } from "./ui";
+import { Avatar, IconJoker, Skeleton } from "./ui";
 import { useLigueCourante } from "./ligue/LigueContexte";
 import { useFenetre } from "./ligue/LigueContexte";
 
@@ -365,11 +365,14 @@ export default function LeaderboardScreen({
                                 : "Joker de série disponible"
                             }
                           >
-                            {/* 🛟 et pas 🛡️ : c'est la bouée qu'affichent les
-                                Stats, l'Historique, le fil et les règles du
-                                jeu. Un joueur qui cherche « son 🛟 » ne doit
-                                pas trouver un bouclier au Classement. */}
-                            🛟{" · "}
+                            {/* Une bouée et pas un bouclier : c'est le symbole
+                                qu'affichent les Stats, l'Historique, le fil et
+                                les règles du jeu. Un joueur qui cherche « sa
+                                bouée » ne doit pas trouver autre chose ici.
+                                Dessinée depuis le 31/07 — l'emoji 🛟 est un
+                                anneau sombre, invisible à 12 px sur ce fond. */}
+                            <IconJoker size={13} className="inline-block align-[-2px]" />
+                            {" · "}
                           </span>
                         )}
                         {completion}% de complétion
