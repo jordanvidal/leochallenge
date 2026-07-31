@@ -1,6 +1,6 @@
 # CLAUDE.md — contexte pour les sessions Claude sur ce repo
 
-PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, chacun coche, tout le monde voit tout. Avant de coder quoi que ce soit, lis `README.md` (setup, migrations, crons) et `PRODUCT.md` (utilisateurs, principes de design, anti-références). Ils font foi.
+PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, chacun coche, tout le monde voit tout. Avant de coder quoi que ce soit, lis `README.md` (setup, migrations, crons), `PRODUCT.md` (utilisateurs, principes de design, anti-références) et `DESIGN.md` (tokens, typo, formes, composants — le système visuel réel, extrait du code). Ils font foi. Avant d'écrire la moindre couleur, taille ou animation, `DESIGN.md` tranche.
 
 ## Stack
 

@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-31T06:58:00Z",
+  "title": "Design System: 100 · 100 · 100",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Nuit",
+        "canonical": "oklch(0.115 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Nuit levée",
+        "canonical": "oklch(0.17 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Nuit claire",
+        "canonical": "oklch(0.22 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Trait",
+        "canonical": "oklch(0.27 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Fumée",
+        "canonical": "oklch(0.45 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Brume",
+        "canonical": "oklch(0.68 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Néon",
+        "canonical": "oklch(0.965 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger",
+        "canonical": "oklch(0.68 0.19 25)",
+        "tonalRamp": ["oklch(0.20 0.19 25)", "oklch(0.31 0.19 25)", "oklch(0.42 0.19 25)", "oklch(0.53 0.19 25)", "oklch(0.64 0.19 25)", "oklch(0.75 0.19 25)", "oklch(0.86 0.19 25)", "oklch(0.95 0.19 25)"]
+      },
+      "x2": {
+        "role": "tertiary",
+        "displayName": "Doublement",
+        "canonical": "oklch(0.85 0.17 88)",
+        "tonalRamp": ["oklch(0.20 0.17 88)", "oklch(0.31 0.17 88)", "oklch(0.42 0.17 88)", "oklch(0.53 0.17 88)", "oklch(0.64 0.17 88)", "oklch(0.75 0.17 88)", "oklch(0.86 0.17 88)", "oklch(0.95 0.17 88)"]
+      },
+      "player-corail": {
+        "role": "secondary",
+        "displayName": "Corail",
+        "canonical": "oklch(0.72 0.19 25)",
+        "tonalRamp": ["oklch(0.20 0.19 25)", "oklch(0.31 0.19 25)", "oklch(0.42 0.19 25)", "oklch(0.53 0.19 25)", "oklch(0.64 0.19 25)", "oklch(0.75 0.19 25)", "oklch(0.86 0.19 25)", "oklch(0.95 0.19 25)"]
+      },
+      "player-ambre": {
+        "role": "secondary",
+        "displayName": "Ambre",
+        "canonical": "oklch(0.78 0.16 65)",
+        "tonalRamp": ["oklch(0.20 0.16 65)", "oklch(0.31 0.16 65)", "oklch(0.42 0.16 65)", "oklch(0.53 0.16 65)", "oklch(0.64 0.16 65)", "oklch(0.75 0.16 65)", "oklch(0.86 0.16 65)", "oklch(0.95 0.16 65)"]
+      },
+      "player-jaune": {
+        "role": "secondary",
+        "displayName": "Jaune",
+        "canonical": "oklch(0.86 0.16 100)",
+        "tonalRamp": ["oklch(0.20 0.16 100)", "oklch(0.31 0.16 100)", "oklch(0.42 0.16 100)", "oklch(0.53 0.16 100)", "oklch(0.64 0.16 100)", "oklch(0.75 0.16 100)", "oklch(0.86 0.16 100)", "oklch(0.95 0.16 100)"]
+      },
+      "player-vert": {
+        "role": "primary",
+        "displayName": "Vert",
+        "canonical": "oklch(0.74 0.17 150)",
+        "tonalRamp": ["oklch(0.20 0.17 150)", "oklch(0.31 0.17 150)", "oklch(0.42 0.17 150)", "oklch(0.53 0.17 150)", "oklch(0.64 0.17 150)", "oklch(0.75 0.17 150)", "oklch(0.86 0.17 150)", "oklch(0.95 0.17 150)"]
+      },
+      "player-cyan": {
+        "role": "secondary",
+        "displayName": "Cyan",
+        "canonical": "oklch(0.80 0.13 195)",
+        "tonalRamp": ["oklch(0.20 0.13 195)", "oklch(0.31 0.13 195)", "oklch(0.42 0.13 195)", "oklch(0.53 0.13 195)", "oklch(0.64 0.13 195)", "oklch(0.75 0.13 195)", "oklch(0.86 0.13 195)", "oklch(0.95 0.13 195)"]
+      },
+      "player-bleu": {
+        "role": "secondary",
+        "displayName": "Bleu",
+        "canonical": "oklch(0.70 0.15 255)",
+        "tonalRamp": ["oklch(0.20 0.15 255)", "oklch(0.31 0.15 255)", "oklch(0.42 0.15 255)", "oklch(0.53 0.15 255)", "oklch(0.64 0.15 255)", "oklch(0.75 0.15 255)", "oklch(0.86 0.15 255)", "oklch(0.95 0.15 255)"]
+      },
+      "player-violet": {
+        "role": "secondary",
+        "displayName": "Violet",
+        "canonical": "oklch(0.70 0.17 305)",
+        "tonalRamp": ["oklch(0.20 0.17 305)", "oklch(0.31 0.17 305)", "oklch(0.42 0.17 305)", "oklch(0.53 0.17 305)", "oklch(0.64 0.17 305)", "oklch(0.75 0.17 305)", "oklch(0.86 0.17 305)", "oklch(0.95 0.17 305)"]
+      },
+      "player-rose": {
+        "role": "secondary",
+        "displayName": "Rose",
+        "canonical": "oklch(0.73 0.17 350)",
+        "tonalRamp": ["oklch(0.20 0.17 350)", "oklch(0.31 0.17 350)", "oklch(0.42 0.17 350)", "oklch(0.53 0.17 350)", "oklch(0.64 0.17 350)", "oklch(0.75 0.17 350)", "oklch(0.86 0.17 350)", "oklch(0.95 0.17 350)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Anton)", "purpose": "Chiffres uniquement : chrono, série, score, « 100 ». Jamais un mot." },
+      "headline": { "displayName": "Headline", "purpose": "Nom d'exercice sur sa carte, titre d'écran." },
+      "title": { "displayName": "Title", "purpose": "En-tête de section, nom de joueur au classement." },
+      "body": { "displayName": "Body", "purpose": "Messages du tchat, textes du fil, contenu des champs." },
+      "label": { "displayName": "Label", "purpose": "Boutons secondaires, toggles d'exos, toasts." },
+      "caption": { "displayName": "Caption", "purpose": "Libellés d'onglets, compteurs, badges de non-lus." }
+    },
+    "shadows": [
+      { "name": "ring-rest", "value": "inset 0 0 0 1px oklch(0.27 0 0)", "purpose": "Contour d'une carte ou d'un toggle au repos." },
+      { "name": "ring-active", "value": "inset 0 0 0 2px color-mix(in oklch, var(--pc) 65%, transparent)", "purpose": "Carte cochée. Le seul saut d'élévation du système." },
+      { "name": "ring-soft", "value": "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)", "purpose": "Anneau d'avatar, pastille d'exo vide." },
+      { "name": "knockout", "value": "0 0 0 2px oklch(0.17 0 0)", "purpose": "Détourage d'un badge posé à cheval sur un autre élément." },
+      { "name": "toast-float", "value": "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4)", "purpose": "L'unique ombre portée de l'app : le toast, seul élément qui flotte." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Courbe par défaut de toutes les transitions et animations d'état." },
+      { "name": "dur-press", "value": "120ms", "purpose": "Enfoncement au tap (transform)." },
+      { "name": "dur-state", "value": "160ms", "purpose": "Bascule de couleur / bordure d'une carte." },
+      { "name": "dur-enter", "value": "200-260ms", "purpose": "Entrée d'un toast, d'un bloc, rebond d'une coche." },
+      { "name": "skeleton-delay", "value": "250ms", "purpose": "Retard avant l'apparition du loader. En dessous, on voit clignoter du gris." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Carte d'exercice (cochée)",
+      "kind": "card",
+      "refersTo": "exo-card-done",
+      "description": "La pièce centrale de l'écran d'accueil : un exercice validé pendant la séance.",
+      "html": "<button class=\"ds-exo-card ds-exo-card-done\"><span class=\"ds-exo-label\">Pompes</span><span class=\"ds-exo-check\">✓</span></button>",
+      "css": ".ds-exo-card { --pc: oklch(0.74 0.17 150); display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 6rem; padding: 0 1.5rem; border: none; border-radius: 1.5rem; background: var(--color-surface, oklch(0.17 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; text-align: left; transition: background-color 160ms cubic-bezier(0.22,1,0.36,1), transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-exo-card:active { transform: scale(0.97); } .ds-exo-card-done { background: color-mix(in oklch, var(--pc) 22%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--pc) 65%, transparent); } .ds-exo-label { font-size: 1.5rem; font-weight: 700; color: var(--pc); } .ds-exo-check { display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 9999px; background: var(--pc); color: oklch(0.15 0 0); font-size: 1.5rem; font-weight: 700; }"
+    },
+    {
+      "name": "Carte d'exercice (verrouillée)",
+      "kind": "card",
+      "refersTo": "exo-card-locked",
+      "description": "Séance non lancée : la carte s'affiche à 50 %, cadenas à droite, et ouvre le lanceur au tap. Elle ne râle jamais.",
+      "html": "<button class=\"ds-exo-card ds-exo-card-locked\"><span class=\"ds-exo-label-locked\">Abdos</span><span class=\"ds-exo-lock\">🔒</span></button>",
+      "css": ".ds-exo-card-locked { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 6rem; padding: 0 1.5rem; border: none; border-radius: 1.5rem; background: var(--color-surface, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1px var(--color-line, oklch(0.27 0 0)); opacity: 0.5; font-family: 'Space Grotesk', system-ui, sans-serif; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-exo-card-locked:active { transform: scale(0.97); } .ds-exo-label-locked { font-size: 1.5rem; font-weight: 700; color: var(--color-muted, oklch(0.68 0 0)); } .ds-exo-lock { font-size: 1.5rem; }"
+    },
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "L'action principale d'un écran, pleine largeur, à la couleur du joueur connecté.",
+      "html": "<button class=\"ds-btn-primary\">Lancer ma séance</button>",
+      "css": ".ds-btn-primary { --pc: oklch(0.74 0.17 150); width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--pc); color: oklch(0.15 0 0); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--pc); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Bouton neutre",
+      "kind": "button",
+      "refersTo": "button-neutral",
+      "description": "L'action secondaire d'un écran. Même forme, aucune couleur.",
+      "html": "<button class=\"ds-btn-neutral\">Plus tard</button>",
+      "css": ".ds-btn-neutral { width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-neutral:active { transform: scale(0.98); } .ds-btn-neutral:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Rangée de toggles d'exos",
+      "kind": "chip",
+      "refersTo": "toggle-exo",
+      "description": "Les trois exercices en version compacte (historique, rattrapage). Coché à gauche, non coché à droite.",
+      "html": "<div class=\"ds-toggles\"><button class=\"ds-toggle ds-toggle-done\">✓ Pompes</button><button class=\"ds-toggle\">Abdos</button><button class=\"ds-toggle\">Squats</button></div>",
+      "css": ".ds-toggles { --pc: oklch(0.74 0.17 150); display: flex; gap: 0.5rem; } .ds-toggle { flex: 1; min-height: 2.75rem; border: none; border-radius: 0.75rem; background: var(--color-surface, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1px var(--color-line, oklch(0.27 0 0)); color: var(--color-muted, oklch(0.68 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 0.875rem; font-weight: 700; transition: background-color 160ms cubic-bezier(0.22,1,0.36,1); } .ds-toggle:active { transform: scale(0.97); } .ds-toggle-done { background: color-mix(in oklch, var(--pc) 24%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 60%, transparent); color: var(--pc); } .ds-toggle:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Champ de saisie",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Saisie du tchat et de tous les formulaires. 16 px obligatoire, sinon iOS zoome au focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Écrire un message\" aria-label=\"Écrire un message\" />",
+      "css": ".ds-input { --pc: oklch(0.74 0.17 150); width: 100%; min-height: 2.75rem; padding: 0.625rem 1rem; border: none; border-radius: 1rem; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; line-height: 1.375; } .ds-input::placeholder { color: var(--color-muted, oklch(0.68 0 0)); } .ds-input:focus { outline: none; box-shadow: 0 0 0 2px var(--pc); }"
+    },
+    {
+      "name": "Barre d'onglets",
+      "kind": "nav",
+      "refersTo": "tab-item",
+      "description": "Cinq onglets maximum, collés en bas, pouce-friendly. Actif à la couleur du joueur, badge de non-lus sur les autres.",
+      "html": "<nav class=\"ds-tabbar\" aria-label=\"Navigation\"><button class=\"ds-tab ds-tab-active\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"16\" rx=\"4\" stroke=\"currentColor\" stroke-width=\"1.8\"/><path d=\"m8.5 12.5 2.5 2.5 4.5-5\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span class=\"ds-tab-label\">Aujourd'hui</span></button><button class=\"ds-tab\"><span class=\"ds-tab-icon\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.5 12.2c0 4-3.8 7.2-8.5 7.2a9.9 9.9 0 0 1-2.6-.34L4.5 20.5l1.2-3.3A6.9 6.9 0 0 1 3.5 12.2C3.5 8.2 7.3 5 12 5s8.5 3.2 8.5 7.2Z\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span class=\"ds-tab-badge\">3</span></span><span class=\"ds-tab-label\">Tchat</span></button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 20V13M12 20V5M19 20v-9\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg><span class=\"ds-tab-label\">Stats</span></button></nav>",
+      "css": ".ds-tabbar { --pc: oklch(0.74 0.17 150); display: flex; border-top: 1px solid var(--color-line, oklch(0.27 0 0)); background: color-mix(in oklch, var(--color-bg, oklch(0.115 0 0)) 95%, transparent); backdrop-filter: blur(8px); } .ds-tab { display: flex; flex: 1; min-height: 3.5rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; border: none; background: none; color: var(--color-faint, oklch(0.45 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; } .ds-tab-active { color: var(--pc); } .ds-tab-label { font-size: 0.6875rem; font-weight: 700; } .ds-tab-icon { position: relative; display: inline-flex; } .ds-tab-badge { position: absolute; top: -0.375rem; right: -0.625rem; display: flex; align-items: center; justify-content: center; height: 1rem; min-width: 1rem; padding: 0 0.25rem; border-radius: 9999px; background: var(--pc); color: oklch(0.15 0 0); font-size: 0.625rem; font-weight: 700; }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Le seul élément flottant de l'app. Échec d'écriture, confirmation de copie. Jamais un succès ordinaire.",
+      "html": "<div class=\"ds-toast\">Impossible d'enregistrer, réessaie</div>",
+      "css": ".ds-toast { display: inline-block; padding: 0.75rem 1.25rem; border-radius: 9999px; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4); }"
+    },
+    {
+      "name": "Skeleton",
+      "kind": "custom",
+      "refersTo": "skeleton",
+      "description": "Un bloc à la forme et à la place exactes du contenu qui arrive. Invisible les 250 premières ms, puis respire en opacité.",
+      "html": "<div class=\"ds-skeleton-stack\"><span class=\"ds-skeleton\" style=\"height:16px;width:60%\"></span><span class=\"ds-skeleton\" style=\"height:16px;width:85%\"></span><span class=\"ds-skeleton\" style=\"height:16px;width:40%\"></span></div>",
+      "css": ".ds-skeleton-stack { display: flex; flex-direction: column; gap: 0.5rem; } .ds-skeleton { display: block; border-radius: 12px; background-color: var(--color-surface, oklch(0.17 0 0)); animation: ds-skeleton-in 220ms 250ms both, ds-skeleton-respire 1.8s 470ms ease-in-out infinite; } @keyframes ds-skeleton-in { from { opacity: 0 } to { opacity: 1 } } @keyframes ds-skeleton-respire { 0%, 100% { opacity: 1 } 50% { opacity: 0.6 } } @media (prefers-reduced-motion: reduce) { .ds-skeleton { animation: ds-skeleton-in 220ms 250ms both; } }"
+    },
+    {
+      "name": "Avatar joueur",
+      "kind": "custom",
+      "refersTo": "avatar",
+      "description": "Initiale ou photo, toujours dans un anneau à la couleur du joueur. La couleur, c'est l'identité.",
+      "html": "<span class=\"ds-avatar\">J</span>",
+      "css": ".ds-avatar { --pc: oklch(0.74 0.17 150); display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 9999px; background: color-mix(in oklch, var(--pc) 18%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent); color: var(--pc); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 18px; font-weight: 700; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "L'interrupteur dans le noir",
+    "overview": "Un interrupteur, on le trouve au doigt sans le chercher des yeux, et il répond avant qu'on ait fini de le pousser. C'est le contrat de cette app : à 23h, lumière éteinte, le pouce arrive sur la cible, la cible claque, l'écran se ferme. Rien n'y est là pour être regardé — tout y est pour être atteint. Chaque écran se juge au temps entre l'ouverture et la coche.\n\nLe système est donc noir profond, sans dégradé de fond, sans photo décorative, sans ombre portée. La profondeur se fabrique en empilant trois noirs (bg → surface → raised) et en posant des anneaux intérieurs : rien ne flotte, tout est encastré, et le contraste reste lisible dans le noir sans halo qui bave. La densité est basse et assumée : trois cartes hautes de 96 px occupent tout l'écran d'accueil, parce qu'à moitié endormi on ne vise pas un chip de 28 px.\n\nLa couleur n'appartient pas au système, elle appartient aux joueurs. Huit accents fixes, un par personne, tous à la même clarté (L 0.70–0.86) pour que personne n'ait une couleur « plus faible » que les autres. Partout où l'interface veut dire « toi », elle prend --pc, l'accent du joueur courant, injecté à la racine. Le seul accent non-joueur de l'app est le doublement du jour (x2, hue 88) : il ne pouvait emprunter la couleur de personne sans mentir.",
+    "keyCharacteristics": [
+      "Sombre par défaut, neutres à chroma 0 : color-scheme: dark, aucun thème clair, aucun toggle.",
+      "La couleur = l'identité du joueur ; l'UI elle-même n'a pas de couleur de marque.",
+      "Zéro ombre portée hors toast : profondeur par empilement tonal + anneaux intérieurs.",
+      "Mobile only, une seule colonne, zéro breakpoint responsive dans tout le code.",
+      "Cibles ≥ 44 px, active:scale, navigator.vibrate : le tap est un événement physique.",
+      "Anton pour les chiffres qui comptent, Space Grotesk pour tout le reste."
+    ],
+    "rules": [
+      { "name": "The Player-Owns-Color Rule", "body": "Aucun élément d'interface n'a de couleur propre. Si quelque chose est coloré, c'est qu'il appartient à quelqu'un (--pc ou player.color), ou que c'est le doublement (x2), ou que c'est une erreur (danger). Un accent inventé pour « faire joli » n'existe pas dans ce système.", "section": "colors" },
+      { "name": "The Zero-Chroma Rule", "body": "Tous les neutres sont à chroma 0, exactement. Pas de neutre tiédi vers l'ambre, pas de gris bleuté : la moindre teinte dans le fond entre en conflit avec les huit accents joueurs, dont trois sont chauds.", "section": "colors" },
+      { "name": "The Mix-Don't-Pick Rule", "body": "Les états colorés se fabriquent par color-mix(in oklch, <accent> N%, var(--color-surface)) — 18 % pour un avatar, 22–24 % pour une carte cochée, 55–65 % pour son anneau. Aucune variante d'accent n'est écrite en dur.", "section": "colors" },
+      { "name": "The 16px Floor Rule", "body": "Tout champ de saisie est à text-base (16 px) minimum. En dessous, iOS zoome au focus et casse la mise en page pour le reste de la session.", "section": "typography" },
+      { "name": "The Anton-Is-Numbers-Only Rule", "body": "Anton ne porte jamais un mot. Un titre en display, c'est une décoration ; un score en display, c'est l'information principale de l'écran.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Tout chiffre qui change en place (série, chrono, compteur) est en font-variant-numeric: tabular-nums. Sans ça, l'odomètre de la série tremble à chaque bascule.", "section": "typography" },
+      { "name": "The Five-Tabs-Max Rule", "body": "Cinq onglets, c'est le maximum absolu. Au sixième, on fusionne (le tchat a coûté sa place à « Historique », descendu dans Stats).", "section": "layout" },
+      { "name": "The Thumb-Zone Rule", "body": "L'action principale d'un écran est en bas. Rien d'important ne vit dans le tiers supérieur : c'est la zone que le pouce n'atteint pas d'une main.", "section": "layout" },
+      { "name": "The Inset-Only Rule", "body": "Une bordure se fait avec inset box-shadow, jamais avec border. La boîte ne change pas de taille entre l'état coché et non coché, donc rien ne saute sous le pouce.", "section": "elevation" },
+      { "name": "The Two-Floors Rule", "body": "bg → surface → raised, et c'est fini. S'il faut un troisième étage, c'est que la hiérarchie de l'écran est fausse.", "section": "elevation" },
+      { "name": "The Round-By-Size Rule", "body": "1.5rem au-dessus de 80 px de haut, 1rem entre 40 et 80, 0.75rem en dessous, plein rond si c'est un cercle. Un rayon choisi au hasard se voit.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do prendre la couleur dans lib/palette.ts ou dans var(--pc). Une couleur écrite en dur dans un composant est un bug.",
+      "Do fabriquer les états colorés avec color-mix(in oklch, <accent> N%, var(--color-surface)).",
+      "Do poser du texte oklch(0.15 0 0) sur tout aplat d'accent joueur.",
+      "Do délimiter avec inset box-shadow, pour que la boîte ne change pas de taille entre deux états.",
+      "Do viser ≥ 44 px de cible et accompagner le tap d'un active:scale + navigator.vibrate.",
+      "Do ajouter chaque nouvelle animation au bloc @media (prefers-reduced-motion: reduce) de globals.css, avec sa fin d'état.",
+      "Do utiliser Skeleton pour toute attente réseau, à la forme du contenu final.",
+      "Do garder les transitions entre 120 et 260 ms sur la courbe cubic-bezier(0.22, 1, 0.36, 1)."
+    ],
+    "donts": [
+      "Don't ajouter d'ombre portée. La profondeur se fait en empilant bg / surface / raised.",
+      "Don't teinter un neutre. Chroma 0, sans exception.",
+      "Don't introduire un accent qui n'appartient à personne : les seuls non-joueurs sont x2 et danger.",
+      "Don't utiliser Anton pour autre chose que des chiffres.",
+      "Don't descendre un champ de saisie sous 16 px.",
+      "Don't écrire un sm: / md: / lg: : cette app n'a pas d'écran large.",
+      "Don't empiler un quatrième niveau de fond, ni imbriquer une carte dans une carte.",
+      "Don't mettre un spinner bloquant : l'UI est optimiste, l'échec se rattrape par rollback + toast.",
+      "Don't styler un :hover comme porteur d'information. Il n'y a pas de souris.",
+      "Don't faire clignoter, boucler ou traîner une animation. Une seule fois, courte, puis plus rien."
+    ]
+  }
+}
