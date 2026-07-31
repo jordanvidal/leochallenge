@@ -503,7 +503,10 @@ export default function ChatBubble({
       </div>
 
       {showTime && !enVol && (
-        <span className={`mt-0.5 text-[10px] text-faint ${isMine ? "mr-1" : "ml-1"}`}>
+        // L'heure d'un message est une information, pas du décor : 11 px
+        // comme le reste des `caption`, et `quiet` plutôt que `faint`, qui
+        // est réservé à ce qu'on n'a pas besoin de lire.
+        <span className={`mt-0.5 text-[11px] text-quiet ${isMine ? "mr-1" : "ml-1"}`}>
           {timeOf(message.created_at)}
         </span>
       )}

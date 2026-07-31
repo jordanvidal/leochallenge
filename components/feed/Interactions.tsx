@@ -95,7 +95,9 @@ function ReactionPill({
           className="absolute bottom-full left-1/2 z-10 mb-1.5 flex max-w-[60vw] -translate-x-1/2 flex-col gap-0.5 whitespace-nowrap rounded-xl px-3 py-2 shadow-lg"
           style={{ background: "var(--color-raised)" }}
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+          {/* Posé sur `raised`, `faint` tombait à 2,3:1 — et c'est le titre
+              de l'infobulle, la phrase qui dit de quoi elle parle. */}
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-quiet">
             {emoji} {who.length === 1 ? "1 réaction" : `${who.length} réactions`}
           </span>
           {who.map((p) => (

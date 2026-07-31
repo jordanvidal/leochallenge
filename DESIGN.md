@@ -207,6 +207,8 @@ Une palette de neutres purs (chroma 0, du noir presque total au blanc cassé) su
 
 **The 16px Floor Rule.** Tout champ de saisie est à `text-base` (16 px) minimum. En dessous, iOS zoome au focus et casse la mise en page pour le reste de la session.
 
+**The 11px Floor Rule.** Aucun texte sous 11 px, soit `caption`, le plus petit cran de l'échelle. Il n'y a pas de `text-[10px]` ni de `text-[9px]` : s'ils apparaissent, c'est qu'on a essayé de faire tenir une information dans une place qu'on ne lui a pas donnée, et la réponse est de revoir la place. Cette app se lit à bout de bras, dans le noir, par des gens fatigués — 10 px n'y est pas un détail typographique, c'est du texte perdu. Seule exception tolérée : le chiffre d'une pastille de non-lus, qui est un glyphe dans un disque de 16 px et pas une phrase.
+
 **The Anton-Is-Numbers-Only Rule.** Anton ne porte jamais un mot. Un titre en display, c'est une décoration ; un score en display, c'est l'information principale de l'écran.
 
 **The Tabular Rule.** Tout chiffre qui change en place (série, chrono, compteur) est en `font-variant-numeric: tabular-nums`. Sans ça, l'odomètre de la série tremble à chaque bascule.
