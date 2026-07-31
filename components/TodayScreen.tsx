@@ -113,10 +113,10 @@ export default function TodayScreen({
     <ul className="flex flex-col">
       {others.map((p) => {
         const live = liveAt(p.id);
-        // 48 px de ligne et pas 56 : à sept potes, huit pixels de plus par
-        // ligne faisaient passer « Refaire un tour » sous la barre d'onglets.
-        // Ces lignes ne sont pas des cibles, leur hauteur est du rythme — le
-        // plancher des 44 px ne s'y applique pas.
+        // 48 px de ligne : à sept potes, la colonne tient l'écran sans
+        // déborder sous la barre d'onglets. Ces lignes ne sont pas des
+        // cibles, leur hauteur est du rythme — le plancher des 44 px ne
+        // s'y applique pas.
         return (
           <li key={p.id} className="flex min-h-12 items-center gap-3">
             <div
@@ -401,22 +401,19 @@ export default function TodayScreen({
         />
       )}
 
-      {/* Journée bouclée : relancer reste possible, mais discrètement. Rien
-          n'oblige à faire un tour de plus, et l'écran ne doit pas le
-          réclamer. */}
-      {!over && perfect && (
-        <button
-          onClick={onStartWorkout}
-          className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
-          style={{
-            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
-            color: player.color,
-          }}
-        >
-          <span aria-hidden>▶</span> Refaire un tour
-        </button>
-      )}
+      {/* Journée bouclée : plus de lanceur, comme avant le 31/07.
+          « Refaire un tour » y avait été ajouté et c'était une erreur, sur
+          les deux plans.
+          Le mot d'abord : un « tour » est déjà une série DANS la séance
+          (l'écran de bloc affiche « Tour 3/4 »), donc le libellé promettait
+          une série et ouvrait une séance entière.
+          Le comportement surtout : `guard_session_update` refuse toute
+          relance d'une séance déjà clôturée (SEANCE_FIGEE, migration37 —
+          « la première séance clôturée du jour fait foi »). Or `launch()`
+          place le joueur dans les blocs AVANT la réponse serveur. Celui qui
+          avait fini sa séance atterrissait donc sur Tour 1/4 avec un toast
+          « celle-ci ne comptera pas », libre de dérouler douze blocs pour
+          rien. Un bouton qui mène à ça ne vaut mieux pas exister. */}
 
       <NotifBanner player={player} onDone={showToast} />
 
