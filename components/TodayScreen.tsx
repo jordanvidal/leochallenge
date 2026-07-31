@@ -1,8 +1,9 @@
 "use client";
 
-// L'écran par défaut. Trois grosses cartes qui ne se cochent plus à la main :
-// c'est la séance qui valide, et elle seule. Fermées, elles ouvrent le lanceur
-// d'un tap ; séance lancée, elles affichent ce qui est fait.
+// L'écran par défaut, en trois temps : lanceur tant que la séance n'est pas
+// partie, reprise tant qu'elle n'est pas finie, tableau du groupe une fois la
+// journée bouclée. C'est la séance qui valide, et elle seule — l'accueil ne
+// coche rien, il met en séance et il montre où en est le groupe.
 
 import { useEffect, useState } from "react";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
@@ -103,6 +104,120 @@ export default function TodayScreen({
       .map((c) => emojiByKey.get(c.bonus_key) ?? "")
       .join(" ");
 
+  // Journée bouclée : les potes ne sont plus une bande qu'on longe du
+  // pouce, ils sont le contenu. En colonne, un par ligne, avec leurs trois
+  // pastilles alignées à droite — on lit qui a fini d'un seul regard au
+  // lieu de faire défiler. C'est aussi ce qui remplit l'écran une fois le
+  // lanceur parti : la bande horizontale y laissait 270 px de vide.
+  const potesEnColonne = (
+    <ul className="flex flex-col">
+      {others.map((p) => {
+        const live = liveAt(p.id);
+        // 48 px de ligne et pas 56 : à sept potes, huit pixels de plus par
+        // ligne faisaient passer « Refaire un tour » sous la barre d'onglets.
+        // Ces lignes ne sont pas des cibles, leur hauteur est du rythme — le
+        // plancher des 44 px ne s'y applique pas.
+        return (
+          <li key={p.id} className="flex min-h-12 items-center gap-3">
+            <div
+              key={live ?? undefined}
+              className={live ? "live-pulse" : undefined}
+              style={{ "--lc": p.color } as React.CSSProperties}
+            >
+              <Avatar name={p.name} color={p.color} photo={p.photo} size={36} />
+            </div>
+            <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+            {live ? (
+              <span
+                className="text-[11px] font-bold"
+                style={{ color: p.color }}
+              >
+                à l&apos;instant
+              </span>
+            ) : (
+              claimedEmojis(p.id) && (
+                <span
+                  className="text-[11px]"
+                  title="Bonus déclarés aujourd'hui"
+                >
+                  {claimedEmojis(p.id)}
+                </span>
+              )
+            )}
+            <ExoDots
+              entry={entries.get(entryKey(p.id, today))}
+              color={p.color}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  // La ligne des potes, montée en variable : selon le temps de la journée
+  // elle n'est pas au même endroit de l'écran, ni de la même forme.
+  const lesPotes =
+    others.length > 0 ? (
+      <>
+        <h2 className="mb-2 text-xs font-bold tracking-wide text-faint uppercase">
+          Les potes aujourd&apos;hui
+        </h2>
+        <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1">
+          {others.map((p) => {
+            const live = liveAt(p.id);
+            return (
+              <div
+                key={p.id}
+                className="flex shrink-0 flex-col items-center gap-1.5"
+              >
+                <div
+                  key={live ?? undefined}
+                  className={live ? "live-pulse" : undefined}
+                  style={{ "--lc": p.color } as React.CSSProperties}
+                >
+                  <Avatar name={p.name} color={p.color} photo={p.photo} size={46} />
+                </div>
+                <span className="max-w-16 truncate text-xs font-medium text-muted">
+                  {p.name}
+                </span>
+                <ExoDots
+                  entry={entries.get(entryKey(p.id, today))}
+                  color={p.color}
+                />
+                {live ? (
+                  <span
+                    className="text-[11px] font-bold leading-none"
+                    style={{ color: p.color }}
+                  >
+                    à l&apos;instant
+                  </span>
+                ) : (
+                  claimedEmojis(p.id) && (
+                    <span
+                      className="text-[11px] leading-none"
+                      title="Bonus déclarés aujourd'hui"
+                    >
+                      {claimedEmojis(p.id)}
+                    </span>
+                  )
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </>
+    ) : (
+      <button
+        onClick={onInvite}
+        className="w-full rounded-2xl border border-dashed border-line p-4 text-left"
+      >
+        <p className="font-bold">Tu es seul pour l&apos;instant</p>
+        <p className="mt-1 text-sm text-muted">
+          Envoie le lien au groupe, la pression sociale fait le reste →
+        </p>
+      </button>
+    );
+
   return (
     <div
       className={`flex flex-1 flex-col px-5 pt-safe ${perfect ? "celebrate-bg" : ""}`}
@@ -160,134 +275,97 @@ export default function TodayScreen({
         />
       )}
 
-      {/* Les trois cartes. Fermées, elles ouvrent le lanceur d'un tap — elles
-          ne râlent jamais. Séance lancée, elles deviennent un affichage : le
-          seul chemin d'écriture de la journée passe par la séance. */}
-      {!over && (
-        <div className="mt-5 flex flex-1 flex-col gap-3">
-          {EXERCISES.map(({ key, label }) => {
-            const done = mine?.[key] ?? false;
+      {/* ------------------------------------------------------------------
+          Les trois temps de la journée (31/07).
 
-            // Verrouillée, la carte reste en retrait — c'est la règle du
-            // 21/07 et elle ne bouge pas. Ce qui bouge, c'est l'endroit où
-            // vit le retrait : dans le fond, et plus dans une opacité posée
-            // sur toute la carte. Composer l'ensemble à 50 % éteignait aussi
-            // le libellé (2,4:1) et l'anneau (1,03:1) — les trois cartes ne
-            // se percevaient plus comme des surfaces, et l'objet qui disait
-            // le plus fort « indisponible » était en fait le raccourci
-            // principal. Le fond recule, le texte et le cadenas restent nets.
-            const fond = done
-              ? {
-                  background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                  boxShadow: `inset 0 0 0 2px color-mix(in oklch, ${player.color} 65%, transparent)`,
-                }
-              : {
-                  background: sessionStarted
-                    ? "var(--color-surface)"
-                    : "color-mix(in oklch, var(--color-surface) 55%, var(--color-bg))",
-                  boxShadow: "inset 0 0 0 1px var(--color-line)",
-                };
+          Avant : trois cartes de 96 px empilées, hautes comme les deux tiers
+          de l'écran, et « Lancer ma séance » en barre de 52 px en dessous.
+          Les trois plus gros objets de l'écran étaient donc ceux qu'on ne
+          peut pas utiliser — depuis le 21/07, la séance est le seul chemin
+          d'écriture, les cartes n'écrivent plus rien. L'accueil demandait
+          530 px sur 844 pour ne rien faire faire, et dépassait la hauteur de
+          l'écran.
 
-            const classe =
-              "exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left";
+          Maintenant l'écran change de métier selon le moment :
 
-            const contenu = (
-              <>
-                <span
-                  className="text-2xl font-bold"
-                  style={{
-                    color: done
-                      ? player.color
-                      : sessionStarted
-                        ? "var(--color-ink)"
-                        : "var(--color-muted)",
-                  }}
-                >
-                  {label}
-                </span>
-                {done ? (
-                  <span
-                    className="check-pop flex size-12 items-center justify-center rounded-full text-2xl font-bold"
-                    style={{ background: player.color, color: "oklch(0.15 0 0)" }}
-                    aria-hidden
-                  >
-                    ✓
-                  </span>
-                ) : sessionStarted ? (
-                  <span className="num-display text-4xl text-faint" aria-hidden>
-                    100
-                  </span>
-                ) : (
-                  <span className="text-2xl" aria-hidden>
-                    🔒
-                  </span>
-                )}
-              </>
-            );
+            fermé    — aucune séance lancée : c'est un lanceur, un seul objet
+            en cours — séance ouverte, journée pas bouclée : « Reprendre »
+            bouclé   — 3/3 : les cartes disparaissent, les potes prennent
+                       leur place, parce que c'est ce qu'on vient voir
 
-            // Séance lancée : la carte n'est plus une commande, c'est un
-            // affichage — donc plus un bouton du tout. Un `<button disabled>`
-            // portant `aria-pressed` s'annonce « coché, bouton, non
-            // disponible » : ça décrit un contrôle cassé, pas un exercice
-            // fait. Le ✓ étant aria-hidden, l'état passe par un texte.
-            if (sessionStarted) {
+          L'état des trois exos descend sous le bouton en une rangée de
+          pastilles. Elle n'est pas tappable et ne le sera jamais : ce serait
+          rouvrir le chemin d'écriture manuel fermé le 21/07.
+      ------------------------------------------------------------------- */}
+      {!over && !perfect && (
+        <div className="mt-5">
+          <button
+            onClick={() => {
+              navigator.vibrate?.(8);
+              onStartWorkout();
+            }}
+            className="flex min-h-44 w-full items-center justify-center gap-3 rounded-3xl text-2xl font-bold transition-transform active:scale-[0.98]"
+            style={{ background: player.color, color: "oklch(0.15 0 0)" }}
+          >
+            <span aria-hidden>▶</span>
+            {sessionStarted ? "Reprendre ma séance" : "Lancer ma séance"}
+          </button>
+
+          {/* L'état du jour : trois pastilles, pas trois cibles. */}
+          <div
+            className="mt-4 flex items-center justify-between px-1"
+            aria-label="Ton état du jour"
+          >
+            {EXERCISES.map(({ key, label }) => {
+              const done = mine?.[key] ?? false;
               return (
-                <div key={key} className={classe} style={fond}>
-                  {contenu}
+                <div key={key} className="flex items-center gap-2">
+                  <span
+                    className="size-3 shrink-0 rounded-full"
+                    style={
+                      done
+                        ? { background: player.color }
+                        : { boxShadow: "inset 0 0 0 1.5px var(--color-line)" }
+                    }
+                    aria-hidden
+                  />
+                  <span
+                    className="text-sm font-medium"
+                    style={{
+                      color: done ? player.color : "var(--color-muted)",
+                    }}
+                  >
+                    {label}
+                  </span>
                   <span className="sr-only">
                     {done ? "fait" : "pas encore fait"}
                   </span>
                 </div>
               );
-            }
+            })}
+          </div>
 
-            // Verrouillée : là, c'est bien un bouton, et son seul rôle est
-            // d'ouvrir le lanceur. Pas d'`aria-pressed` — il n'y a rien à
-            // basculer ici, et le nom dit ce que le tap va faire.
-            return (
-              <button
-                key={key}
-                aria-label={`${label} — verrouillé, lancer ma séance pour ouvrir les coches`}
-                onClick={() => {
-                  navigator.vibrate?.(8);
-                  onStartWorkout();
-                }}
-                className={classe}
-                style={fond}
-              >
-                {contenu}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Ce bouton fait foi : c'est lui qui ouvre la journée. Tant que la
-          séance n'est pas partie, il est l'action principale ; une fois
-          lancée, il redevient discret (relancer un tour de plus). */}
-      {!over && (!perfect || !sessionStarted) && (
-        <div className="mt-3">
           {!sessionStarted && (
-            <p className="mb-2 text-center text-[13px] text-muted">
+            <p className="mt-3 text-center text-[13px] text-muted">
               Les coches s&apos;ouvrent quand la séance démarre.
             </p>
           )}
-          <button
-            onClick={onStartWorkout}
-            className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
-            style={
-              sessionStarted
-                ? {
-                    background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
-                    boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
-                    color: player.color,
-                  }
-                : { background: player.color, color: "oklch(0.15 0 0)" }
-            }
-          >
-            <span aria-hidden>▶</span> Lancer ma séance
-          </button>
         </div>
+      )}
+
+      {/* Bouclé : les potes deviennent le contenu de l'écran, en colonne.
+          La célébration, elle, appartient à DoneScreen — on ne refait pas
+          la fête ici, on constate. */}
+      {!over && perfect && others.length > 0 && (
+        <section className="mt-4">
+          <h2 className="mb-1 text-xs font-bold tracking-wide text-faint uppercase">
+            Les potes aujourd&apos;hui
+          </h2>
+          {potesEnColonne}
+        </section>
+      )}
+      {!over && perfect && others.length === 0 && (
+        <section className="mt-5">{lesPotes}</section>
       )}
 
       {over && (
@@ -298,6 +376,18 @@ export default function TodayScreen({
           </p>
         </div>
       )}
+
+      {/* Les potes, à leur place habituelle tant que la journée n'est pas
+          bouclée — mais AVANT les bonus maintenant. La ligne des potes fait
+          tenir le truc, les bonus sont l'assaisonnement : l'ordre disait
+          l'inverse. */}
+      {!over && !perfect && <section className="mt-6">{lesPotes}</section>}
+
+      {/* Ce qui reste d'espace tombe ici : les bonus se posent en bas, à
+          portée de pouce. Pas dans l'état bouclé : la colonne des potes
+          remplit déjà l'écran, et pousser encore ferait passer « Refaire un
+          tour » sous la barre d'onglets. */}
+      {!perfect && <div className="flex-1" />}
 
       {/* Bonus : bandeau événement + puces déclaratives. L'assaisonnement,
           pas le plat — la séance de base reste le héros. */}
@@ -311,69 +401,22 @@ export default function TodayScreen({
         />
       )}
 
-      {/* La ligne des potes : c'est ça qui fait tenir le truc. */}
-      <section className="mt-5 mb-3">
-        {others.length > 0 ? (
-          <>
-            <h2 className="mb-2 text-xs font-bold tracking-wide text-faint uppercase">
-              Les potes aujourd&apos;hui
-            </h2>
-            <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1">
-              {others.map((p) => {
-                const live = liveAt(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="flex shrink-0 flex-col items-center gap-1.5"
-                  >
-                    <div
-                      key={live ?? undefined}
-                      className={live ? "live-pulse" : undefined}
-                      style={{ "--lc": p.color } as React.CSSProperties}
-                    >
-                      <Avatar name={p.name} color={p.color} photo={p.photo} size={46} />
-                    </div>
-                    <span className="max-w-16 truncate text-xs font-medium text-muted">
-                      {p.name}
-                    </span>
-                    <ExoDots
-                      entry={entries.get(entryKey(p.id, today))}
-                      color={p.color}
-                    />
-                    {live ? (
-                      <span
-                        className="text-[11px] font-bold leading-none"
-                        style={{ color: p.color }}
-                      >
-                        à l&apos;instant
-                      </span>
-                    ) : (
-                      claimedEmojis(p.id) && (
-                        <span
-                          className="text-[11px] leading-none"
-                          title="Bonus déclarés aujourd'hui"
-                        >
-                          {claimedEmojis(p.id)}
-                        </span>
-                      )
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <button
-            onClick={onInvite}
-            className="w-full rounded-2xl border border-dashed border-line p-4 text-left"
-          >
-            <p className="font-bold">Tu es seul pour l&apos;instant</p>
-            <p className="mt-1 text-sm text-muted">
-              Envoie le lien au groupe, la pression sociale fait le reste →
-            </p>
-          </button>
-        )}
-      </section>
+      {/* Journée bouclée : relancer reste possible, mais discrètement. Rien
+          n'oblige à faire un tour de plus, et l'écran ne doit pas le
+          réclamer. */}
+      {!over && perfect && (
+        <button
+          onClick={onStartWorkout}
+          className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+          style={{
+            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+            color: player.color,
+          }}
+        >
+          <span aria-hidden>▶</span> Refaire un tour
+        </button>
+      )}
 
       <NotifBanner player={player} onDone={showToast} />
 
