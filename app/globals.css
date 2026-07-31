@@ -524,6 +524,13 @@ button {
   animation: chat-flash 1000ms ease-out both;
 }
 
+/* Une photo du tchat qui arrive. La place est déjà réservée par les
+   dimensions stockées en base : il ne reste que le contenu à faire
+   apparaître, sans que rien ne bouge autour. */
+.photo-in {
+  transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* Le moment du fil rejoint depuis sa citation dans le tchat. Un anneau et
    non un fond : la carte a déjà le sien, et le teinter la ferait changer
    de nature le temps de l'animation. L'anneau est posé dès la première
@@ -609,6 +616,12 @@ button {
   /* Le halo de citation disparaît, le défilement fait déjà le travail. */
   .chat-flash {
     animation: none;
+  }
+  /* La photo n'a plus de fondu, mais elle DOIT finir visible : c'est
+     React qui pose l'opacité à 1 au chargement, la transition ne faisait
+     que l'adoucir. Sans transition, le saut est instantané. */
+  .photo-in {
+    transition: none;
   }
   /* L'anneau reste posé et s'en va avec l'état React, au même moment que
      l'animation l'aurait effacé. Le repère compte plus que le fondu. */

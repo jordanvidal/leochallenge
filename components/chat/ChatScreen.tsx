@@ -11,11 +11,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chat } from "@/hooks/useChat";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
-import { apercu, buildRows, ChatMessage, COEUR } from "@/lib/chat";
+import { apercu, apercuMessage, buildRows, ChatMessage, COEUR } from "@/lib/chat";
 import { eventPhrase, FeedEvent } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import ChatBubble from "./ChatBubble";
 import ChatComposer, { Citation } from "./ChatComposer";
+import { ChatPhotoViewer } from "./ChatPhoto";
 import { MessageSheet, NotifySheet } from "./ChatSheets";
 import { Skeleton } from "../ui";
 
@@ -28,6 +29,7 @@ type Props = {
   player: Player;
   players: Player[];
   chat: Chat;
+  showToast: (msg: string) => void;
   onGoFeed: () => void;
   /** Le retour vers un moment précis du fil, depuis sa citation. Le
       pendant exact de « En parler » : le fil pousse un moment ici, le
@@ -43,6 +45,7 @@ export default function ChatScreen({
   player,
   players,
   chat,
+  showToast,
   onGoFeed,
   onGoFeedEvent,
   seed,
@@ -55,6 +58,10 @@ export default function ChatScreen({
   const autres = players.filter((p) => p.id !== player.id);
   const [reply, setReply] = useState<ChatMessage | null>(null);
   const [menu, setMenu] = useState<ChatMessage | null>(null);
+  // La photo ouverte en grand. On retient l'id et pas la ligne : le temps
+  // réel peut la remplacer pendant qu'on la regarde (une suppression, par
+  // exemple), et la visionneuse doit suivre l'état vrai.
+  const [photoOuverte, setPhotoOuverte] = useState<string | null>(null);
   const [reglages, setReglages] = useState(false);
   const [nouveaux, setNouveaux] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
@@ -134,7 +141,7 @@ export default function ChatScreen({
     ? {
         titre: `Réponse à ${replyAuthor?.name ?? "un message"}`,
         couleur: replyAuthor?.color ?? "var(--color-muted)",
-        texte: reply.deleted_at ? "Message supprimé" : apercu(reply.body, 70),
+        texte: apercuMessage(reply, 70),
         onCancel: () => setReply(null),
       }
     : seed
@@ -241,6 +248,7 @@ export default function ChatScreen({
                   flash={flash === row.message.id}
                   onOpenMenu={setMenu}
                   onDoubleTap={(m) => toggleReaction(m.id, COEUR)}
+                  onOpenPhoto={(m) => setPhotoOuverte(m.id)}
                   onReply={setReply}
                   onJumpTo={rejoindre}
                   onJumpToFeed={onGoFeedEvent}
@@ -264,10 +272,12 @@ export default function ChatScreen({
       <ChatComposer
         citation={citation}
         mentionnables={autres}
-        onSend={(body) => {
+        showToast={showToast}
+        onSend={(body, photo) => {
           send(body, {
             replyTo: reply?.id ?? null,
             feedEventId: reply ? null : (seed?.id ?? null),
+            photo,
           });
           setReply(null);
           onSeedUsed();
@@ -305,6 +315,25 @@ export default function ChatScreen({
           onClose={() => setMenu(null)}
         />
       )}
+
+      {(() => {
+        // La ligne est relue à chaque rendu : si le message est supprimé
+        // pendant qu'on le regarde, la visionneuse se ferme d'elle-même
+        // plutôt que de montrer une photo qui n'existe plus.
+        const vue = photoOuverte ? messageById(photoOuverte) : undefined;
+        if (!vue?.photo_path || vue.deleted_at) return null;
+        const mesReactions = chat.reactions.get(vue.id) ?? [];
+        return (
+          <ChatPhotoViewer
+            path={vue.photo_path}
+            aReagi={mesReactions.some(
+              (r) => r.player_id === player.id && r.emoji === COEUR,
+            )}
+            onCoeur={() => toggleReaction(vue.id, COEUR)}
+            onClose={() => setPhotoOuverte(null)}
+          />
+        );
+      })()}
 
       {reglages && (
         <NotifySheet

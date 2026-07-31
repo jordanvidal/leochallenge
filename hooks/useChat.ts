@@ -27,15 +27,23 @@ import {
   fetchLastRead,
   fetchMessages,
   fetchNotifyPref,
+  fetchPhotoPath,
   humanChatError,
   insertChatReaction,
   insertMessage,
   markRead,
   notifyChatMessage,
   NotifyPref,
+  PhotoJointe,
   setNotifyPref,
 } from "@/lib/chat";
+import {
+  prechargerPhoto,
+  removeChatPhoto,
+  uploadChatPhoto,
+} from "@/lib/chatPhotos";
 import { FeedEvent } from "@/lib/feed";
+import { PhotoPrete } from "@/lib/image";
 import { SUPABASE_SCHEMA, supabase } from "@/lib/supabase";
 import { useLigueCourante } from "@/components/ligue/LigueContexte";
 
@@ -340,11 +348,23 @@ export function useChat(
   const send = useCallback(
     async (
       body: string,
-      opts: { replyTo?: string | null; feedEventId?: string | null } = {},
+      opts: {
+        replyTo?: string | null;
+        feedEventId?: string | null;
+        /** La photo déjà réduite par le composeur. Le hook n'a plus qu'à
+            la téléverser — mais il le fait APRÈS avoir affiché la bulle. */
+        photo?: PhotoPrete | null;
+      } = {},
     ) => {
       const texte = body.trim();
-      if (!myId || !texte) return;
+      // Une photo se suffit à elle-même : la légende est facultative
+      // (contrainte chat_body_non_vide, migration44). Sans photo, en
+      // revanche, un message vide reste un message vide.
+      if (!myId || (!texte && !opts.photo)) return;
       const tmpId = `tmp-${Date.now()}`;
+      // L'URL locale des octets qu'on tient déjà : la photo est à l'écran
+      // avant même que le téléversement ne commence.
+      const apercuLocal = opts.photo ? URL.createObjectURL(opts.photo.blob) : null;
       const optimiste: ChatMessage = {
         id: tmpId,
         player_id: myId,
@@ -353,15 +373,46 @@ export function useChat(
         feed_event_id: opts.feedEventId ?? null,
         created_at: new Date().toISOString(),
         deleted_at: null,
+        photo_path: apercuLocal,
+        photo_w: opts.photo?.w ?? null,
+        photo_h: opts.photo?.h ?? null,
       };
       setMessages((prev) => (prev ? [...prev, optimiste] : [optimiste]));
 
-      const res = await insertMessage(myId, texte, opts);
-      if ("error" in res) {
+      /** Retire la bulle en vol et rend la mémoire de l'aperçu. */
+      const abandonner = (erreur: string) => {
         setMessages((prev) => prev?.filter((m) => m.id !== tmpId) ?? prev);
-        showToast(humanChatError(res.error));
-        return;
+        if (apercuLocal) URL.revokeObjectURL(apercuLocal);
+        showToast(humanChatError(erreur));
+      };
+
+      // Les octets d'abord, la ligne ensuite. L'ordre inverse laisserait
+      // en base des messages qui pointent vers une photo qui n'existe pas.
+      let jointe: PhotoJointe | null = null;
+      if (opts.photo) {
+        const up = await uploadChatPhoto(myId, opts.photo.blob);
+        if ("error" in up) return abandonner(up.error);
+        jointe = { path: up.path, w: opts.photo.w, h: opts.photo.h };
+        // Et on attend que le navigateur ait la version servie par Storage
+        // AVANT d'insérer la ligne.
+        //
+        // Sans cette attente, la bulle passe de l'aperçu local à une URL
+        // distante encore vide : la photo disparaît une seconde puis
+        // revient. La placer ici, entre le téléversement et l'insertion,
+        // est ce qui évite l'autre défaut — après l'insert, le temps réel
+        // livre la vraie ligne à tout le monde, et la faire cohabiter avec
+        // la bulle optimiste montrerait deux fois la même photo.
+        await prechargerPhoto(jointe.path);
       }
+
+      const res = await insertMessage(myId, texte, { ...opts, photo: jointe });
+      if ("error" in res) {
+        // La ligne a échoué mais les octets sont déjà là-haut : on les
+        // reprend, sinon le bucket se remplit d'images que rien ne cite.
+        if (jointe) removeChatPhoto(jointe.path);
+        return abandonner(res.error);
+      }
+      if (apercuLocal) URL.revokeObjectURL(apercuLocal);
       // Le temps réel a pu livrer la vraie ligne avant nous : on retire
       // l'optimiste puis on dédoublonne par id.
       setMessages((prev) =>
@@ -379,15 +430,32 @@ export function useChat(
         (prev) =>
           prev?.map((m) =>
             m.id === id
-              ? { ...m, body: "", deleted_at: new Date().toISOString() }
+              ? {
+                  ...m,
+                  body: "",
+                  deleted_at: new Date().toISOString(),
+                  photo_path: null,
+                  photo_w: null,
+                  photo_h: null,
+                }
               : m,
           ) ?? prev,
       );
+      // Le chemin se lit en base, et AVANT l'update : le trigger vide
+      // `photo_path` au passage, et l'état local n'est pas une source de
+      // vérité pour effacer des octets — il peut venir d'un rechargement,
+      // d'un autre appareil, ou avoir un événement temps réel de retard.
+      const photo = await fetchPhotoPath(id);
+
       const err = await deleteMessage(id);
       if (err) {
         setMessages(avant);
         showToast(humanChatError(err));
+        return;
       }
+      // Supprimé pour de bon : les octets s'en vont aussi. Un blob: est
+      // une photo jamais partie, il n'y a rien à reprendre au bucket.
+      if (photo && !photo.startsWith("blob:")) removeChatPhoto(photo);
     },
     [messages, showToast],
   );

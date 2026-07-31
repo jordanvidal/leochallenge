@@ -480,6 +480,7 @@ export default function App() {
             player={player}
             players={data.players}
             chat={chat}
+            showToast={data.showToast}
             onGoFeed={() => setTab("feed")}
             onGoFeedEvent={(eventId) => {
               setFeedFocus(eventId);
