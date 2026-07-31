@@ -43,6 +43,13 @@ type Props = {
   onSetPhoto: (playerId: string, photo: string) => Promise<boolean>;
   /** Passé à la grille d'historique : ses cases expliquent au tap. */
   showToast: (msg: string) => void;
+  /** Les trois gestes de profil, descendus du pied de page global : ils
+      étaient sous la barre d'onglets sur tous les écrans, y compris le
+      chemin des dix secondes. Stats porte déjà le profil. */
+  onReplayTuto: () => void;
+  /** null hors de la fenêtre où l'écran de lancement a encore un sens. */
+  onReplayLaunch: (() => void) | null;
+  onForget: () => void;
 };
 
 /**
@@ -108,6 +115,9 @@ export default function StatsScreen({
   onShareWeek,
   onSetPhoto,
   showToast,
+  onReplayTuto,
+  onReplayLaunch,
+  onForget,
 }: Props) {
   const f = useFenetre();
   const [profiles, setProfiles] = useState<Map<string, Profile> | null>(null);
@@ -355,6 +365,28 @@ export default function StatsScreen({
         gamification={gamification}
         showToast={showToast}
       />
+
+      {/* Les gestes de profil, en bas de l'écran qui porte le profil. Ils
+          étaient sous la barre d'onglets, donc sur le chemin d'une coche
+          tous les soirs — et masqués à la main sur le tchat, ce qui disait
+          déjà qu'ils n'étaient pas chez eux. */}
+      <div className="mt-8 flex flex-col items-start gap-1 border-t border-line pt-4">
+        <button onClick={onReplayTuto} className="min-h-11 text-sm text-quiet">
+          Revoir les règles
+        </button>
+        {onReplayLaunch && (
+          <button
+            onClick={onReplayLaunch}
+            className="min-h-11 text-sm text-quiet"
+          >
+            Revoir le lancement
+          </button>
+        )}
+        <button onClick={onForget} className="min-h-11 text-sm text-quiet">
+          Ce n&apos;est pas moi ({player.name})
+        </button>
+      </div>
+
       <div className="h-3 shrink-0" />
     </div>
   );
