@@ -27,6 +27,7 @@ import {
   fetchLastRead,
   fetchMessages,
   fetchNotifyPref,
+  fetchPhotoPath,
   humanChatError,
   insertChatReaction,
   insertMessage,
@@ -425,10 +426,6 @@ export function useChat(
   const remove = useCallback(
     async (id: string) => {
       const avant = messages;
-      // Le chemin doit être lu MAINTENANT : dans une ligne, l'état local
-      // l'aura oublié et la base aussi (le trigger vide photo_path), donc
-      // plus personne ne saurait quels octets effacer.
-      const photo = messages?.find((m) => m.id === id)?.photo_path ?? null;
       setMessages(
         (prev) =>
           prev?.map((m) =>
@@ -444,6 +441,12 @@ export function useChat(
               : m,
           ) ?? prev,
       );
+      // Le chemin se lit en base, et AVANT l'update : le trigger vide
+      // `photo_path` au passage, et l'état local n'est pas une source de
+      // vérité pour effacer des octets — il peut venir d'un rechargement,
+      // d'un autre appareil, ou avoir un événement temps réel de retard.
+      const photo = await fetchPhotoPath(id);
+
       const err = await deleteMessage(id);
       if (err) {
         setMessages(avant);

@@ -426,6 +426,28 @@ export async function insertMessage(
   return { message: data as ChatMessage };
 }
 
+/**
+ * Le chemin de la photo d'un message, lu EN BASE.
+ *
+ * Sert juste avant une suppression, et c'est un aller-retour assumé : le
+ * nettoyage des octets ne doit dépendre d'aucun état client. Celui-ci
+ * peut être en retard d'un événement temps réel, avoir été reconstruit
+ * par un rechargement, ou venir d'un autre appareil que celui qui a
+ * envoyé la photo. La base, elle, sait.
+ *
+ * À lire AVANT l'update : le trigger vide `photo_path` au passage, donc
+ * après, plus personne ne sait quels octets effacer.
+ */
+export async function fetchPhotoPath(id: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("photo_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data as { photo_path: string | null }).photo_path;
+}
+
 /** Suppression douce. La base vide le corps elle-même — on ne lui
     envoie que la date, et on ne lui fait pas confiance pour le reste. */
 export async function deleteMessage(id: string): Promise<string | null> {
