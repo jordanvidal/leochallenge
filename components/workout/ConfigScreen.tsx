@@ -6,6 +6,7 @@
 // avant de lancer — mais on n'empêche personne de faire sa séance.
 
 import { useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { EXERCISES, Player } from "@/lib/types";
 import {
   configEquals,
@@ -22,6 +23,8 @@ type Props = {
   presets: WorkoutPreset[];
   initial: WorkoutConfig;
   onLaunch: (c: WorkoutConfig) => void;
+  /** Séance faite ailleurs : valide la journée sans ouvrir le chrono. */
+  onDejaFaite: (c: WorkoutConfig) => void;
   onClose: () => void;
 };
 
@@ -82,9 +85,11 @@ export default function ConfigScreen({
   presets,
   initial,
   onLaunch,
+  onDejaFaite,
   onClose,
 }: Props) {
   const [config, setConfig] = useState<WorkoutConfig>(initial);
+  const [dejaFaite, setDejaFaite] = useState(false);
   const gaps = coverageGaps(config);
   const empty = EXERCISES.every(({ key }) => config.reps[key] === 0);
 
@@ -216,6 +221,77 @@ export default function ConfigScreen({
       >
         Lancer ma séance
       </button>
+
+      {/* La séance faite ailleurs. Volontairement PAS bornée par
+          `gaps` : le format décrit la façon dont l'app aurait guidé, il n'a
+          rien à dire sur ce qui s'est passé à la salle. */}
+      <button
+        onClick={() => setDejaFaite(true)}
+        className="mb-2 min-h-12 w-full text-sm font-medium text-quiet"
+      >
+        Je l&apos;ai déjà faite ailleurs
+      </button>
+
+      {dejaFaite && (
+        <DejaFaiteConfirm
+          player={player}
+          onConfirm={() => {
+            navigator.vibrate?.(18);
+            onDejaFaite(config);
+          }}
+          onCancel={() => setDejaFaite(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * On dit le prix avant, jamais après.
+ *
+ * Une règle qui touche au score et qu'on découvre après coup passe pour de
+ * la triche — c'est la raison d'être de la migration 24, et elle vaut ici :
+ * quelqu'un qui valide sa journée sans chrono doit savoir en appuyant ce
+ * qu'il ne touchera pas.
+ */
+function DejaFaiteConfirm({
+  player,
+  onConfirm,
+  onCancel,
+}: {
+  player: Player;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useCoucheRetour(onCancel);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/60 px-5 pb-safe">
+      <div className="rise-in mb-4 w-full rounded-3xl bg-raised p-5">
+        <p className="text-lg font-bold">Séance faite ailleurs ?</p>
+        <p className="mt-2 text-sm text-muted">
+          Tes 100 pompes, 100 abdos et 100 squats sont validés pour
+          aujourd&apos;hui.
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Sans chrono, les bonus de vitesse et d&apos;horaire ne comptent pas.
+          Tout le reste de tes points est identique.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={onCancel}
+            className="min-h-12 flex-1 rounded-2xl bg-surface font-bold text-muted"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="min-h-12 flex-1 rounded-2xl font-bold"
+            style={{ background: player.color, color: "oklch(0.15 0 0)" }}
+          >
+            Valider ma journée
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

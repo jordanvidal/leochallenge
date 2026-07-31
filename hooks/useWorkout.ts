@@ -71,6 +71,31 @@ export function useWorkout(
     [playerId, showToast, onStarted],
   );
 
+  /**
+   * Séance faite ailleurs : on ouvre la ligne de séance — c'est elle qui
+   * déverrouille la journée — et on ne clôture JAMAIS le chrono.
+   *
+   * C'est tout le mécanisme d'honnêteté, et il ne demande aucune règle
+   * serveur nouvelle : les bonus liés au temps (vitesse, happy hour,
+   * lève-tôt) exigent `finished_at is not null` (migration39). Une séance
+   * ouverte et jamais fermée rapporte donc les points de base, et rien
+   * d'autre. Celui qui déroule le chrono de l'app garde son avantage ;
+   * celui qui s'est entraîné à la salle récupère sa journée.
+   *
+   * Pas de `config`/`step` posés : il n'y a pas de séance à dérouler, donc
+   * rien à sauvegarder ni à reprendre.
+   */
+  const ouvrirSeanceSansChrono = useCallback(
+    async (c: WorkoutConfig) => {
+      const { day, error } = await startSession(playerId, c);
+      sessionDay.current = day;
+      if (day) onStarted();
+      if (error) showToast(humanWorkoutError(error));
+      return !!day;
+    },
+    [playerId, showToast, onStarted],
+  );
+
   /** Clôture serveur : la durée officielle revient de la base. */
   const closeSession = useCallback(async () => {
     if (!sessionDay.current) return;
@@ -199,6 +224,7 @@ export function useWorkout(
     serverDuration,
     displayDuration,
     launch,
+    ouvrirSeanceSansChrono,
     finishBlock,
     skipRest,
     repsDone,
