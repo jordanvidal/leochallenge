@@ -26,11 +26,26 @@ export type TimelineCell = { day: string; perfect: number };
  * Stats d'un joueur sur l'ensemble des jours écoulés de sa ligue.
  * La série tolère un aujourd'hui incomplet : elle compte depuis hier
  * si le jour courant n'est pas (encore) parfait.
+ *
+ * `jokerDay` — le jour où le joueur a brûlé son joker, s'il l'a brûlé.
+ * Sans lui, ce calcul contredit le serveur, et pas qu'un peu : le RPC
+ * `leaderboard` construit la série sur des îlots de jours **conservés**,
+ * parfaits OU sauvés par le joker (supabase/migration38-app-scoring.sql,
+ * CTE `kept` → `islands` → `streaks`), tandis qu'ici tout jour non
+ * parfait cassait la série. Un joueur dont le joker avait pontifié un
+ * jour manqué voyait 🔥17 au Classement et « 9 j » aux Stats.
+ *
+ * Le serveur a raison, et c'est la doctrine du produit : un jour sauvé
+ * n'est pas un jour manqué — c'est exactement pourquoi l'historique le
+ * marque d'une bouée. Le joker tient donc la chaîne sans la faire
+ * avancer : il ne casse pas l'îlot, et il ne compte pas comme un jour
+ * parfait (le serveur ne numérote que les jours parfaits).
  */
 export function computeStats(
   playerId: string,
   entries: Map<string, Entry>,
   f: Fenetre = FENETRE_ENV,
+  jokerDay: string | null = null,
 ): PlayerStats {
   const days = elapsedDays(f); // du plus récent au plus ancien
   if (days.length === 0)
@@ -51,8 +66,10 @@ export function computeStats(
       run++;
       if (run > bestStreak) bestStreak = run;
     } else {
-      run = 0;
       if (n === 0) zeroDays++;
+      // Le jour du joker reste un jour à zéro — il l'est — mais il ne
+      // coupe pas l'îlot. C'est tout ce que le joker fait.
+      if (day !== jokerDay) run = 0;
     }
   }
   const completion = Math.round((done / (days.length * 3)) * 100);
@@ -64,9 +81,11 @@ export function computeStats(
   if (cursor > days[0]) cursor = days[0]; // challenge terminé : partir du dernier jour
   const isPerfect = (d: string) =>
     entryCount(entries.get(entryKey(playerId, d))) === 3;
-  if (!isPerfect(cursor)) cursor = addDays(cursor, -1);
-  while (cursor >= days[days.length - 1] && isPerfect(cursor)) {
-    streak++;
+  /** Ce qui tient la chaîne : un jour parfait, ou le jour du joker. */
+  const tientLaChaine = (d: string) => isPerfect(d) || d === jokerDay;
+  if (!tientLaChaine(cursor)) cursor = addDays(cursor, -1);
+  while (cursor >= days[days.length - 1] && tientLaChaine(cursor)) {
+    if (isPerfect(cursor)) streak++;
     cursor = addDays(cursor, -1);
   }
   return { perfectDays, completion, streak, bestStreak, zeroDays };

@@ -120,7 +120,17 @@ export default function StatsScreen({
   }, []);
 
   const elapsed = elapsedDays(f).length;
-  const mine = computeStats(player.id, entries, f);
+  // Le jour du joker de chacun, pour que les séries calculées ici comptent
+  // comme celles du Classement : un jour sauvé ne casse pas la chaîne.
+  const jokerByPlayer = new Map(
+    (gamification?.total ?? []).map((r) => [r.player_id, r.joker_day ?? null]),
+  );
+  const mine = computeStats(
+    player.id,
+    entries,
+    f,
+    jokerByPlayer.get(player.id) ?? null,
+  );
   const myProfile = profiles?.get(player.id);
   const mySlot = myProfile ? slotLabel(myProfile.hours) : null;
   const myBadges = gamification?.badges.get(player.id) ?? [];
@@ -140,7 +150,10 @@ export default function StatsScreen({
   // serait le Classement en double, et ce n'est pas la question ici.
   const others = players
     .filter((p) => p.id !== player.id)
-    .map((p) => ({ p, s: computeStats(p.id, entries, f) }))
+    .map((p) => ({
+      p,
+      s: computeStats(p.id, entries, f, jokerByPlayer.get(p.id) ?? null),
+    }))
     .sort((a, b) => b.s.bestStreak - a.s.bestStreak);
 
   return (

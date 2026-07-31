@@ -286,7 +286,9 @@ export default function BilanScreen({
               key={r.player_id}
               player={p}
               row={r}
-              stats={computeStats(p.id, entries, f)}
+              // `r.joker_day` : la série du bilan compte comme celle du
+              // Classement, un jour sauvé ne casse pas la chaîne.
+              stats={computeStats(p.id, entries, f, r.joker_day ?? null)}
               badges={gamification.badges.get(p.id) ?? []}
               open={i === 0 || p.id === player.id}
             />

@@ -36,6 +36,9 @@ export function buildWeekShare(
   todayBonuses?: string[],
   sessionLabel?: string | null,
   f: Fenetre = FENETRE_ENV,
+  /** Le jour du joker : sans lui, la série partagée contredit celle du
+      Classement dès qu'un joker a ponté un jour manqué. */
+  jokerDay: string | null = null,
 ): string {
   const today = parisToday();
   const monday = mondayOf(today > f.end ? f.end : today);
@@ -56,7 +59,7 @@ export function buildWeekShare(
     squares.push(daySquare(n));
   }
 
-  const { streak } = computeStats(player.id, entries, f);
+  const { streak } = computeStats(player.id, entries, f, jokerDay);
   const left = daysLeft(f);
   const rankLine = rankInfo
     ? [
@@ -123,10 +126,20 @@ export function buildFinalShare(
   const groupPerfect = ranked.reduce((s, r) => s + r.perfect_days, 0);
   const groupReps = ranked.reduce((s, r) => s + reps(r.exos_done), 0);
 
-  // Meilleure série du groupe : calculée sur les entries déjà chargées.
+  // Meilleure série du groupe : calculée sur les entries déjà chargées,
+  // joker compris — sinon le bilan annonce une série plus courte que celle
+  // que le Classement affichait la veille.
+  const jokerByPlayer = new Map(
+    ranked.map((r) => [r.player_id, r.joker_day ?? null]),
+  );
   let best = { name: "", streak: 0 };
   for (const p of players) {
-    const { bestStreak } = computeStats(p.id, entries, f);
+    const { bestStreak } = computeStats(
+      p.id,
+      entries,
+      f,
+      jokerByPlayer.get(p.id) ?? null,
+    );
     if (bestStreak > best.streak) best = { name: p.name, streak: bestStreak };
   }
 
@@ -191,6 +204,8 @@ export async function shareWeekFlow(
       mine ? { rank: mine.rank, points: mine.points } : null,
       todayBonuses,
       duration !== null ? formatDuration(duration) : null,
+      undefined,
+      mine?.joker_day ?? null,
     ),
   );
 }
