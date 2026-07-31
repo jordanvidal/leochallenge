@@ -77,7 +77,7 @@ components:
     textColor: "{colors.player-vert}"
     rounded: "{rounded.xl}"
   exo-card-locked:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "color-mix(in oklch, {colors.surface} 55%, {colors.bg})"
     textColor: "{colors.muted}"
     rounded: "{rounded.xl}"
   button-primary:
@@ -276,13 +276,15 @@ Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparati
 - **Background:** `surface` au repos ; `color-mix(in oklch, <accent joueur> 22%, var(--color-surface))` une fois cochée.
 - **Shadow Strategy:** anneau intérieur uniquement (voir Elevation).
 - **Internal Padding:** `px-6` sur les grandes cartes, `px-5` sur les blocs standards.
-- **Carte verrouillée:** `opacity: 0.5` + cadenas à droite. Elle reste tappable et ouvre le lanceur de séance — elle ne refuse jamais, elle redirige.
+- **Carte verrouillée:** fond en retrait (`color-mix(in oklch, surface 55%, bg)`) + cadenas à droite, libellé en `muted` à pleine opacité. Elle reste tappable et ouvre le lanceur de séance — elle ne refuse jamais, elle redirige. Le retrait vit dans le fond et **jamais** dans une opacité posée sur toute la carte : composer l'ensemble à 50 % éteignait le libellé (2,4:1) et l'anneau intérieur (1,03:1) en même temps que le fond, si bien que les trois cartes ne se percevaient plus comme des surfaces et que l'objet qui criait le plus fort « indisponible » était en réalité le raccourci principal de l'écran.
 
 ### Toggles (signature)
 
 `ExoToggles` est la pièce centrale du produit : trois boutons `flex-1`, `min-h-11`, `rounded-xl`, poids 700.
 - **Non coché:** fond `surface`, texte `muted`, anneau `line` 1px.
 - **Coché:** fond mixé 24 % accent, texte à l'accent, anneau 60 % accent 1.5px, préfixe `✓ `.
+- **Feedback:** `navigator.vibrate(10)` au tap, `.check-pop` (220 ms) sur la coche.
+- **`aria-pressed`:** sur ce qui bascule vraiment, et seulement là. Une carte d'exercice verrouillée est un bouton qui *ouvre le lanceur* — rien à basculer, donc pas d'`aria-pressed`, et un `aria-label` qui dit ce que le tap va faire. Séance lancée, la carte n'est plus une commande : elle se rend en `div`, pas en `<button disabled>`, qui s'annoncerait « coché, bouton, non disponible » — la description d'un contrôle cassé, pas d'un exercice fait. Le ✓ étant `aria-hidden`, l'état passe par un `sr-only`.
 - **Feedback:** `navigator.vibrate(10)` au tap, `.check-pop` (220 ms) sur la coche, `aria-pressed` toujours posé.
 - **Focus clavier:** un `:focus-visible` global pose `outline: 2px solid var(--pc)` avec 2 px d'offset. Il ne se voit jamais au pouce — `:focus-visible` ne se déclenche pas au tap — et il est la seule façon de savoir où l'on est au clavier ou en navigation VoiceOver. L'anneau par défaut du navigateur (0,55 px) est invisible sur `bg`. Ne jamais le désactiver globalement ; un champ qui pose son propre `focus:ring-2` le remplace, il ne le supprime pas.
 
