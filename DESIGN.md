@@ -209,6 +209,8 @@ Une palette de neutres purs (chroma 0, du noir presque total au blanc cassé) su
 
 **The 11px Floor Rule.** Aucun texte sous 11 px, soit `caption`, le plus petit cran de l'échelle. Il n'y a pas de `text-[10px]` ni de `text-[9px]` : s'ils apparaissent, c'est qu'on a essayé de faire tenir une information dans une place qu'on ne lui a pas donnée, et la réponse est de revoir la place. Cette app se lit à bout de bras, dans le noir, par des gens fatigués — 10 px n'y est pas un détail typographique, c'est du texte perdu. Seule exception tolérée : le chiffre d'une pastille de non-lus, qui est un glyphe dans un disque de 16 px et pas une phrase.
 
+**The Emoji-Must-Glow Rule.** Un emoji ne porte un sens que s'il est clair sur fond noir. 🔥 🏆 🏁 ✓ passent : ils sont orange, dorés, blancs. La bouée 🛟 ne passait pas — c'est un anneau sombre, et à 12 px dans une ligne du Classement elle se lisait comme une tache noire à côté d'un 🔥 parfaitement net. Avant de poser un emoji comme indicateur, on le regarde à sa taille réelle sur `bg` ; s'il disparaît, on le dessine (`IconJoker` dans `components/ui.tsx`) en `currentColor`, au vocabulaire des icônes d'onglets — trait 1,8, bouts ronds, grille de 24. Un emoji dans une *phrase* reste un emoji ; c'est l'emoji **seul, porteur d'un état** qui doit se voir.
+
 **The Anton-Is-Numbers-Only Rule.** Anton ne porte jamais un mot. Un titre en display, c'est une décoration ; un score en display, c'est l'information principale de l'écran.
 
 **The Tabular Rule.** Tout chiffre qui change en place (série, chrono, compteur) est en `font-variant-numeric: tabular-nums`. Sans ça, l'odomètre de la série tremble à chaque bascule.

@@ -16,7 +16,7 @@ import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
 import { streakEnSursis } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
-import { Skeleton } from "./ui";
+import { IconJoker, Skeleton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
@@ -94,7 +94,10 @@ export default function RankLine({
       ? streakEnSursis(player.id, entries, mine.joker_day, parisToday())
       : 0;
 
-  let emoji: string;
+  // ReactNode et plus string : la bouée du joker est dessinée depuis le
+  // 31/07 (l'emoji 🛟 est un anneau sombre, invisible sur ce fond), là où
+  // le 🔥 et le 🏆 restent des emoji — eux se voient très bien.
+  let emoji: React.ReactNode;
   let body: React.ReactNode;
 
   if (sursis > 0) {
@@ -106,7 +109,7 @@ export default function RankLine({
     // pour de la triche, c'est la raison d'être de la migration 24. Elle
     // ne promet rien de faux — si le 3/3 ne vient pas, rien ne se déclenche
     // et la série tombe, ce qu'elle faisait déjà en silence.
-    emoji = "🛟";
+    emoji = <IconJoker size={15} className="inline-block align-[-2px]" />;
     body = `Série de ${sursis} j en sursis — ton joker la sauve si tu fais ton 3/3`;
   } else if (!perfect && streak > 0) {
     // La série est en jeu : la phrase du soir, celle qui fait cocher.

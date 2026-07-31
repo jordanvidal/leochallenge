@@ -26,7 +26,7 @@ import {
 import { computeStats } from "@/lib/stats";
 import { Entry, Player } from "@/lib/types";
 import HistoryGrid from "./HistoryGrid";
-import { EditablePhotoAvatar, Skeleton } from "./ui";
+import { EditablePhotoAvatar, IconJoker, Skeleton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
@@ -161,7 +161,7 @@ export default function StatsScreen({
           <span className="font-bold">Toi</span>
           {jokerKnown && (
             <span
-              className="ml-auto text-base"
+              className="ml-auto text-muted"
               title={
                 jokerDay
                   ? `Joker brûlé le ${jokerDay}`
@@ -169,7 +169,7 @@ export default function StatsScreen({
               }
               style={jokerDay ? { opacity: 0.35 } : undefined}
             >
-              🛟
+              <IconJoker size={18} />
             </span>
           )}
         </div>
@@ -257,7 +257,7 @@ export default function StatsScreen({
           ) : (
             jokerKnown && (
               <Fact
-                value="🛟"
+                value={<IconJoker size={22} className="text-muted" />}
                 label={jokerDay ? "joker brûlé" : "joker intact"}
               />
             )
