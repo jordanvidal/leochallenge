@@ -52,6 +52,15 @@ export type ChatMessage = {
       conversation saute sous le pouce de qui est en train de lire. */
   photo_w: number | null;
   photo_h: number | null;
+  /** Le chemin du vocal dans le bucket, ou null. Comme pour une photo,
+      le corps d'un message vocal est facultatif. Un message ne porte
+      jamais les deux à la fois (contrainte chat_piece_unique). */
+  audio_path: string | null;
+  /** La durée du vocal, MESURÉE à l'enregistrement. Elle ne se relit pas
+      depuis le fichier : un WebM produit par MediaRecorder n'a pas de
+      durée dans son entête, et le lecteur rendrait `Infinity` tant qu'il
+      n'a pas tout téléchargé (migration45). */
+  audio_ms: number | null;
 };
 
 export type ChatReaction = {
@@ -61,23 +70,34 @@ export type ChatReaction = {
 };
 
 const CHAT_COLS =
-  "id, player_id, body, reply_to, feed_event_id, created_at, deleted_at, photo_path, photo_w, photo_h";
+  "id, player_id, body, reply_to, feed_event_id, created_at, deleted_at, photo_path, photo_w, photo_h, audio_path, audio_ms";
 
 // ---- Erreurs ----
 
 /** Traduit une erreur de la base en phrase humaine. Principe 5 de
     PRODUCT.md : dire la vérité, jamais un faux succès. */
-export function humanChatError(message: string): string {
+export function humanChatError(
+  message: string,
+  /** Quelle pièce jointe était en jeu. Storage dit « trop lourd » sans
+      jamais dire de quoi il parle : seul l'appelant le sait, et sans lui
+      un vocal refusé s'annoncerait comme une photo. */
+  piece: "photo" | "vocal" = "photo",
+): string {
   if (message.includes("chat_body_500")) return `${CHAT_BODY_MAX} caractères max`;
   if (message.includes("chat_body_non_vide")) return "Message vide";
+  if (message.includes("chat_audio_complete")) return "Vocal trop long";
+  if (message.includes("chat_piece_unique"))
+    return "Une photo ou un vocal, pas les deux";
   if (message.includes("CHAT_FIGE")) return "Ce message ne se modifie plus";
   if (message.includes("duplicate")) return "Déjà envoyé";
-  // Le bucket refuse au-delà de 3 Mo et hors JPEG (migration44). Les deux
-  // ne devraient jamais arriver — le canvas produit du JPEG réduit — mais
-  // « Photo non envoyée » vaut mieux que le charabia de Storage.
+  // Les buckets refusent au-delà de leur taille et hors des types permis
+  // (migration44 pour les photos, migration45 pour les vocaux). Ni l'un
+  // ni l'autre ne devrait arriver — le client réduit et encode lui-même —
+  // mais une phrase vaut mieux que le charabia de Storage.
   if (message.includes("exceeded the maximum allowed size"))
-    return "Photo trop lourde";
-  if (message.includes("mime type")) return "Format de photo refusé";
+    return piece === "vocal" ? "Vocal trop lourd" : "Photo trop lourde";
+  if (message.includes("mime type"))
+    return piece === "vocal" ? "Format de vocal refusé" : "Format de photo refusé";
   return "Message non envoyé, réessaie";
 }
 
@@ -312,18 +332,28 @@ export function apercu(body: string, max = 60): string {
  * Une photo sans légende n'a rien à donner à lire — d'où l'emoji, qui dit
  * ce qu'il y a à voir plutôt que de laisser un blanc. Avec légende, c'est
  * la légende qui parle, précédée du même emoji : on doit savoir qu'on
- * répond à une photo sans avoir à remonter la conversation.
+ * répond à une photo sans avoir à remonter la conversation. Un vocal suit
+ * exactement la même règle, avec son propre emoji — et il en a d'autant
+ * plus besoin qu'il n'y a, par définition, rien à citer dedans.
  *
  * Une seule fonction pour les trois endroits, comme findMentions : le
  * jour où deux d'entre eux divergent, l'app annonce dans la notification
  * autre chose que ce qu'elle affiche à l'écran.
  */
 export function apercuMessage(
-  m: { body: string; photo_path?: string | null; deleted_at?: string | null },
+  m: {
+    body: string;
+    photo_path?: string | null;
+    audio_path?: string | null;
+    deleted_at?: string | null;
+  },
   max = 60,
 ): string {
   if (m.deleted_at) return "Message supprimé";
   const texte = m.body.trim();
+  if (m.audio_path) {
+    return texte ? `🎤 ${apercu(texte, max - 2)}` : "🎤 Note vocale";
+  }
   if (!m.photo_path) return apercu(texte, max);
   return texte ? `📷 ${apercu(texte, max - 2)}` : "📷 Photo";
 }
@@ -399,6 +429,10 @@ export async function fetchCitedFeedEvents(
     chat_photo_complete). */
 export type PhotoJointe = { path: string; w: number; h: number };
 
+/** Ce qu'on attache à un message vocal : le chemin dans le bucket et la
+    durée, toujours les deux ensemble (contrainte chat_audio_complete). */
+export type VocalJoint = { path: string; ms: number };
+
 /** Poste un message. Renvoie la ligne insérée, ou le message d'erreur. */
 export async function insertMessage(
   playerId: string,
@@ -407,6 +441,9 @@ export async function insertMessage(
     replyTo?: string | null;
     feedEventId?: string | null;
     photo?: PhotoJointe | null;
+    /** Jamais en même temps qu'une photo : la base refuse les deux
+        (chat_piece_unique), et le composeur n'en propose qu'un. */
+    vocal?: VocalJoint | null;
   } = {},
 ): Promise<{ message: ChatMessage } | { error: string }> {
   const { data, error } = await supabase
@@ -419,6 +456,8 @@ export async function insertMessage(
       photo_path: opts.photo?.path ?? null,
       photo_w: opts.photo?.w ?? null,
       photo_h: opts.photo?.h ?? null,
+      audio_path: opts.vocal?.path ?? null,
+      audio_ms: opts.vocal?.ms ?? null,
     })
     .select(CHAT_COLS)
     .single();
@@ -427,25 +466,32 @@ export async function insertMessage(
 }
 
 /**
- * Le chemin de la photo d'un message, lu EN BASE.
+ * Les chemins des pièces jointes d'un message, lus EN BASE.
  *
  * Sert juste avant une suppression, et c'est un aller-retour assumé : le
  * nettoyage des octets ne doit dépendre d'aucun état client. Celui-ci
  * peut être en retard d'un événement temps réel, avoir été reconstruit
  * par un rechargement, ou venir d'un autre appareil que celui qui a
- * envoyé la photo. La base, elle, sait.
+ * envoyé la pièce jointe. La base, elle, sait.
  *
- * À lire AVANT l'update : le trigger vide `photo_path` au passage, donc
- * après, plus personne ne sait quels octets effacer.
+ * À lire AVANT l'update : le trigger vide les deux colonnes au passage,
+ * donc après, plus personne ne sait quels octets effacer.
+ *
+ * Les deux chemins en une seule requête, même si un message n'en porte
+ * jamais qu'un : c'est le même aller-retour, et le jour où une troisième
+ * sorte de pièce jointe arrive, il n'y a qu'un endroit à toucher.
  */
-export async function fetchPhotoPath(id: string): Promise<string | null> {
+export async function fetchPiecesJointes(
+  id: string,
+): Promise<{ photo: string | null; vocal: string | null }> {
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("photo_path")
+    .select("photo_path, audio_path")
     .eq("id", id)
     .maybeSingle();
-  if (error || !data) return null;
-  return (data as { photo_path: string | null }).photo_path;
+  if (error || !data) return { photo: null, vocal: null };
+  const row = data as { photo_path: string | null; audio_path: string | null };
+  return { photo: row.photo_path, vocal: row.audio_path };
 }
 
 /** Suppression douce. La base vide le corps elle-même — on ne lui

@@ -10,6 +10,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  demarrerVocal,
+  dureeLisible,
+  Enregistrement,
+  VOCAL_MAX_MS,
+  VocalPret,
+  vocalSupporte,
+} from "@/lib/audio";
+import {
   CHAT_BODY_MAX,
   insertMention,
   mentionQuery,
@@ -39,7 +47,11 @@ type Props = {
       soi-même ne prévient personne et n'informe personne. */
   mentionnables: Player[];
   showToast: (msg: string) => void;
-  onSend: (body: string, photo: PhotoPrete | null) => void;
+  onSend: (
+    body: string,
+    photo: PhotoPrete | null,
+    vocal: VocalPret | null,
+  ) => void;
 };
 
 export default function ChatComposer({
@@ -107,13 +119,118 @@ export default function ChatComposer({
     const texte = draft.trim();
     // Une photo part sans légende ; un message sans photo ne part pas vide.
     if (!texte && !photo) return;
-    onSend(texte, photo);
+    onSend(texte, photo, null);
     setDraft("");
     setCaret(0);
     // Révoquer notre aperçu ne casse pas la bulle qui part : le hook
     // fabrique sa PROPRE URL à partir du même blob, qu'il tient encore.
     oublierPhoto();
   }
+
+  // ---- La note vocale ----
+  //
+  // Trois taps en tout, et c'est le maximum que la règle des 10 secondes
+  // laisse à une fonction accessoire : micro, on parle, envoyer. Pas
+  // d'écoute de contrôle avant l'envoi — se réécouter avant d'envoyer un
+  // vocal à cinq potes n'est pas un besoin de ce produit, et ce serait un
+  // tap de plus sur le seul chemin qui compte.
+  //
+  // Le bouton micro prend la place du bouton envoyer quand il n'y a rien
+  // à envoyer. Deux raisons : c'est le geste que tout le monde connaît
+  // d'ailleurs, et ça évite un quatrième rond de 44 px sur une rangée qui
+  // n'en a plus la largeur sur un petit téléphone.
+
+  /** L'enregistrement en cours. Dans une ref et pas dans l'état : ses
+      méthodes ne se rejouent pas au rendu, et le minuteur de lib/audio
+      doit pouvoir l'atteindre depuis une fermeture qui ne vieillit pas. */
+  const enr = useRef<Enregistrement | null>(null);
+  const [enregistre, setEnregistre] = useState(false);
+  const [ecoule, setEcoule] = useState(0);
+  /** Ce navigateur sait-il enregistrer ? Lu après le montage : la réponse
+      dépend d'API absentes au rendu serveur. */
+  const [microDispo, setMicroDispo] = useState(false);
+  useEffect(() => setMicroDispo(vocalSupporte()), []);
+
+  async function demarrer() {
+    if (enr.current) return;
+    // La limite d'une minute est gardée par lib/audio, pas par le
+    // compteur ci-dessous : un `setInterval` est ralenti quand l'app
+    // passe en arrière-plan, et laisserait courir l'enregistrement.
+    const r = await demarrerVocal(() => finirRef.current());
+    // Quitter le tchat pendant que le système demande l'autorisation : le
+    // nettoyage au démontage est déjà passé, et sans ce test le micro
+    // resterait ouvert pour un écran qui n'existe plus.
+    if (!monte.current) {
+      if (!("error" in r)) r.annuler();
+      return;
+    }
+    if ("error" in r) {
+      showToast(
+        r.error === "MICRO_REFUSE"
+          ? "Micro refusé. Autorise-le dans les réglages du téléphone."
+          : "Ton navigateur ne sait pas enregistrer",
+      );
+      return;
+    }
+    enr.current = r;
+    setEcoule(0);
+    setEnregistre(true);
+    navigator.vibrate?.(10);
+  }
+
+  /** Arrête et envoie. C'est aussi ce que fait la minute écoulée : un
+      vocal qu'on vient de passer soixante secondes à dire ne doit pas
+      disparaître parce qu'on a atteint la borne annoncée à l'écran. */
+  async function finirEtEnvoyer() {
+    const r = enr.current;
+    if (!r) return;
+    enr.current = null;
+    setEnregistre(false);
+    setEcoule(0);
+    const pret = await r.arreter();
+    if (!pret) {
+      showToast("Trop court, reste appuyé un peu plus longtemps");
+      return;
+    }
+    navigator.vibrate?.(10);
+    onSend(draft.trim(), null, pret);
+    setDraft("");
+    setCaret(0);
+  }
+
+  // Le minuteur de lib/audio appelle ce qu'il a reçu au démarrage : sans
+  // ce miroir, il rappellerait la version de `finirEtEnvoyer` figée au
+  // moment du premier rendu, avec le brouillon d'alors.
+  const finirRef = useRef(finirEtEnvoyer);
+  finirRef.current = finirEtEnvoyer;
+
+  function annulerVocal() {
+    enr.current?.annuler();
+    enr.current = null;
+    setEnregistre(false);
+    setEcoule(0);
+  }
+
+  // Le compteur à l'écran. Deux fois par seconde suffit pour des
+  // secondes, et ça ne réveille pas le rendu pour rien.
+  useEffect(() => {
+    if (!enregistre) return;
+    const id = setInterval(() => setEcoule(enr.current?.ecoule() ?? 0), 200);
+    return () => clearInterval(id);
+  }, [enregistre]);
+
+  // Quitter le tchat en pleine phrase referme le micro. Sans ça, la
+  // pastille rouge du système reste allumée et le téléphone continue
+  // d'écouter un salon que personne ne regarde.
+  const monte = useRef(true);
+  useEffect(() => {
+    monte.current = true;
+    return () => {
+      monte.current = false;
+      enr.current?.annuler();
+      enr.current = null;
+    };
+  }, []);
 
   /** Range la photo choisie et rend la mémoire de son aperçu. */
   function oublierPhoto() {
@@ -273,6 +390,66 @@ export default function ChatComposer({
         </div>
       )}
 
+      {enregistre ? (
+        // Pendant l'enregistrement, la rangée entière change de métier :
+        // il n'y a plus rien à taper, et deux issues seulement — jeter,
+        // ou envoyer. La saisie et le bouton photo disparaissent plutôt
+        // que de rester là, inertes.
+        <div className="flex items-center gap-2">
+          <button
+            onClick={annulerVocal}
+            aria-label="Annuler l'enregistrement"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-muted transition-transform active:scale-95"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M5 7h14M10 7V5h4v2M8 7l1 12h6l1-12"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          <div
+            className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl bg-surface px-4"
+            // Le compteur est la seule chose qui bouge à l'écran : c'est
+            // lui qui dit que ça tourne vraiment. Annoncé poliment, pour
+            // qu'un lecteur d'écran ne récite pas chaque demi-seconde.
+            role="timer"
+            aria-live="off"
+          >
+            <span
+              aria-hidden
+              className="size-2.5 shrink-0 animate-pulse rounded-full bg-danger motion-reduce:animate-none"
+            />
+            <span className="text-base tabular-nums text-ink">
+              {dureeLisible(ecoule)}
+            </span>
+            <span className="text-xs text-muted">
+              / {dureeLisible(VOCAL_MAX_MS)}
+            </span>
+          </div>
+
+          <button
+            onClick={finirEtEnvoyer}
+            aria-label="Envoyer la note vocale"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
+            style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M5 12h13M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      ) : (
       <div className="flex items-end gap-2">
         {/* `accept` sans `capture` : on ouvre la pellicule ET l'appareil
             photo, et c'est iOS qui propose le choix. Avec `capture`, le
@@ -331,24 +508,56 @@ export default function ChatComposer({
           className="max-h-40 min-h-11 min-w-0 flex-1 resize-none rounded-2xl bg-surface px-4 py-2.5 text-base leading-snug text-ink placeholder:text-muted focus:outline-none focus:ring-2"
           style={{ "--tw-ring-color": "var(--pc)" } as React.CSSProperties}
         />
-        <button
-          onClick={envoyer}
-          disabled={draft.trim().length === 0 && !photo}
-          aria-label="Envoyer le message"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-40"
-          style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M5 12h13M13 6l6 6-6 6"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        {/* Rien à envoyer : le rond de droite propose le micro. Dès qu'un
+            caractère est tapé ou qu'une photo est prête, il redevient le
+            bouton d'envoi. Un seul rond, deux métiers, et jamais les deux
+            en même temps — un message ne porte de toute façon qu'une
+            pièce jointe (chat_piece_unique, migration45). */}
+        {microDispo && draft.trim().length === 0 && !photo ? (
+          <button
+            onClick={demarrer}
+            aria-label="Enregistrer une note vocale"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-muted transition-transform active:scale-95"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <rect
+                x="9"
+                y="3"
+                width="6"
+                height="11"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        ) : (
+          <button
+            onClick={envoyer}
+            disabled={draft.trim().length === 0 && !photo}
+            aria-label="Envoyer le message"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-40"
+            style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M5 12h13M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
       </div>
+      )}
 
       {reste <= 60 && (
         <p className="mt-1 text-right text-[11px] text-faint">

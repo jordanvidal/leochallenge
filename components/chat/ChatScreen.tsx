@@ -273,11 +273,12 @@ export default function ChatScreen({
         citation={citation}
         mentionnables={autres}
         showToast={showToast}
-        onSend={(body, photo) => {
+        onSend={(body, photo, vocal) => {
           send(body, {
             replyTo: reply?.id ?? null,
             feedEventId: reply ? null : (seed?.id ?? null),
             photo,
+            vocal,
           });
           setReply(null);
           onSeedUsed();

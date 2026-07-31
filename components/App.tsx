@@ -516,7 +516,11 @@ export default function App() {
       {/* Masqué sur le tchat : la barre de saisie est collée juste
           au-dessus des onglets, et ces trois liens se glisseraient entre
           les deux. Une conversation n'est de toute façon pas l'endroit
-          où l'on revoit les règles. */}
+          où l'on revoit les règles.
+          Les liens sont à 44 px et en `quiet` : c'est la seule route vers
+          les règles et vers le changement de joueur, donc ni un texte
+          qu'on devine ni une cible qu'on rate. Les séparateurs, eux,
+          restent en `faint` — ils sont aria-hidden et purement graphiques. */}
       <div
         className={`items-center justify-center gap-4 px-5 pb-1 ${
           effTab === "chat" ? "hidden" : "flex"
@@ -524,7 +528,7 @@ export default function App() {
       >
         <button
           onClick={() => setReplayTuto(true)}
-          className="min-h-8 text-[11px] text-faint"
+          className="min-h-11 text-[11px] text-quiet"
         >
           Revoir les règles
         </button>
@@ -535,7 +539,7 @@ export default function App() {
             </span>
             <button
               onClick={() => setReplayLaunch(true)}
-              className="min-h-8 text-[11px] text-faint"
+              className="min-h-11 text-[11px] text-quiet"
             >
               Revoir le lancement
             </button>
@@ -546,7 +550,7 @@ export default function App() {
         </span>
         <button
           onClick={id.forgetPlayer}
-          className="min-h-8 text-[11px] text-faint"
+          className="min-h-11 text-[11px] text-quiet"
         >
           Ce n&apos;est pas moi ({player.name})
         </button>

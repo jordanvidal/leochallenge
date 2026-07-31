@@ -46,6 +46,8 @@ function msg(
     photo_path: null,
     photo_w: null,
     photo_h: null,
+    audio_path: null,
+    audio_ms: null,
   };
 }
 
@@ -341,6 +343,20 @@ describe("apercuMessage — comment un message se raconte ailleurs", () => {
     expect([...out].length).toBeLessThanOrEqual(20);
     expect(out.startsWith("📷 ")).toBe(true);
     expect(out.endsWith("…")).toBe(true);
+  });
+
+  it("annonce une note vocale, qui n'a par nature rien à citer", () => {
+    // Le cas le plus important des trois : une photo citée montre au
+    // moins une vignette quelque part, un vocal ne montre rien du tout.
+    expect(apercuMessage({ body: "", audio_path: "leo/a.m4a" })).toBe(
+      "🎤 Note vocale",
+    );
+  });
+
+  it("laisse parler la légende d'un vocal quand il y en a une", () => {
+    expect(apercuMessage({ body: "écoute ça", audio_path: "leo/a.m4a" })).toBe(
+      "🎤 écoute ça",
+    );
   });
 
   it("dit la suppression avant tout le reste", () => {

@@ -27,7 +27,7 @@ import {
   fetchLastRead,
   fetchMessages,
   fetchNotifyPref,
-  fetchPhotoPath,
+  fetchPiecesJointes,
   humanChatError,
   insertChatReaction,
   insertMessage,
@@ -36,12 +36,15 @@ import {
   NotifyPref,
   PhotoJointe,
   setNotifyPref,
+  VocalJoint,
 } from "@/lib/chat";
 import {
   prechargerPhoto,
   removeChatPhoto,
   uploadChatPhoto,
 } from "@/lib/chatPhotos";
+import { removeChatVocal, uploadChatVocal } from "@/lib/chatVocaux";
+import { VocalPret } from "@/lib/audio";
 import { FeedEvent } from "@/lib/feed";
 import { PhotoPrete } from "@/lib/image";
 import { SUPABASE_SCHEMA, supabase } from "@/lib/supabase";
@@ -354,17 +357,22 @@ export function useChat(
         /** La photo déjà réduite par le composeur. Le hook n'a plus qu'à
             la téléverser — mais il le fait APRÈS avoir affiché la bulle. */
         photo?: PhotoPrete | null;
+        /** Le vocal déjà encodé par le composeur, avec sa durée mesurée.
+            Jamais en même temps qu'une photo (chat_piece_unique). */
+        vocal?: VocalPret | null;
       } = {},
     ) => {
       const texte = body.trim();
-      // Une photo se suffit à elle-même : la légende est facultative
-      // (contrainte chat_body_non_vide, migration44). Sans photo, en
-      // revanche, un message vide reste un message vide.
-      if (!myId || (!texte && !opts.photo)) return;
+      // Une pièce jointe se suffit à elle-même : la légende est
+      // facultative (contrainte chat_body_non_vide, migration44 et 45).
+      // Sans elle, en revanche, un message vide reste un message vide.
+      if (!myId || (!texte && !opts.photo && !opts.vocal)) return;
       const tmpId = `tmp-${Date.now()}`;
-      // L'URL locale des octets qu'on tient déjà : la photo est à l'écran
-      // avant même que le téléversement ne commence.
-      const apercuLocal = opts.photo ? URL.createObjectURL(opts.photo.blob) : null;
+      // L'URL locale des octets qu'on tient déjà : la pièce jointe est à
+      // l'écran — et un vocal déjà écoutable — avant même que le
+      // téléversement ne commence.
+      const piece = opts.photo ?? opts.vocal ?? null;
+      const blobLocal = piece ? URL.createObjectURL(piece.blob) : null;
       const optimiste: ChatMessage = {
         id: tmpId,
         player_id: myId,
@@ -373,21 +381,42 @@ export function useChat(
         feed_event_id: opts.feedEventId ?? null,
         created_at: new Date().toISOString(),
         deleted_at: null,
-        photo_path: apercuLocal,
+        photo_path: opts.photo ? blobLocal : null,
         photo_w: opts.photo?.w ?? null,
         photo_h: opts.photo?.h ?? null,
+        audio_path: opts.vocal ? blobLocal : null,
+        audio_ms: opts.vocal?.ms ?? null,
       };
       setMessages((prev) => (prev ? [...prev, optimiste] : [optimiste]));
 
       /** Retire la bulle en vol et rend la mémoire de l'aperçu. */
-      const abandonner = (erreur: string) => {
+      const abandonner = (erreur: string, quoi: "photo" | "vocal" = "photo") => {
         setMessages((prev) => prev?.filter((m) => m.id !== tmpId) ?? prev);
-        if (apercuLocal) URL.revokeObjectURL(apercuLocal);
-        showToast(humanChatError(erreur));
+        if (blobLocal) URL.revokeObjectURL(blobLocal);
+        showToast(humanChatError(erreur, quoi));
       };
 
       // Les octets d'abord, la ligne ensuite. L'ordre inverse laisserait
-      // en base des messages qui pointent vers une photo qui n'existe pas.
+      // en base des messages qui pointent vers une pièce jointe qui
+      // n'existe pas.
+      let vocalJoint: VocalJoint | null = null;
+      if (opts.vocal) {
+        const up = await uploadChatVocal(
+          myId,
+          opts.vocal.blob,
+          opts.vocal.mime,
+          opts.vocal.ext,
+        );
+        if ("error" in up) return abandonner(up.error, "vocal");
+        vocalJoint = { path: up.path, ms: opts.vocal.ms };
+        // Pas d'équivalent de `prechargerPhoto` ici, et c'est voulu : le
+        // lecteur ne télécharge rien tant qu'on n'appuie pas sur play
+        // (`preload="none"`, ChatVocal.tsx). Il n'y a donc aucun
+        // clignotement à couvrir quand la bulle passe du blob local à
+        // l'URL de Storage — et attendre le téléchargement d'un fichier
+        // que personne n'écoute peut-être retarderait l'envoi pour rien.
+      }
+
       let jointe: PhotoJointe | null = null;
       if (opts.photo) {
         const up = await uploadChatPhoto(myId, opts.photo.blob);
@@ -405,14 +434,20 @@ export function useChat(
         await prechargerPhoto(jointe.path);
       }
 
-      const res = await insertMessage(myId, texte, { ...opts, photo: jointe });
+      const res = await insertMessage(myId, texte, {
+        ...opts,
+        photo: jointe,
+        vocal: vocalJoint,
+      });
       if ("error" in res) {
         // La ligne a échoué mais les octets sont déjà là-haut : on les
-        // reprend, sinon le bucket se remplit d'images que rien ne cite.
+        // reprend, sinon les buckets se remplissent de fichiers que rien
+        // ne cite.
         if (jointe) removeChatPhoto(jointe.path);
-        return abandonner(res.error);
+        if (vocalJoint) removeChatVocal(vocalJoint.path);
+        return abandonner(res.error, vocalJoint ? "vocal" : "photo");
       }
-      if (apercuLocal) URL.revokeObjectURL(apercuLocal);
+      if (blobLocal) URL.revokeObjectURL(blobLocal);
       // Le temps réel a pu livrer la vraie ligne avant nous : on retire
       // l'optimiste puis on dédoublonne par id.
       setMessages((prev) =>
@@ -437,15 +472,17 @@ export function useChat(
                   photo_path: null,
                   photo_w: null,
                   photo_h: null,
+                  audio_path: null,
+                  audio_ms: null,
                 }
               : m,
           ) ?? prev,
       );
-      // Le chemin se lit en base, et AVANT l'update : le trigger vide
-      // `photo_path` au passage, et l'état local n'est pas une source de
-      // vérité pour effacer des octets — il peut venir d'un rechargement,
-      // d'un autre appareil, ou avoir un événement temps réel de retard.
-      const photo = await fetchPhotoPath(id);
+      // Les chemins se lisent en base, et AVANT l'update : le trigger les
+      // vide au passage, et l'état local n'est pas une source de vérité
+      // pour effacer des octets — il peut venir d'un rechargement, d'un
+      // autre appareil, ou avoir un événement temps réel de retard.
+      const pieces = await fetchPiecesJointes(id);
 
       const err = await deleteMessage(id);
       if (err) {
@@ -454,8 +491,13 @@ export function useChat(
         return;
       }
       // Supprimé pour de bon : les octets s'en vont aussi. Un blob: est
-      // une photo jamais partie, il n'y a rien à reprendre au bucket.
-      if (photo && !photo.startsWith("blob:")) removeChatPhoto(photo);
+      // une pièce jointe jamais partie, il n'y a rien à reprendre.
+      if (pieces.photo && !pieces.photo.startsWith("blob:")) {
+        removeChatPhoto(pieces.photo);
+      }
+      if (pieces.vocal && !pieces.vocal.startsWith("blob:")) {
+        removeChatVocal(pieces.vocal);
+      }
     },
     [messages, showToast],
   );

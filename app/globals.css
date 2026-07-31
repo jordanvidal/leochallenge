@@ -10,6 +10,14 @@
   --color-raised: oklch(0.22 0 0);
   --color-ink: oklch(0.965 0 0);
   --color-muted: oklch(0.68 0 0);
+  /* Le cran qui manquait (31/07). `faint` est la fumée décorative, et il
+     doit le rester : à 0.45 sur `bg` il donne 2,7:1, ce qui est très bien
+     pour le « 100 » en attente et pour un séparateur, et hors-la-loi pour
+     un mot qu'on doit lire. Les libellés d'onglets étaient à ce régime
+     alors que leurs icônes sont `aria-hidden` : le mot est la seule chose
+     qui rend la barre apprenable. 0.62 vaut 5,6:1 — lisible à 11 px, et
+     toujours nettement en retrait de `muted`. */
+  --color-quiet: oklch(0.62 0 0);
   --color-faint: oklch(0.45 0 0);
   --color-line: oklch(0.27 0 0);
   --color-danger: oklch(0.68 0.19 25);
@@ -57,6 +65,17 @@ button {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   touch-action: manipulation;
+}
+
+/* On manipule cette app au pouce, donc le focus clavier n'existait pas :
+   l'anneau par défaut du navigateur fait 0,55 px et il est invisible sur
+   un fond à oklch(0.115). Il ne coûte rien au pouce — `:focus-visible` ne
+   se déclenche pas au tap — et il est la seule façon de savoir où l'on
+   est au clavier Bluetooth ou en navigation VoiceOver. L'accent du joueur
+   courant plutôt qu'un gris : c'est lui qui dit « toi » partout ailleurs. */
+:focus-visible {
+  outline: 2px solid var(--pc);
+  outline-offset: 2px;
 }
 
 /* Chiffres qui comptent : massifs, en display */
