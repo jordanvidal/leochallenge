@@ -240,6 +240,34 @@ export default function App() {
     setEventSeen(localStorage.getItem("lc100.eventSeenDay") === parisToday());
   }, [player, bonus?.event]);
 
+  /**
+   * L'écran de lancement S3 ne s'affiche jamais à quelqu'un qui n'a jamais
+   * joué — et on le marque vu, pour qu'il ne lui tombe pas dessus non plus
+   * le jour où il commence.
+   *
+   * C'est un diff de saison : « Bilan S2 », « Ce qui arrive », « Ce qui
+   * dégage », « le double d'avant ». Six écrans qui racontent un changement
+   * à quelqu'un qui n'a pas d'avant — et qui lui montrent au passage son
+   * bilan de la saison 2, c'est-à-dire des zéros.
+   *
+   * C'est le pire endroit possible pour ça : les données disent que quatre
+   * inscrits sur neuf n'ont jamais eu de jour 1. Le barème en vigueur, lui,
+   * est déjà enseigné par le tutoriel, qui lit le même drapeau `s3`.
+   *
+   * `entries` arrive dans le même `Promise.all` que `players`, donc la
+   * réponse est fiable dès que les joueurs sont là. Hors ligne, on ne
+   * conclut rien : une liste vide serait un échec de chargement, pas une
+   * absence de jeu.
+   */
+  useEffect(() => {
+    if (!player || id.launchS3Seen || data.players === null || data.offline)
+      return;
+    const aDejaJoue = [...data.entries.values()].some(
+      (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+    );
+    if (!aDejaJoue) id.markLaunchS3Seen();
+  }, [player, id, data.players, data.entries, data.offline]);
+
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
       bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
   function dismissEventModal() {
@@ -353,9 +381,22 @@ export default function App() {
 
   // Écran de lancement S3 : une fois à partir du 27/07, ou en aperçu manuel
   // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
+  //
+  // `aDejaJoue` garde la porte : l'effet plus haut marque l'écran vu pour un
+  // nouveau, mais le rendu ne doit pas l'afficher une seule frame en
+  // attendant. L'aperçu manuel et « Revoir le lancement » passent toujours —
+  // eux sont demandés.
+  const aDejaJoue = [...data.entries.values()].some(
+    (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+  );
   if (
     !over &&
-    (forceLaunch || replayLaunch || (saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen))
+    (forceLaunch ||
+      replayLaunch ||
+      (saison3Started(f) &&
+        aUneBasculeDeBareme(f) &&
+        !id.launchS3Seen &&
+        aDejaJoue))
   ) {
     return (
       <div style={accent}>
