@@ -22,6 +22,7 @@ import {
   frenchRank,
   Gamification,
   LeaderboardRow,
+  ordonneClassement,
 } from "@/lib/gamification";
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
@@ -191,7 +192,13 @@ export default function LeaderboardScreen({
       : isPastWeek
         ? history.get(selectedWeek.index)
         : gamification.week;
-  const rows = (rawRows ?? []).filter((r) => byId.has(r.player_id));
+  // Trié explicitement : le RPC n'a pas d'`order by`, donc jusqu'ici le
+  // classement s'affichait dans l'ordre où Postgres rendait ses lignes, et
+  // `podium[0]` était supposé premier sans que rien ne l'impose.
+  const rows = ordonneClassement(
+    (rawRows ?? []).filter((r) => byId.has(r.player_id)),
+    new Map(players.map((p) => [p.id, p.name])),
+  );
   const podium = rows.filter((r) => r.rank <= 3).slice(0, 3);
   // ordre visuel du podium : 2e, 1er, 3e
   const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean);
