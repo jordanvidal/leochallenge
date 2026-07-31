@@ -26,6 +26,7 @@ import {
 } from "@/lib/gamification";
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
+import { BaremeSheet } from "./MiniBareme";
 import PlayerBreakdown from "./PlayerBreakdown";
 import { Avatar, IconJoker, Skeleton } from "./ui";
 import { useLigueCourante } from "./ligue/LigueContexte";
@@ -107,6 +108,11 @@ export default function LeaderboardScreen({
   );
   // Joueur dont on regarde le détail des points (overlay), null = fermé.
   const [detail, setDetail] = useState<LeaderboardRow | null>(null);
+  // Le barème, ouvert depuis l'en-tête. Il vivait tout en bas du détail
+  // d'un joueur : pour lire les règles il fallait taper sur quelqu'un,
+  // ouvrir son détail et descendre au pied d'un panneau qui parle des
+  // points d'un autre. C'est ici qu'on se pose la question.
+  const [bareme, setBareme] = useState(false);
   // Rangs au dimanche dernier : uniquement les flèches ↑↓ du Général, donc
   // chargés à l'ouverture de cet onglet et pas avant. undefined = pas encore
   // demandé, null = échec (retenté en revenant sur l'onglet).
@@ -224,7 +230,15 @@ export default function LeaderboardScreen({
 
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
-      <h1 className="mt-4 text-2xl font-bold">Classement</h1>
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold">Classement</h1>
+        <button
+          onClick={() => setBareme(true)}
+          className="-mr-2 min-h-11 px-2 text-sm font-medium text-quiet"
+        >
+          Comment on marque
+        </button>
+      </div>
 
       <DuelCard
         player={player}
@@ -408,6 +422,8 @@ export default function LeaderboardScreen({
           onClose={() => setDetail(null)}
         />
       )}
+
+      {bareme && <BaremeSheet onClose={() => setBareme(false)} />}
     </div>
   );
 }

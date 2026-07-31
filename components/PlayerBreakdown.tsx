@@ -18,6 +18,7 @@ import {
 import { fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import { Avatar, Skeleton } from "./ui";
+import { MiniBareme } from "./MiniBareme";
 import { useFenetre } from "./ligue/LigueContexte";
 
 type Props = {
@@ -295,105 +296,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
             </div>
           )}
 
-          {/* Mini-barème */}
-          <div className="mt-8 mb-4 rounded-2xl bg-surface p-4 text-xs text-muted">
-            <p className="mb-3 font-bold text-faint">Comment on marque</p>
-            <dl className="space-y-2">
-              <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">1 pt</dt>
-                <dd>par exo coché</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">{s3 ? "+4" : "+2"}</dt>
-                <dd>journée parfaite (3 exos sur 3)</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">×1,5</dt>
-                <dd>série de 3 jours parfaits</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="num-display w-14 shrink-0 text-ink">×2</dt>
-                <dd>série de 7 jours parfaits</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
-                <dd>
-                  {s3 ? "" : "premier du jour, "}séances, événements et exos
-                  déclarés s&apos;ajoutent par-dessus
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-14 shrink-0 font-bold text-ink">⚔️ ±3</dt>
-                <dd>duel hebdo : chaque lundi, duel contre ton voisin de classement — le plus de jours parfaits d&apos;ici dimanche prend 3 pts à l&apos;autre</dd>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <dt className="w-14 shrink-0 font-bold text-ink">🏆 +3</dt>
-                <dd>gagner la semaine : le vainqueur du classement hebdo prend 3 pts au général (posés le dimanche, depuis le 20/07)</dd>
-              </div>
-              {s3 && (
-                <div className="flex items-baseline gap-3">
-                  <dt className="w-14 shrink-0 font-bold text-ink">📅 +5</dt>
-                  <dd>la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le dimanche (depuis le 27/07)</dd>
-                </div>
-              )}
-            </dl>
-
-            {/* Les événements du jour : tirés au hasard, expliqués une bonne fois */}
-            <p className="mt-4 mb-3 border-t border-line pt-4 font-bold text-faint">
-              Les événements du jour{" "}
-              <span className="font-normal">(tirés au hasard, 1 max/jour)</span>
-            </p>
-            <dl className="space-y-2">
-              {s3 ? (
-                <div className="flex items-baseline gap-3">
-                  <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
-                  <dd>
-                    exo doublé : l&apos;exo tiré (pompes, abdos ou squats) voit
-                    ta coche <b>et</b> tous tes bonus qui le travaillent
-                    compter double ce jour-là. La coche double à sa valeur du
-                    jour, série comprise ; les bonus doublés portent un ×2
-                    au-dessus
-                  </dd>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-baseline gap-3">
-                    <dt className="w-6 shrink-0 text-center" aria-hidden>🎲</dt>
-                    <dd>pompes double : tes pompes comptent double ce jour-là</dd>
-                  </div>
-                  <div className="flex items-baseline gap-3">
-                    <dt className="w-6 shrink-0 text-center" aria-hidden>🍻</dt>
-                    <dd>happy hour : séance finie entre 18h et 20h → +5</dd>
-                  </div>
-                  <div className="flex items-baseline gap-3">
-                    <dt className="w-6 shrink-0 text-center" aria-hidden>🌄</dt>
-                    <dd>lève-tôt : séance finie avant 7h → +6</dd>
-                  </div>
-                </>
-              )}
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>🎰</dt>
-                <dd>
-                  quitte ou double : si tu boucles ton 3/3, tes points de{" "}
-                  <b>base</b> du jour comptent double. Si tu rates, rien ne
-                  change (aucune perte).
-                </dd>
-              </div>
-              {!s3 && (
-                <div className="flex items-baseline gap-3">
-                  <dt className="w-6 shrink-0 text-center" aria-hidden>🪞</dt>
-                  <dd>
-                    jour miroir : le <b>dernier</b> du classement général reçoit
-                    +8 pour se relancer
-                  </dd>
-                </div>
-              )}
-              <div className="flex items-baseline gap-3">
-                <dt className="w-6 shrink-0 text-center" aria-hidden>👊</dt>
-                <dd>boss du dimanche : 200 pompes au total → +10 (dimanche only)</dd>
-              </div>
-            </dl>
-          </div>
+          <MiniBareme s3={s3} />
         </div>
       )}
     </div>
