@@ -229,18 +229,22 @@ export default function App() {
     localStorage.setItem("lc100.badgeCleared", "1");
   }, []);
 
-  // Un événement a été tiré aujourd'hui et on ne l'a pas encore vu : on
-  // ouvre la modale. Le flag est daté, donc elle revient chaque matin.
+  // Événement du jour : plus d'ouverture forcée à l'accueil. Un bandeau non
+  // bloquant l'annonce dans TodayScreen (EventBanner) ; la modale — la roue,
+  // le détail — devient une destination qu'on ouvre au tap, jamais une porte
+  // sur le chemin de la coche. `eventSeen` pilote la visibilité du bandeau :
+  // vrai tant qu'on ne sait pas (pas de flash), recalculé dès l'événement connu.
+  const [eventSeen, setEventSeen] = useState(true);
   useEffect(() => {
     if (!player || !bonus?.event) return;
-    if (localStorage.getItem("lc100.eventSeenDay") !== parisToday()) {
-      setShowEventModal(true);
-    }
+    setEventSeen(localStorage.getItem("lc100.eventSeenDay") === parisToday());
   }, [player, bonus?.event]);
 
-  /** Modale d'événement fermée : mémorisé pour la journée. */
+  /** Événement vu pour la journée : ferme la modale si ouverte et retire le
+      bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
   function dismissEventModal() {
     localStorage.setItem("lc100.eventSeenDay", parisToday());
+    setEventSeen(true);
     setShowEventModal(false);
   }
 
@@ -437,6 +441,9 @@ export default function App() {
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             bonus={bonus}
+            showEvent={!eventSeen && bonus?.event ? bonus.event : null}
+            onOpenEvent={() => setShowEventModal(true)}
+            onDismissEvent={dismissEventModal}
             sessionStarted={session.started}
             onStartWorkout={() => setWorkoutOpen(true)}
             onClaimBonus={(item) => claim(player.id, item)}
