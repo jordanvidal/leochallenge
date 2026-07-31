@@ -448,7 +448,6 @@ export default function App() {
             onStartWorkout={() => setWorkoutOpen(true)}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
-            onShareWeek={shareWeek}
             onInvite={invite}
             onGoLeaderboard={() => setTab("leaderboard")}
             showToast={data.showToast}
@@ -517,51 +516,25 @@ export default function App() {
             onShareWeek={shareWeek}
             onSetPhoto={data.setPhoto}
             showToast={data.showToast}
+            onReplayTuto={() => setReplayTuto(true)}
+            onReplayLaunch={
+              saison3Started(f) &&
+              aUneBasculeDeBareme(f) &&
+              parisToday() <= addDays(f.saison3, 6)
+                ? () => setReplayLaunch(true)
+                : null
+            }
+            onForget={id.forgetPlayer}
           />
         )}
       </div>
-      {/* Masqué sur le tchat : la barre de saisie est collée juste
-          au-dessus des onglets, et ces trois liens se glisseraient entre
-          les deux. Une conversation n'est de toute façon pas l'endroit
-          où l'on revoit les règles.
-          Les liens sont à 44 px et en `quiet` : c'est la seule route vers
-          les règles et vers le changement de joueur, donc ni un texte
-          qu'on devine ni une cible qu'on rate. Les séparateurs, eux,
-          restent en `faint` — ils sont aria-hidden et purement graphiques. */}
-      <div
-        className={`items-center justify-center gap-4 px-5 pb-1 ${
-          effTab === "chat" ? "hidden" : "flex"
-        }`}
-      >
-        <button
-          onClick={() => setReplayTuto(true)}
-          className="min-h-11 text-[11px] text-quiet"
-        >
-          Revoir les règles
-        </button>
-        {saison3Started(f) && aUneBasculeDeBareme(f) && parisToday() <= addDays(f.saison3, 6) && (
-          <>
-            <span className="text-[11px] text-faint" aria-hidden>
-              ·
-            </span>
-            <button
-              onClick={() => setReplayLaunch(true)}
-              className="min-h-11 text-[11px] text-quiet"
-            >
-              Revoir le lancement
-            </button>
-          </>
-        )}
-        <span className="text-[11px] text-faint" aria-hidden>
-          ·
-        </span>
-        <button
-          onClick={id.forgetPlayer}
-          className="min-h-11 text-[11px] text-quiet"
-        >
-          Ce n&apos;est pas moi ({player.name})
-        </button>
-      </div>
+      {/* Les trois liens d'aide et d'identité vivaient ici, sous la barre
+          d'onglets, donc sur TOUS les écrans — y compris le chemin des dix
+          secondes, où ils n'ont rien à faire. Ils sont descendus dans Stats,
+          qui porte déjà le profil : « revoir les règles » et « ce n'est pas
+          moi » sont des gestes de profil, pas des gestes de tous les soirs.
+          L'ancien bloc restait par ailleurs masqué à la main sur le tchat,
+          preuve qu'il n'était pas à sa place. */}
       <TabBar
         tab={effTab}
         onChange={setTab}

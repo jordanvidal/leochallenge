@@ -41,7 +41,6 @@ type Props = {
   onStartWorkout: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
-  onShareWeek: () => void;
   onInvite: () => void;
   onGoLeaderboard: () => void;
   showToast: (msg: string) => void;
@@ -62,7 +61,6 @@ export default function TodayScreen({
   onStartWorkout,
   onClaimBonus,
   onUnclaimBonus,
-  onShareWeek,
   onInvite,
   onGoLeaderboard,
   showToast,
@@ -379,17 +377,11 @@ export default function TodayScreen({
 
       <NotifBanner player={player} onDone={showToast} />
 
-      {/* Le partage n'apparaît qu'une fois le jour gagné : personne ne
-          partage sa semaine avant d'avoir coché — un bloc de moins dans le
-          chemin critique, une petite récompense après la 3e coche. */}
-      {(perfect || over) && (
-        <button
-          onClick={onShareWeek}
-          className="mb-3 min-h-12 w-full rounded-2xl bg-surface text-sm font-bold text-ink"
-        >
-          Partager ma semaine 💬
-        </button>
-      )}
+      {/* Le partage vivait ici en plus de celui des Stats — deux boutons,
+          le même `shareWeek()`. DoneScreen.tsx documente la suppression de
+          exactement cette duplication, pour exactement cette raison ; la
+          troisième instance avait survécu. C'est celle des Stats qui reste :
+          partager sa semaine se décide en regardant sa semaine. */}
     </div>
   );
 }
