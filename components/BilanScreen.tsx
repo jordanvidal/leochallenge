@@ -128,7 +128,7 @@ function TimelineBand({ cells, total }: { cells: TimelineCell[]; total: number }
           </div>
         ))}
       </div>
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-[10px] text-faint">
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-[11px] text-quiet">
         <span>personne</span>
         {[0, 0.4, 0.7, 1].map((f) => (
           <span

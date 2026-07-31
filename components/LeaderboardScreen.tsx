@@ -314,7 +314,7 @@ export default function LeaderboardScreen({
                   >
                     {fmtPoints(r.points)}
                   </span>
-                  <span className="text-[10px] font-medium text-faint">
+                  <span className="text-[11px] font-medium text-quiet">
                     {frenchRank(r.rank)} · pts
                   </span>
                 </button>

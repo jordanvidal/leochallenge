@@ -92,7 +92,7 @@ function Fact({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div className="flex-1 rounded-xl bg-bg px-2.5 py-2">
       <p className="num-display text-xl">{value}</p>
-      <p className="mt-0.5 text-[10px] leading-tight font-semibold text-muted">
+      <p className="mt-0.5 text-[11px] leading-tight font-semibold text-muted">
         {label}
       </p>
     </div>
@@ -220,7 +220,9 @@ export default function StatsScreen({
                 height={26}
               />
             </div>
-            <div className="mt-0.5 flex justify-between text-[9px] font-semibold text-faint">
+            {/* Les seules graduations de la bande : elles disent à quelle
+                heure on s'entraîne, donc elles se lisent. */}
+            <div className="mt-0.5 flex justify-between text-[11px] font-semibold text-quiet">
               <span>0 h</span>
               <span>6 h</span>
               <span>12 h</span>
@@ -314,7 +316,10 @@ export default function StatsScreen({
                     style={{ color: p.color }}
                   >
                     {s.bestStreak}
-                    <span className="text-[0.55em] font-semibold text-muted">
+                    {/* L'unité suit la taille du chiffre, mais jamais sous
+                        11 px : ici le parent est à 16 px, et 0.55em tombait
+                        à 8,8 px — la plus petite chose de l'app. */}
+                    <span className="text-[max(11px,0.55em)] font-semibold text-muted">
                       {" "}
                       j
                     </span>
