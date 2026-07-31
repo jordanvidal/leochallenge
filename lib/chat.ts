@@ -44,6 +44,14 @@ export type ChatMessage = {
   feed_event_id: string | null;
   created_at: string;
   deleted_at: string | null;
+  /** Le chemin de la photo dans le bucket, ou null. Un message photo a
+      son corps facultatif : la légende n'est pas obligatoire. */
+  photo_path: string | null;
+  /** Les dimensions FINALES de la photo. Elles servent à réserver la
+      place dans la bulle avant que l'image n'arrive — sans elles, la
+      conversation saute sous le pouce de qui est en train de lire. */
+  photo_w: number | null;
+  photo_h: number | null;
 };
 
 export type ChatReaction = {
@@ -52,7 +60,8 @@ export type ChatReaction = {
   emoji: string;
 };
 
-const CHAT_COLS = "id, player_id, body, reply_to, feed_event_id, created_at, deleted_at";
+const CHAT_COLS =
+  "id, player_id, body, reply_to, feed_event_id, created_at, deleted_at, photo_path, photo_w, photo_h";
 
 // ---- Erreurs ----
 
@@ -63,6 +72,12 @@ export function humanChatError(message: string): string {
   if (message.includes("chat_body_non_vide")) return "Message vide";
   if (message.includes("CHAT_FIGE")) return "Ce message ne se modifie plus";
   if (message.includes("duplicate")) return "Déjà envoyé";
+  // Le bucket refuse au-delà de 3 Mo et hors JPEG (migration44). Les deux
+  // ne devraient jamais arriver — le canvas produit du JPEG réduit — mais
+  // « Photo non envoyée » vaut mieux que le charabia de Storage.
+  if (message.includes("exceeded the maximum allowed size"))
+    return "Photo trop lourde";
+  if (message.includes("mime type")) return "Format de photo refusé";
   return "Message non envoyé, réessaie";
 }
 
@@ -290,6 +305,29 @@ export function apercu(body: string, max = 60): string {
   return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
 }
 
+/**
+ * Comment un message se raconte quand il est cité ailleurs : dans une
+ * bulle de réponse, dans la barre de saisie, dans une notification.
+ *
+ * Une photo sans légende n'a rien à donner à lire — d'où l'emoji, qui dit
+ * ce qu'il y a à voir plutôt que de laisser un blanc. Avec légende, c'est
+ * la légende qui parle, précédée du même emoji : on doit savoir qu'on
+ * répond à une photo sans avoir à remonter la conversation.
+ *
+ * Une seule fonction pour les trois endroits, comme findMentions : le
+ * jour où deux d'entre eux divergent, l'app annonce dans la notification
+ * autre chose que ce qu'elle affiche à l'écran.
+ */
+export function apercuMessage(
+  m: { body: string; photo_path?: string | null; deleted_at?: string | null },
+  max = 60,
+): string {
+  if (m.deleted_at) return "Message supprimé";
+  const texte = m.body.trim();
+  if (!m.photo_path) return apercu(texte, max);
+  return texte ? `📷 ${apercu(texte, max - 2)}` : "📷 Photo";
+}
+
 // ---- Lecture ----
 
 /** Une page de messages, du plus récent au plus ancien (l'écran les
@@ -356,11 +394,20 @@ export async function fetchCitedFeedEvents(
 
 // ---- Écriture ----
 
+/** Ce qu'on attache à un message : le chemin dans le bucket et les
+    dimensions de l'image, toujours les trois ensemble (contrainte
+    chat_photo_complete). */
+export type PhotoJointe = { path: string; w: number; h: number };
+
 /** Poste un message. Renvoie la ligne insérée, ou le message d'erreur. */
 export async function insertMessage(
   playerId: string,
   body: string,
-  opts: { replyTo?: string | null; feedEventId?: string | null } = {},
+  opts: {
+    replyTo?: string | null;
+    feedEventId?: string | null;
+    photo?: PhotoJointe | null;
+  } = {},
 ): Promise<{ message: ChatMessage } | { error: string }> {
   const { data, error } = await supabase
     .from("chat_messages")
@@ -369,6 +416,9 @@ export async function insertMessage(
       body,
       reply_to: opts.replyTo ?? null,
       feed_event_id: opts.feedEventId ?? null,
+      photo_path: opts.photo?.path ?? null,
+      photo_w: opts.photo?.w ?? null,
+      photo_h: opts.photo?.h ?? null,
     })
     .select(CHAT_COLS)
     .single();

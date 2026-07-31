@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import {
   apercu,
+  apercuMessage,
   buildRows,
   ChatMessage,
   findMentions,
@@ -42,6 +43,9 @@ function msg(
     feed_event_id: null,
     created_at: iso,
     deleted_at: null,
+    photo_path: null,
+    photo_w: null,
+    photo_h: null,
   };
 }
 
@@ -304,5 +308,50 @@ describe("apercu — la citation d'une réponse", () => {
 
   it("enlève les blancs de bord", () => {
     expect(apercu("  yo  ")).toBe("yo");
+  });
+});
+
+describe("apercuMessage — comment un message se raconte ailleurs", () => {
+  // Trois endroits lisent cette fonction : la bulle citée, la barre de
+  // saisie et la notification push. C'est ce qui garantit qu'un push ne
+  // promet jamais autre chose que ce qu'on trouve en ouvrant l'app.
+
+  it("rend le texte quand il n'y a pas de photo", () => {
+    expect(apercuMessage({ body: "salut", photo_path: null })).toBe("salut");
+  });
+
+  it("annonce une photo sans légende", () => {
+    // Sans ça, une photo nue se citerait par une chaîne vide : la bulle
+    // de réponse serait muette et la notification dirait « Jordan : «  » ».
+    expect(apercuMessage({ body: "", photo_path: "leo/a.jpg" })).toBe(
+      "📷 Photo",
+    );
+  });
+
+  it("garde la légende, précédée de l'emoji", () => {
+    expect(apercuMessage({ body: "vue du 6e", photo_path: "leo/a.jpg" })).toBe(
+      "📷 vue du 6e",
+    );
+  });
+
+  it("coupe la légende sans dépasser la borne demandée", () => {
+    const out = apercuMessage({ body: "a".repeat(80), photo_path: "x.jpg" }, 20);
+    // L'emoji et son espace comptent dans la longueur : c'est la place
+    // réservée dans la notification qui décide, pas le texte seul.
+    expect([...out].length).toBeLessThanOrEqual(20);
+    expect(out.startsWith("📷 ")).toBe(true);
+    expect(out.endsWith("…")).toBe(true);
+  });
+
+  it("dit la suppression avant tout le reste", () => {
+    // Un message supprimé garde ses colonnes vidées par le trigger, mais
+    // on ne s'y fie pas : c'est deleted_at qui tranche.
+    expect(
+      apercuMessage({
+        body: "vieux texte",
+        photo_path: "leo/a.jpg",
+        deleted_at: "2026-07-31T10:00:00Z",
+      }),
+    ).toBe("Message supprimé");
   });
 });

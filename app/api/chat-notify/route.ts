@@ -18,7 +18,7 @@
 //  4. Le texte agrège : « 3 nouveaux messages · Jordan : … ».
 
 import { NextResponse } from "next/server";
-import { mentionedPlayerIds } from "@/lib/chat";
+import { apercuMessage, mentionedPlayerIds } from "@/lib/chat";
 import { mondeAutorise, sendToPlayers, serverSupabase } from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
   const { data: msg, error: msgErr } = await supabase
     .from("chat_messages")
-    .select("id, player_id, body, created_at, deleted_at")
+    .select("id, player_id, body, created_at, deleted_at, photo_path")
     .eq("id", messageId)
     .maybeSingle();
   if (msgErr) {
@@ -65,6 +65,7 @@ export async function POST(request: Request) {
     player_id: string;
     body: string;
     created_at: string;
+    photo_path: string | null;
   };
 
   const [players, reads, prefs] = await Promise.all([
@@ -129,7 +130,15 @@ export async function POST(request: Request) {
   // Le nombre de non-lus est propre à chacun, donc le texte aussi. À six
   // joueurs, un comptage par destinataire reste largement moins cher
   // qu'un aller-retour de plus vers la base.
-  const extrait = message.body.replace(/\s+/g, " ").trim().slice(0, 90);
+  //
+  // Une photo sans légende n'a rien à citer : sans apercuMessage(), la
+  // notification annoncerait « Jordan : «  » ». C'est la MÊME fonction que
+  // celle qui rend les citations à l'écran, pour que la notification ne
+  // promette jamais autre chose que ce qu'on trouvera en ouvrant.
+  const extrait = apercuMessage(
+    { ...message, body: message.body.replace(/\s+/g, " ") },
+    90,
+  );
 
   const comptes = await Promise.all(
     destinataires.map(async (p) => {

@@ -12,9 +12,16 @@
 // salon lisible en diagonale.
 
 import { useRef, useState } from "react";
-import { apercu, ChatMessage, ChatReaction, segmentsOf } from "@/lib/chat";
+import {
+  apercu,
+  apercuMessage,
+  ChatMessage,
+  ChatReaction,
+  segmentsOf,
+} from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
+import { ChatPhoto } from "./ChatPhoto";
 
 /**
  * Le message cité, posé AU-DESSUS de la réponse et non dedans.
@@ -138,8 +145,12 @@ type Props = {
   flash: boolean;
   onOpenMenu: (m: ChatMessage) => void;
   onReply: (m: ChatMessage) => void;
-  /** Double-tap : le cœur se pose, ou se retire s'il était de moi. */
+  /** Double-tap : le cœur se pose, ou se retire s'il était de moi. Jamais
+      appelé sur un message photo, où le tap simple ouvre la photo
+      (components/chat/ChatPhoto.tsx). */
   onDoubleTap: (m: ChatMessage) => void;
+  /** Ouvrir la photo en grand. */
+  onOpenPhoto: (m: ChatMessage) => void;
   onJumpTo: (id: string) => void;
   /** Le chemin retour vers le fil : on est parti de là, on doit pouvoir
       y revenir. */
@@ -164,6 +175,7 @@ export default function ChatBubble({
   onOpenMenu,
   onReply,
   onDoubleTap,
+  onOpenPhoto,
   onJumpTo,
   onJumpToFeed,
 }: Props) {
@@ -178,6 +190,13 @@ export default function ChatBubble({
   // L'optimiste porte un id temporaire tant que la base n'a pas répondu.
   const enVol = message.id.startsWith("tmp-");
   const couleur = author?.color ?? "var(--color-muted)";
+  // Les trois colonnes vont ensemble (contrainte chat_photo_complete) ;
+  // on les vérifie quand même, c'est ce qui donne le type non-nul.
+  const photo =
+    message.photo_path && message.photo_w && message.photo_h && !supprime
+      ? { path: message.photo_path, w: message.photo_w, h: message.photo_h }
+      : null;
+  const legende = message.body.trim().length > 0;
 
   function annulerAppui() {
     if (presse.current) {
@@ -229,6 +248,9 @@ export default function ChatBubble({
       navigator.vibrate?.(10);
       onReply(message);
       tapPrecedent.current = null; // une réponse n'ouvre pas un double-tap
+      // Le geste a pris la main : un clic émis malgré le glissé n'ouvrira
+      // pas la photo par-dessus la réponse qu'on vient de préparer.
+      consomme.current = true;
       setDx(0);
       return;
     }
@@ -239,9 +261,11 @@ export default function ChatBubble({
     // le message est réagissable. Un message supprimé ne l'est pas — la
     // base refuserait, et un cœur sur « Message supprimé » ne veut rien
     // dire de toute façon.
+    // Un message photo non plus : là, le tap simple ouvre la photo, et
+    // les deux gestes ne peuvent pas cohabiter (ChatPhoto.tsx).
     const immobile =
       !!d && Math.abs(e.clientX - d.x) <= 8 && Math.abs(e.clientY - d.y) <= 8;
-    if (consomme.current || supprime || enVol || !immobile) {
+    if (consomme.current || supprime || enVol || photo || !immobile) {
       tapPrecedent.current = null;
       return;
     }
@@ -287,7 +311,7 @@ export default function ChatBubble({
         <BulleCitee
           auteur={parentAuthor?.name ?? "Message"}
           couleur={parentAuthor?.color ?? "var(--color-muted)"}
-          texte={parent.deleted_at ? "Message supprimé" : apercu(parent.body, 120)}
+          texte={apercuMessage(parent, 120)}
           deSonAuteur={parent.player_id === myId}
           aDroite={isMine}
           onClick={() => onJumpTo(parent.id)}
@@ -342,7 +366,9 @@ export default function ChatBubble({
         className={`relative max-w-[78%] ${emojis.length > 0 ? "mt-5" : ""}`}
       >
       <div
-        className="rounded-2xl px-3.5 py-2"
+        // Une photo occupe la bulle bord à bord : 4 px de liseré suffisent,
+        // un vrai rembourrage autour d'une image fait cadre de tableau.
+        className={`overflow-hidden rounded-2xl ${photo ? "p-1" : "px-3.5 py-2"}`}
         style={{
           background: supprime
             ? "transparent"
@@ -358,10 +384,23 @@ export default function ChatBubble({
           opacity: enVol ? 0.6 : 1,
         }}
       >
+        {photo && (
+          <ChatPhoto
+            path={photo.path}
+            w={photo.w}
+            h={photo.h}
+            // Le clic est neutralisé quand l'appui long a déjà ouvert la
+            // feuille : sinon la photo s'ouvrirait par-dessus.
+            onOpen={() => {
+              if (!consomme.current) onOpenPhoto(message);
+            }}
+          />
+        )}
+        {(!photo || legende || supprime) && (
         <p
           className={`text-[15px] leading-snug break-words whitespace-pre-wrap ${
             supprime ? "italic" : ""
-          }`}
+          } ${photo ? "px-2.5 pt-1.5 pb-0.5" : ""}`}
         >
           {supprime
             ? "Message supprimé"
@@ -394,6 +433,7 @@ export default function ChatBubble({
                 ),
               )}
         </p>
+        )}
         </div>
 
         {emojis.length > 0 && (

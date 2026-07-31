@@ -15,6 +15,7 @@ import {
   mentionQuery,
   nameStartsWith,
 } from "@/lib/chat";
+import { fileToChatPhoto, PhotoPrete } from "@/lib/image";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
 
@@ -37,15 +38,25 @@ type Props = {
   /** Les potes proposés au `@`. Moi exclu par l'appelant : se mentionner
       soi-même ne prévient personne et n'informe personne. */
   mentionnables: Player[];
-  onSend: (body: string) => void;
+  showToast: (msg: string) => void;
+  onSend: (body: string, photo: PhotoPrete | null) => void;
 };
 
 export default function ChatComposer({
   citation,
   mentionnables,
+  showToast,
   onSend,
 }: Props) {
   const [draft, setDraft] = useState("");
+  /** La photo choisie, DÉJÀ réduite. Le redimensionnement se fait à la
+      sélection et pas à l'envoi : une photo illisible se dit tout de
+      suite, et l'appui sur Envoyer n'a plus qu'à téléverser. */
+  const [photo, setPhoto] = useState<PhotoPrete | null>(null);
+  /** L'aperçu, révoqué dès que la photo change ou part. */
+  const [apercu, setApercu] = useState<string | null>(null);
+  const [prepare, setPrepare] = useState(false);
+  const fichier = useRef<HTMLInputElement>(null);
   // La position du curseur, suivie à la main : c'est elle qui dit si on
   // est en train de taper une mention, et où l'insérer.
   const [caret, setCaret] = useState(0);
@@ -79,12 +90,68 @@ export default function ChatComposer({
     if (citation) zone.current?.focus();
   }, [citation]);
 
+  // Un miroir de l'aperçu, parce que le nettoyage ci-dessous ne tourne
+  // qu'au démontage et ne doit donc dépendre d'aucune valeur qui change.
+  const apercuRef = useRef<string | null>(null);
+  apercuRef.current = apercu;
+
+  // Quitter le tchat avec une photo en attente ne doit pas laisser ses
+  // octets accrochés au document.
+  useEffect(() => {
+    return () => {
+      if (apercuRef.current) URL.revokeObjectURL(apercuRef.current);
+    };
+  }, []);
+
   function envoyer() {
     const texte = draft.trim();
-    if (!texte) return;
-    onSend(texte);
+    // Une photo part sans légende ; un message sans photo ne part pas vide.
+    if (!texte && !photo) return;
+    onSend(texte, photo);
     setDraft("");
     setCaret(0);
+    // Révoquer notre aperçu ne casse pas la bulle qui part : le hook
+    // fabrique sa PROPRE URL à partir du même blob, qu'il tient encore.
+    oublierPhoto();
+  }
+
+  /** Range la photo choisie et rend la mémoire de son aperçu. */
+  function oublierPhoto() {
+    setApercu((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+    setPhoto(null);
+    // Sans ça, rechoisir LE MÊME fichier juste après ne déclencherait
+    // aucun change : le champ garde sa valeur, donc rien ne bouge.
+    if (fichier.current) fichier.current.value = "";
+  }
+
+  async function choisirPhoto(f: File | undefined) {
+    if (!f) return;
+    setPrepare(true);
+    try {
+      const prete = await fileToChatPhoto(f);
+      if (!prete) {
+        // Le choix précédent, s'il y en avait un, reste en place : une
+        // photo illisible ne doit pas emporter celle qui marchait.
+        showToast("Photo illisible, essaie une autre");
+        return;
+      }
+      // On remplace une éventuelle photo déjà choisie : une seule par
+      // message, c'est ce que la base sait porter.
+      setApercu((url) => {
+        if (url) URL.revokeObjectURL(url);
+        return URL.createObjectURL(prete.blob);
+      });
+      setPhoto(prete);
+      zone.current?.focus();
+    } finally {
+      setPrepare(false);
+      // Rechoisir LE MÊME fichier doit rester possible : sans cette
+      // remise à zéro, le champ garde sa valeur et n'émet plus rien.
+      if (fichier.current) fichier.current.value = "";
+    }
   }
 
   /** Suit le curseur à chaque événement qui peut le déplacer. */
@@ -145,6 +212,37 @@ export default function ChatComposer({
         </ul>
       )}
 
+      {apercu && (
+        // La photo choisie attend au-dessus de la saisie, comme la
+        // citation : c'est la même idée — « voilà ce qui part avec ce que
+        // tu écris » — et donc la même place.
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={apercu}
+            alt=""
+            className="size-14 shrink-0 rounded-xl object-cover"
+          />
+          <span className="min-w-0 flex-1 text-xs text-muted">
+            Photo prête. Ajoute une légende, ou envoie.
+          </span>
+          <button
+            onClick={oublierPhoto}
+            aria-label="Retirer la photo"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {citation && (
         <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2">
           <span className="min-w-0 flex-1">
@@ -176,6 +274,43 @@ export default function ChatComposer({
       )}
 
       <div className="flex items-end gap-2">
+        {/* `accept` sans `capture` : on ouvre la pellicule ET l'appareil
+            photo, et c'est iOS qui propose le choix. Avec `capture`, le
+            bouton forcerait l'appareil photo, alors que neuf fois sur dix
+            la photo de la séance est déjà prise. */}
+        <input
+          ref={fichier}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => choisirPhoto(e.target.files?.[0])}
+        />
+        <button
+          onClick={() => fichier.current?.click()}
+          disabled={prepare}
+          aria-label="Ajouter une photo"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-muted transition-transform active:scale-95 disabled:opacity-40"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="14"
+              rx="3"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <circle cx="8.5" cy="10" r="1.6" fill="currentColor" />
+            <path
+              d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
         <textarea
           ref={zone}
           rows={1}
@@ -198,7 +333,7 @@ export default function ChatComposer({
         />
         <button
           onClick={envoyer}
-          disabled={draft.trim().length === 0}
+          disabled={draft.trim().length === 0 && !photo}
           aria-label="Envoyer le message"
           className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-40"
           style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
