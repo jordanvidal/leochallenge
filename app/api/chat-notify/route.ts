@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
   const { data: msg, error: msgErr } = await supabase
     .from("chat_messages")
-    .select("id, player_id, body, created_at, deleted_at, photo_path")
+    .select("id, player_id, body, created_at, deleted_at, photo_path, audio_path")
     .eq("id", messageId)
     .maybeSingle();
   if (msgErr) {
@@ -66,6 +66,7 @@ export async function POST(request: Request) {
     body: string;
     created_at: string;
     photo_path: string | null;
+    audio_path: string | null;
   };
 
   const [players, reads, prefs] = await Promise.all([
@@ -131,8 +132,9 @@ export async function POST(request: Request) {
   // joueurs, un comptage par destinataire reste largement moins cher
   // qu'un aller-retour de plus vers la base.
   //
-  // Une photo sans légende n'a rien à citer : sans apercuMessage(), la
-  // notification annoncerait « Jordan : «  » ». C'est la MÊME fonction que
+  // Une photo sans légende n'a rien à citer — un vocal encore moins :
+  // sans apercuMessage(), la notification annoncerait « Jordan : «  » ».
+  // C'est la MÊME fonction que
   // celle qui rend les citations à l'écran, pour que la notification ne
   // promette jamais autre chose que ce qu'on trouvera en ouvrant.
   const extrait = apercuMessage(
