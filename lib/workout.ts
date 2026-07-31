@@ -14,6 +14,77 @@ export type WorkoutConfig = {
   restSeconds: number;
 };
 
+/** Où en est la séance guidée : un bloc, un repos, ou fini. */
+export type WorkoutStep =
+  | { kind: "block"; round: number; blockIdx: number }
+  | { kind: "rest"; nextRound: number; endsAt: number }
+  | { kind: "done" };
+
+/**
+ * Une séance interrompue, telle qu'on la garde sur le téléphone.
+ *
+ * L'état de la séance ne vivait qu'en mémoire, dans le composant plein
+ * écran. Un rechargement, une PWA évincée par iOS sous pression mémoire,
+ * un onglet fermé par erreur au 3e tour sur 4 : le format et l'avancement
+ * disparaissaient. Le chrono restait ouvert côté serveur, donc la journée
+ * était bien déverrouillée — mais l'app avait oublié où on en était, et
+ * les blocs déjà faits n'étaient nulle part. Il fallait tout recommencer,
+ * ou abandonner et perdre les exos pas encore à 100.
+ *
+ * On écrit donc l'état à chaque étape. Le jour est dans la sauvegarde :
+ * une séance d'hier ne ressuscite jamais.
+ */
+export type SeanceEnCours = {
+  day: string;
+  config: WorkoutConfig;
+  step: WorkoutStep;
+  /** Repli client pour la durée quand le serveur est injoignable. */
+  startedAt: number;
+  /** Le jour de la ligne de séance ouverte en base, pour la clôturer. */
+  sessionDay: string | null;
+};
+
+export const CLE_SEANCE = "lc100.seanceEnCours";
+
+/**
+ * Relit une séance interrompue. Rend `null` dès qu'elle n'a plus lieu
+ * d'être reprise — et il vaut mieux ne rien reprendre que reprendre faux :
+ * une séance restaurée de travers ferait valider des exos non faits.
+ */
+export function relireSeance(
+  brut: string | null,
+  today: string,
+): SeanceEnCours | null {
+  if (!brut) return null;
+  let lu: unknown;
+  try {
+    lu = JSON.parse(brut);
+  } catch {
+    return null; // écriture corrompue : on jette, on ne devine pas
+  }
+  if (!lu || typeof lu !== "object") return null;
+  const s = lu as Partial<SeanceEnCours>;
+
+  // Une séance d'hier ne se reprend pas : le jour a changé, les coches
+  // aussi, et le chrono serveur est clos depuis minuit.
+  if (s.day !== today) return null;
+  if (!s.config || !s.step) return null;
+  // Déjà finie : il n'y a rien à reprendre, l'écran de fin a fait son
+  // travail (ou la validation est passée).
+  if (s.step.kind === "done") return null;
+  if (typeof s.config.rounds !== "number" || !s.config.reps) return null;
+  if (s.step.kind === "block" && typeof s.step.blockIdx !== "number") return null;
+  if (s.step.kind === "rest" && typeof s.step.endsAt !== "number") return null;
+
+  return {
+    day: s.day,
+    config: s.config,
+    step: s.step,
+    startedAt: typeof s.startedAt === "number" ? s.startedAt : 0,
+    sessionDay: s.sessionDay ?? null,
+  };
+}
+
 /** Le format canonique : 4 tours de 25/25/25, 2 min de repos. */
 export const DEFAULT_CONFIG: WorkoutConfig = {
   rounds: 4,
