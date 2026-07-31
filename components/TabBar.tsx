@@ -150,7 +150,10 @@ export default function TabBar({
               onClick={() => onChange(key)}
               aria-current={active ? "page" : undefined}
               className="flex min-h-14 flex-1 flex-col items-center justify-center gap-1"
-              style={{ color: active ? "var(--pc)" : "var(--color-faint)" }}
+              // `quiet` et pas `faint` : les icônes sont aria-hidden, donc le
+              // mot est le seul nom de l'onglet. Un libellé de navigation se
+              // lit, il ne se devine pas — surtout à 23h à 20 % de luminosité.
+              style={{ color: active ? "var(--pc)" : "var(--color-quiet)" }}
             >
               <span className="relative">
                 <Icon />

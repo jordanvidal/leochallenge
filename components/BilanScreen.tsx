@@ -54,7 +54,7 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
       </p>
       <button
         onClick={onGoHistory}
-        className="mt-2 min-h-8 font-bold"
+        className="mt-2 min-h-11 font-bold"
         style={{ color: "var(--pc)" }}
       >
         Voir l&apos;historique →
@@ -300,7 +300,7 @@ export default function BilanScreen({
 
       <button
         onClick={onRematch}
-        className="mx-auto mt-6 min-h-10 text-sm font-medium text-faint"
+        className="mx-auto mt-6 min-h-11 text-sm font-medium text-quiet"
       >
         On remet ça en septembre ? →
       </button>

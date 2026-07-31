@@ -7,6 +7,7 @@ colors:
   raised: "oklch(0.22 0 0)"
   line: "oklch(0.27 0 0)"
   faint: "oklch(0.45 0 0)"
+  quiet: "oklch(0.62 0 0)"
   muted: "oklch(0.68 0 0)"
   ink: "oklch(0.965 0 0)"
   danger: "oklch(0.68 0.19 25)"
@@ -112,7 +113,7 @@ components:
     height: "2.75rem"
   tab-item:
     backgroundColor: "{colors.bg}"
-    textColor: "{colors.faint}"
+    textColor: "{colors.quiet}"
     typography: "{typography.caption}"
     height: "3.5rem"
   tab-item-active:
@@ -173,8 +174,9 @@ Une palette de neutres purs (chroma 0, du noir presque total au blanc cassé) su
 - **Nuit levée — `surface`** (`oklch(0.17 0 0)`) : cartes, champs de saisie, toggles au repos. Le premier étage.
 - **Nuit claire — `raised`** (`oklch(0.22 0 0)`) : ce qui doit se détacher d'une carte — toast, bouton neutre, badge photo. Le deuxième étage, jamais un troisième.
 - **Trait — `line`** (`oklch(0.27 0 0)`) : anneaux intérieurs et séparateurs. Jamais une bordure extérieure épaisse.
-- **Fumée — `faint`** (`oklch(0.45 0 0)`) : onglets inactifs, compteurs de caractères, chiffre « 100 » en attente. Décoratif ou strictement redondant — jamais une information seule.
-- **Brume — `muted`** (`oklch(0.68 0 0)`) : texte secondaire et placeholders. C'est le plancher de lisibilité (≈ 8:1 sur `bg`).
+- **Fumée — `faint`** (`oklch(0.45 0 0)`) : compteurs de caractères, chiffre « 100 » en attente, séparateurs `·`. Décoratif ou strictement redondant — jamais une information seule, jamais un mot qu'on doit lire. Il vaut 2,7:1 sur `bg`, et c'est assumé : c'est de la texture, pas du texte.
+- **Voix basse — `quiet`** (`oklch(0.62 0 0)`) : le petit texte qu'on doit pouvoir lire sans qu'il crie — libellés d'onglets inactifs, liens de pied de page. 5,6:1 sur `bg`, donc AA à 11 px. Ce cran a été ajouté le 31/07 : les onglets étaient en `faint` alors que leurs icônes sont `aria-hidden`, ce qui faisait du mot le seul nom de l'onglet — donc une information seule, exactement ce que `faint` s'interdit.
+- **Brume — `muted`** (`oklch(0.68 0 0)`) : texte secondaire et placeholders. C'est le plancher de lisibilité (≈ 7:1 sur `bg`).
 - **Néon — `ink`** (`oklch(0.965 0 0)`) : tout le texte qui doit être lu.
 
 ### Named Rules
@@ -282,6 +284,7 @@ Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparati
 - **Non coché:** fond `surface`, texte `muted`, anneau `line` 1px.
 - **Coché:** fond mixé 24 % accent, texte à l'accent, anneau 60 % accent 1.5px, préfixe `✓ `.
 - **Feedback:** `navigator.vibrate(10)` au tap, `.check-pop` (220 ms) sur la coche, `aria-pressed` toujours posé.
+- **Focus clavier:** un `:focus-visible` global pose `outline: 2px solid var(--pc)` avec 2 px d'offset. Il ne se voit jamais au pouce — `:focus-visible` ne se déclenche pas au tap — et il est la seule façon de savoir où l'on est au clavier ou en navigation VoiceOver. L'anneau par défaut du navigateur (0,55 px) est invisible sur `bg`. Ne jamais le désactiver globalement ; un champ qui pose son propre `focus:ring-2` le remplace, il ne le supprime pas.
 
 ### Inputs / Fields
 
@@ -293,7 +296,7 @@ Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparati
 
 `TabBar` collée en bas, `border-t border-line`, `bg-bg/95 backdrop-blur`, `pb-safe`.
 - **Item:** colonne icône 22 px + libellé 11 px bold, `min-h-14`, `flex-1`.
-- **Inactif:** `faint`. **Actif:** `var(--pc)` + `aria-current="page"`.
+- **Inactif:** `quiet`. **Actif:** `var(--pc)` + `aria-current="page"`.
 - **Non-lus:** pastille `--pc` à texte sombre, en haut à droite de l'icône, masquée sur l'onglet actif. Au-delà de 9 : `9+`.
 
 ### Skeleton (signature)
