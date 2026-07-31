@@ -22,6 +22,7 @@ import {
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { ChatPhoto } from "./ChatPhoto";
+import { ChatVocal } from "./ChatVocal";
 
 /**
  * Le message cité, posé AU-DESSUS de la réponse et non dedans.
@@ -196,6 +197,12 @@ export default function ChatBubble({
     message.photo_path && message.photo_w && message.photo_h && !supprime
       ? { path: message.photo_path, w: message.photo_w, h: message.photo_h }
       : null;
+  // Les deux colonnes vont ensemble (contrainte chat_audio_complete), et
+  // un message ne porte jamais une photo ET un vocal (chat_piece_unique).
+  const vocal =
+    message.audio_path && message.audio_ms && !supprime
+      ? { path: message.audio_path, ms: message.audio_ms }
+      : null;
   const legende = message.body.trim().length > 0;
 
   function annulerAppui() {
@@ -368,7 +375,12 @@ export default function ChatBubble({
       <div
         // Une photo occupe la bulle bord à bord : 4 px de liseré suffisent,
         // un vrai rembourrage autour d'une image fait cadre de tableau.
-        className={`overflow-hidden rounded-2xl ${photo ? "p-1" : "px-3.5 py-2"}`}
+        // Un vocal, lui, reste du contenu de bulle : il garde des marges,
+        // simplement resserrées en hauteur — le bouton de lecture fait
+        // déjà 44 px et suffit à donner sa place à la ligne.
+        className={`overflow-hidden rounded-2xl ${
+          photo ? "p-1" : vocal ? "px-2.5 py-1" : "px-3.5 py-2"
+        }`}
         style={{
           background: supprime
             ? "transparent"
@@ -396,7 +408,8 @@ export default function ChatBubble({
             }}
           />
         )}
-        {(!photo || legende || supprime) && (
+        {vocal && <ChatVocal path={vocal.path} ms={vocal.ms} />}
+        {(!(photo || vocal) || legende || supprime) && (
         <p
           className={`text-[15px] leading-snug break-words whitespace-pre-wrap ${
             supprime ? "italic" : ""
