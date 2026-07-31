@@ -268,8 +268,10 @@ export async function fetchBilanSaison(
     moyenneReps: Math.round(totalReps / retenus.length),
     joursParfaits: retenus.reduce((s, r) => s + r.perfect_days, 0),
     joueurs: retenus.length,
-    podium: [...retenus]
-      .sort((a, b) => b.points - a.points)
+    // Même ordre que le Classement, au même départage : le podium du bilan
+    // hebdo et celui de l'onglet doivent nommer les mêmes gens dans le même
+    // sens, y compris à égalité de points.
+    podium: ordonneClassement(retenus, noms)
       .slice(0, 3)
       .map((r) => ({
         playerId: r.player_id,
@@ -295,6 +297,38 @@ export async function fetchWeekLeaderboard(
   });
   if (error || !data) return null;
   return (data as LeaderboardRow[]).map(numify);
+}
+
+/**
+ * L'ordre d'affichage d'un classement.
+ *
+ * `app.leaderboard()` n'a **pas** d'`order by` (migration38, le select final
+ * lit `from app.players p`) et l'app ne triait rien : le Classement était
+ * affiché dans l'ordre où Postgres voulait bien rendre les lignes. Ça marche
+ * aujourd'hui parce qu'une fenêtre `rank() over (order by points desc)` sort
+ * en général déjà triée — c'est un détail d'implémentation, pas une garantie.
+ * Un plan qui change (index, parallélisation, un joueur de plus) et le podium
+ * couronne quelqu'un d'autre : `podium[0]` est *supposé* premier, rien ne
+ * l'impose.
+ *
+ * Le tri porte donc sur `rank`, que le serveur calcule, et le nom départage
+ * les ex æquo. Sans ce second critère, deux joueurs à égalité de points
+ * échangent leur place d'un rechargement à l'autre, et le podium du bilan
+ * hebdo peut contredire celui du Classement au même instant — deux ordres
+ * pour une même égalité, dans un groupe qui se chambre sur un point d'écart.
+ */
+export function ordonneClassement<T extends { player_id: string; rank: number }>(
+  rows: T[],
+  noms: Map<string, string>,
+): T[] {
+  return [...rows].sort(
+    (a, b) =>
+      a.rank - b.rank ||
+      (noms.get(a.player_id) ?? "").localeCompare(
+        noms.get(b.player_id) ?? "",
+        "fr",
+      ),
+  );
 }
 
 /** Postgres renvoie les numeric en string : on renormalise. */
