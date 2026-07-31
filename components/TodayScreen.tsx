@@ -150,33 +150,32 @@ export default function TodayScreen({
         <div className="mt-5 flex flex-1 flex-col gap-3">
           {EXERCISES.map(({ key, label }) => {
             const done = mine?.[key] ?? false;
-            return (
-              <button
-                key={key}
-                aria-pressed={done}
-                // Une fois la séance lancée, la carte n'est plus une commande :
-                // c'est la séance qui coche, elle affiche le résultat. Bouton
-                // désactivé plutôt que tap silencieux — pas de fausse promesse
-                // d'interaction.
-                disabled={sessionStarted}
-                onClick={() => {
-                  navigator.vibrate?.(8);
-                  onStartWorkout();
-                }}
-                className="exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left"
-                style={{
-                  ...(done
-                    ? {
-                        background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                        boxShadow: `inset 0 0 0 2px color-mix(in oklch, ${player.color} 65%, transparent)`,
-                      }
-                    : {
-                        background: "var(--color-surface)",
-                        boxShadow: "inset 0 0 0 1px var(--color-line)",
-                      }),
-                  ...(sessionStarted ? {} : { opacity: 0.5 }),
-                }}
-              >
+
+            // Verrouillée, la carte reste en retrait — c'est la règle du
+            // 21/07 et elle ne bouge pas. Ce qui bouge, c'est l'endroit où
+            // vit le retrait : dans le fond, et plus dans une opacité posée
+            // sur toute la carte. Composer l'ensemble à 50 % éteignait aussi
+            // le libellé (2,4:1) et l'anneau (1,03:1) — les trois cartes ne
+            // se percevaient plus comme des surfaces, et l'objet qui disait
+            // le plus fort « indisponible » était en fait le raccourci
+            // principal. Le fond recule, le texte et le cadenas restent nets.
+            const fond = done
+              ? {
+                  background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                  boxShadow: `inset 0 0 0 2px color-mix(in oklch, ${player.color} 65%, transparent)`,
+                }
+              : {
+                  background: sessionStarted
+                    ? "var(--color-surface)"
+                    : "color-mix(in oklch, var(--color-surface) 55%, var(--color-bg))",
+                  boxShadow: "inset 0 0 0 1px var(--color-line)",
+                };
+
+            const classe =
+              "exo-card flex min-h-24 flex-1 items-center justify-between rounded-3xl px-6 text-left";
+
+            const contenu = (
+              <>
                 <span
                   className="text-2xl font-bold"
                   style={{
@@ -206,6 +205,40 @@ export default function TodayScreen({
                     🔒
                   </span>
                 )}
+              </>
+            );
+
+            // Séance lancée : la carte n'est plus une commande, c'est un
+            // affichage — donc plus un bouton du tout. Un `<button disabled>`
+            // portant `aria-pressed` s'annonce « coché, bouton, non
+            // disponible » : ça décrit un contrôle cassé, pas un exercice
+            // fait. Le ✓ étant aria-hidden, l'état passe par un texte.
+            if (sessionStarted) {
+              return (
+                <div key={key} className={classe} style={fond}>
+                  {contenu}
+                  <span className="sr-only">
+                    {done ? "fait" : "pas encore fait"}
+                  </span>
+                </div>
+              );
+            }
+
+            // Verrouillée : là, c'est bien un bouton, et son seul rôle est
+            // d'ouvrir le lanceur. Pas d'`aria-pressed` — il n'y a rien à
+            // basculer ici, et le nom dit ce que le tap va faire.
+            return (
+              <button
+                key={key}
+                aria-label={`${label} — verrouillé, lancer ma séance pour ouvrir les coches`}
+                onClick={() => {
+                  navigator.vibrate?.(8);
+                  onStartWorkout();
+                }}
+                className={classe}
+                style={fond}
+              >
+                {contenu}
               </button>
             );
           })}
