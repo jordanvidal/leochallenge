@@ -14,9 +14,13 @@
 // maintenant ce bloc : deux chiffres au même rang, en Anton, séparés
 // d'un filet. Chaque cellule sait disparaître — la lecture des points
 // arrive après l'upsert et peut échouer, la série vaut zéro le premier
-// jour — et celle qui reste occupe alors toute la largeur. La part de
-// bonus passe sous le bloc : c'est une précision sur un chiffre déjà lu,
-// pas un troisième compteur.
+// jour — et celle qui reste occupe alors toute la largeur.
+//
+// La part de bonus (« dont 3 pts bonus ») a été retirée. Elle pendait
+// sous le bloc, orpheline, pour décomposer un total que personne ne
+// cherche à décomposer ici : le détail par bonus a déjà son écran, et
+// la fin de séance dit ce que vaut la journée, pas comment elle se
+// répartit. Un chiffre de moins à lire avant de fermer.
 //
 // La série passe à gauche, les points à droite : le regard part de
 // l'acquis (la série, qui vient de tenir) vers ce que la séance rapporte.
@@ -35,7 +39,6 @@ import { useCallback, useEffect, useState } from "react";
 import { entryCount, EXERCISES, Exercise } from "@/lib/types";
 import type { Player } from "@/lib/types";
 import { DayBreakdown, formatClock } from "@/lib/workout";
-import { fmtPoints } from "@/lib/gamification";
 import PointsCount from "../PointsCount";
 import StreakCount from "../StreakCount";
 
@@ -183,38 +186,40 @@ export default function DoneScreen({
             )}
           </div>
         )}
-        {breakdown !== null && breakdown.bonusPoints > 0 && (
-          <p className="mt-2 text-sm font-medium text-muted">
-            dont {fmtPoints(breakdown.bonusPoints)} pts bonus 🎁
-          </p>
-        )}
       </div>
 
-      {/* Le corps est encore chaud : c'est ici que proposer des bonus a du
-          sens, pas dix minutes plus tard depuis l'écran du jour. Discret —
-          la séance est finie, personne n'est obligé d'en remettre, et le
-          contrat du jour est déjà rempli quoi qu'il arrive ensuite. */}
-      {onPlanBonus && (
-        <button
-          onClick={onPlanBonus}
-          className="mb-3 min-h-13 w-full rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
-          style={{
-            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
-            color: player.color,
-          }}
-        >
-          ＋ Enchaîner des bonus
-        </button>
-      )}
+      {/* Les deux sorties forment un groupe, et un groupe se sépare de ce
+          qui le précède plus qu'il ne se sépare de lui-même : mt-10 au-
+          dessus, gap-3 dedans. Sans la marge du haut, un bloc de série
+          haut (le libellé « en jeu » tient sur trois lignes) venait coller
+          au premier bouton, et le pouce n'avait plus de bord franc. */}
+      <div className="mt-10 mb-2 flex flex-col gap-3">
+        {/* Le corps est encore chaud : c'est ici que proposer des bonus a du
+            sens, pas dix minutes plus tard depuis l'écran du jour. Discret —
+            la séance est finie, personne n'est obligé d'en remettre, et le
+            contrat du jour est déjà rempli quoi qu'il arrive ensuite. */}
+        {onPlanBonus && (
+          <button
+            onClick={onPlanBonus}
+            className="min-h-13 w-full rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+            style={{
+              background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+              boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+              color: player.color,
+            }}
+          >
+            ＋ Enchaîner des bonus
+          </button>
+        )}
 
-      <button
-        onClick={onClose}
-        className="mb-2 min-h-14 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98]"
-        style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
-      >
-        Fermer
-      </button>
+        <button
+          onClick={onClose}
+          className="min-h-14 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98]"
+          style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+        >
+          Fermer
+        </button>
+      </div>
     </div>
   );
 }
