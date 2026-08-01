@@ -1009,3 +1009,119 @@ select player_id, 'finisseur'
 union all
 select player_id, 'centurion'
   from e group by player_id having sum(exos) >= 100;
+
+-- -------------------------------------------------------------
+-- 7. leaderboard() : la série survit au jour off.
+--
+--    Reprise telle quelle de la migration 35, avec trois changements.
+--
+--    C'est le raté le plus visible s'il est oublié : `current_streak`
+--    ne tient que si le DERNIER jour qui a tenu la chaîne date d'hier
+--    ou d'aujourd'hui. Sans le jour off dans `last_kept`, la série de
+--    tout le monde tombe à zéro le lendemain matin de chaque repos —
+--    alors même que daily_points, lui, l'a correctement préservée. Le
+--    classement dirait 0, la vue dirait 23.
+--
+--    Le coalesce sur streak_pos est un no-op aujourd'hui et
+--    indispensable demain : jusqu'ici `lk` impliquait `lp` (un joker
+--    suppose trois jours parfaits derrière lui). Le jour off, lui, est
+--    distribué à TOUT LE MONDE — y compris à un inscrit qui n'a jamais
+--    fait un seul 3/3. `lk` existe alors sans `lp`, et current_streak
+--    remontait null au lieu de 0.
+--
+--    Signature inchangée ⇒ create or replace, les droits survivent.
+-- -------------------------------------------------------------
+
+create or replace function public.leaderboard(p_from date default null, p_until date default null)
+returns table (
+  player_id uuid,
+  points numeric,
+  rank bigint,
+  perfect_days bigint,
+  exos_done bigint,
+  current_streak int,
+  bonus_points numeric,
+  joker_day date
+)
+language sql
+stable
+set search_path = public
+as $$
+  -- LA lecture de la vue. `as materialized` n'est pas cosmétique :
+  -- sans elle, Postgres inline la CTE dans chacune des quatre
+  -- références ci-dessous et on retombe sur le bug d'origine.
+  with dp as materialized (
+    select d.player_id, d.day, d.exos, d.perfect, d.streak_pos,
+           d.points, d.bonus_points, d.jokered, d.jour_off
+    from public.daily_points d
+  ),
+  pts as (
+    select dp.player_id,
+           sum(dp.points) as points,
+           sum(dp.bonus_points) as bonus_points,
+           count(*) filter (where dp.perfect) as perfect_days,
+           sum(dp.exos) as exos_done
+    from dp
+    where (p_from is null or dp.day >= p_from)
+      and (p_until is null or dp.day <= p_until)
+    group by dp.player_id
+  ),
+  last_perfect as (
+    select distinct on (dp.player_id) dp.player_id, dp.day, dp.streak_pos
+    from dp
+    where dp.perfect
+    order by dp.player_id, dp.day desc
+  ),
+  -- Dernier jour qui tient la chaîne : parfait, joker, ou jour off
+  -- QUI PROLONGE VRAIMENT quelque chose.
+  --
+  -- Le test de cette condition n'est pas décoratif. Un jour joker est
+  -- toujours collé à la série qu'il sauve, donc « dernier jour joker »
+  -- suffisait. Le jour off, lui, est distribué à TOUT LE MONDE — y
+  -- compris à quelqu'un qui n'a plus rien coché depuis trois semaines.
+  -- Sans la condition d'adjacence, son jour off devient un « dernier
+  -- jour qui tient la chaîne » tout frais, et le classement ressuscite
+  -- une série morte : mesuré, un joueur arrêté depuis 3 jours
+  -- réaffichait 21 jours de série le lendemain du repos.
+  --
+  -- Il ne peut jamais y avoir deux jours off consécutifs (un par
+  -- semaine, jamais le week-end), donc regarder la veille suffit.
+  last_kept as (
+    select distinct on (dp.player_id) dp.player_id, dp.day
+    from dp
+    where dp.perfect
+       or dp.jokered
+       or (dp.jour_off and exists (
+             select 1 from dp v
+             where v.player_id = dp.player_id
+               and v.day = dp.day - 1
+               and (v.perfect or v.jokered)))
+    order by dp.player_id, dp.day desc
+  ),
+  -- Le joker brûlé, s'il l'est. Jamais borné par p_from/p_until :
+  -- il vaut pour tout le challenge, pas pour la fenêtre affichée.
+  joker_used as (
+    select dp.player_id, min(dp.day) as day
+    from dp
+    where dp.jokered
+    group by dp.player_id
+  )
+  select
+    p.id as player_id,
+    round(coalesce(pts.points, 0), 1) as points,
+    rank() over (order by coalesce(pts.points, 0) desc) as rank,
+    coalesce(pts.perfect_days, 0) as perfect_days,
+    coalesce(pts.exos_done, 0) as exos_done,
+    case when lk.day >= (now() at time zone 'Europe/Paris')::date - 1
+         then coalesce(lp.streak_pos, 0) else 0 end as current_streak,
+    round(coalesce(pts.bonus_points, 0), 1) as bonus_points,
+    ju.day as joker_day
+  from public.players p
+  left join pts on pts.player_id = p.id
+  left join last_perfect lp on lp.player_id = p.id
+  left join last_kept lk on lk.player_id = p.id
+  left join joker_used ju on ju.player_id = p.id
+$$;
+
+grant execute on function public.leaderboard(date, date)
+  to anon, authenticated, service_role;
