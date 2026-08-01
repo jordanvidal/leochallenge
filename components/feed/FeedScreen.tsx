@@ -3,10 +3,16 @@
 // Le fil : antéchronologique, groupé par jour. Personne n'écrit de
 // post — le feed raconte ce qui s'est passé, le groupe réagit dessus.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Feed } from "@/hooks/useFeed";
 import { addDays } from "@/lib/challenge";
-import { dayLabel, FeedEvent, parisDayOf } from "@/lib/feed";
+import {
+  dayLabel,
+  FeedComment,
+  FeedEvent,
+  FeedReaction,
+  parisDayOf,
+} from "@/lib/feed";
 import { Player } from "@/lib/types";
 import FeedItem from "./FeedItem";
 import WeekRecapCard from "./WeekRecapCard";
@@ -119,6 +125,25 @@ function blocksOf(items: FeedEvent[]): Block[] {
   return blocks.sort((a, b) => (a.at > b.at ? -1 : 1));
 }
 
+/** Une journée prête à rendre. Le libellé est calculé ici, avec le reste :
+    il coûte un `Intl.format` de plus par jour, pas par événement. */
+type Jour = { day: string; label: string; blocks: Block[] };
+
+/** Rien à afficher, mais toujours le même tableau : une liste vide neuve à
+    chaque rendu casserait le `memo` des cartes qui la reçoivent. */
+const RIEN: never[] = [];
+
+/** Fige un rappel qui change d'identité à chaque rendu du parent.
+    `onDiscuss` et `onGoLeaderboard` arrivent d'`App` en flèches inline :
+    telles quelles, elles annulent le `memo` de toutes les cartes en
+    dessous. On les fige ici plutôt que d'aller les envelopper dans `App` —
+    le fil est le seul écran concerné, la correction lui appartient. */
+function useFige<A extends unknown[]>(fn: (...args: A) => void) {
+  const ref = useRef(fn);
+  ref.current = fn;
+  return useCallback((...args: A) => ref.current(...args), []);
+}
+
 export default function FeedScreen({
   player,
   players,
@@ -129,7 +154,12 @@ export default function FeedScreen({
   onFocusDone,
   showToast,
 }: Props) {
-  const byId = new Map(players.map((p) => [p.id, p]));
+  const byId = useMemo(
+    () => new Map(players.map((p) => [p.id, p])),
+    [players],
+  );
+  const discuter = useFige(onDiscuss);
+  const versClassement = useFige(onGoLeaderboard);
 
   // On ouvre le fil pour voir ce qui vient de se passer, jamais pour
   // reprendre là où on s'était arrêté. Or la page défile dans la fenêtre,
@@ -181,6 +211,75 @@ export default function FeedScreen({
     showToast("Ce moment est trop loin dans le fil");
   }, [focusEventId, events, hasMore, loadingMore, loadMore, onFocusDone, showToast]);
 
+  // Le fil, découpé une fois par arrivée de page et pas une fois par rendu.
+  // Ce bloc coûte trois `new Date()` et un `Intl.format` PAR ÉVÉNEMENT ;
+  // sans mémo il se rejouait entièrement à chaque re-rendu d'`App` — donc
+  // à chaque message du tchat, à chaque battement de présence, à chaque
+  // toast. À quatre pages chargées, ça faisait six cents allocations de
+  // date sur le fil principal pour un tap.
+  const jours = useMemo<Jour[]>(() => {
+    if (events === null) return [];
+    return groupByDay(events).map(({ day, items }) => ({
+      day,
+      label: dayLabel(day),
+      blocks: blocksOf(items),
+    }));
+  }, [events]);
+
+  // Réactions et commentaires découpés par bloc, en gardant l'identité des
+  // tableaux quand rien n'a changé — c'est ce qui permet au `memo` des
+  // cartes de tenir. Un bloc d'un seul événement (l'immense majorité) reçoit
+  // directement le tableau de la Map : `patchReaction` ne remplace que
+  // l'entrée touchée, donc les autres gardent leur référence et leur carte
+  // ne se re-rend pas.
+  const { reactions: toutesReactions, comments: tousCommentaires } = feed;
+  const annexes = useMemo(() => {
+    const m = new Map<string, { reactions: FeedReaction[]; comments: FeedComment[] }>();
+    for (const j of jours) {
+      for (const b of j.blocks) {
+        const seul = b.events.length === 1 ? b.events[0].id : null;
+        m.set(b.events[0].id, {
+          reactions: seul
+            ? (toutesReactions.get(seul) ?? RIEN)
+            : b.events.flatMap((e) => toutesReactions.get(e.id) ?? RIEN),
+          comments: seul
+            ? (tousCommentaires.get(seul) ?? RIEN)
+            : b.events.flatMap((e) => tousCommentaires.get(e.id) ?? RIEN),
+        });
+      }
+    }
+    return m;
+  }, [jours, toutesReactions, tousCommentaires]);
+
+  // « Voir plus » : ce qui arrive est visible pour qui regarde l'écran, et
+  // invisible pour qui l'écoute. On compte avant, on annonce après.
+  const [annonce, setAnnonce] = useState("");
+  const bout = useRef<HTMLParagraphElement>(null);
+  /** Nombre d'événements au moment du tap. -1 = personne n'a rien demandé :
+      ni le premier chargement ni une remontée automatique vers un moment
+      cité ne doivent parler ni déplacer le focus. */
+  const avant = useRef(-1);
+
+  const voirPlus = useCallback(() => {
+    avant.current = events?.length ?? 0;
+    loadMore();
+  }, [events, loadMore]);
+
+  useEffect(() => {
+    if (avant.current < 0 || events === null || loadingMore) return;
+    const gagnes = events.length - avant.current;
+    avant.current = -1;
+    setAnnonce(
+      gagnes > 0
+        ? `${gagnes} moment${gagnes > 1 ? "s" : ""} de plus dans le fil.`
+        : "Rien de plus à charger.",
+    );
+    // Le bouton vient de disparaître avec sa dernière page : sans ce
+    // rattrapage, le focus clavier retombe sur `<body>` et la navigation
+    // VoiceOver repart du haut de l'écran.
+    if (!hasMore) bout.current?.focus();
+  }, [events, loadingMore, hasMore]);
+
   // Trouvé : on l'amène au centre. Le défilement est doux — arriver d'un
   // autre écran et se retrouver déjà ailleurs dans le fil, sans mouvement,
   // donne l'impression d'avoir raté quelque chose.
@@ -197,15 +296,48 @@ export default function FeedScreen({
 
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
-      <h1 className="mt-4 text-2xl font-bold">Feed</h1>
+      <h1 className="mt-4 text-2xl font-bold">Le fil</h1>
 
-      {feed.events === null && (
+      {/* Ce que le fil vient de faire, pour qui ne le voit pas. Muet à
+          l'ouverture : on n'annonce que les changements. */}
+      <p aria-live="polite" className="sr-only">
+        {annonce}
+      </p>
+
+      {/* Le fil n'a pas pu se charger : on le dit et on offre la reprise,
+          au lieu de laisser quatre blocs gris respirer dans le vide.
+          Même forme que la panne du Classement — c'est la même phrase à
+          dire, elle se dit pareil. */}
+      {feed.enPanne && feed.events === null && (
+        <>
+          <p className="mt-4 text-muted">
+            Impossible de charger le fil. Tes coches sont bien enregistrées —
+            c&apos;est l&apos;affichage qui coince.
+          </p>
+          <button
+            onClick={feed.reload}
+            className="mt-4 min-h-11 self-start rounded-xl px-6 font-bold"
+            style={{
+              background: "var(--color-raised)",
+              color: "var(--color-ink)",
+            }}
+          >
+            Réessayer
+          </button>
+        </>
+      )}
+
+      {feed.events === null && !feed.enPanne && (
         <div role="status" aria-label="Fil en cours de chargement">
           <Skeleton className="mt-5" w={110} h={16} radius={8} />
           <ul className="mt-2 flex flex-col gap-2">
-            {[0, 1, 2, 3].map((i) => (
+            {/* Trois blocs à la hauteur réelle d'une carte — 176 px mesurés
+                sur une carte d'une phrase — et pas quatre à la moitié. Un
+                squelette qui ment sur la place réserve un saut d'un écran
+                entier quand la donnée tombe, en plein sous le pouce. */}
+            {[0, 1, 2].map((i) => (
               <li key={i}>
-                <Skeleton h={72} radius={16} />
+                <Skeleton h={176} radius={16} />
               </li>
             ))}
           </ul>
@@ -219,58 +351,78 @@ export default function FeedScreen({
         </p>
       )}
 
-      {feed.events !== null &&
-        groupByDay(feed.events).map(({ day, items }) => (
-          <section key={day}>
-            <h2 className="mt-5 mb-2 text-sm font-bold text-muted">
-              {dayLabel(day)}
-            </h2>
-            <ul className="flex flex-col gap-2">
-              {blocksOf(items).map((block) =>
-                block.kind === "recap" ? (
-                  <WeekRecapCard
-                    key={block.events[0].id}
-                    events={block.events}
-                    me={player}
-                    byId={byId}
-                    reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
-                    comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
-                    onToggleReaction={feed.toggleReaction}
-                    onDiscuss={onDiscuss}
-                    onGoLeaderboard={onGoLeaderboard}
-                    vise={block.events.some((e) => e.id === vise)}
-                  />
-                ) : (
-                  <FeedItem
-                    key={block.events[0].id}
-                    events={block.events}
-                    me={player}
-                    byId={byId}
-                    // Réactions et commentaires de tout le groupe : chacun
-                    // porte son event_id, donc rien ne se perd au passage.
-                    reactions={block.events.flatMap((e) => feed.reactions.get(e.id) ?? [])}
-                    comments={block.events.flatMap((e) => feed.comments.get(e.id) ?? [])}
-                    onToggleReaction={feed.toggleReaction}
-                    onDiscuss={onDiscuss}
-                    // Le moment cité peut être n'importe lequel de la
-                    // salve, pas seulement l'ancre : c'est la carte
-                    // entière qu'on allume.
-                    vise={block.events.some((e) => e.id === vise)}
-                  />
-                ),
-              )}
-            </ul>
-          </section>
-        ))}
+      {jours.map(({ day, label, blocks }) => (
+        <section key={day} aria-labelledby={`jour-${day}`}>
+          <h2
+            id={`jour-${day}`}
+            className="mt-5 mb-2 text-sm font-bold text-muted"
+          >
+            {label}
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {blocks.map((block) => {
+              const annexe = annexes.get(block.events[0].id);
+              return block.kind === "recap" ? (
+                <WeekRecapCard
+                  key={block.events[0].id}
+                  events={block.events}
+                  me={player}
+                  byId={byId}
+                  reactions={annexe?.reactions ?? RIEN}
+                  comments={annexe?.comments ?? RIEN}
+                  onToggleReaction={feed.toggleReaction}
+                  onDiscuss={discuter}
+                  onGoLeaderboard={versClassement}
+                  vise={block.events.some((e) => e.id === vise)}
+                />
+              ) : (
+                <FeedItem
+                  key={block.events[0].id}
+                  events={block.events}
+                  me={player}
+                  byId={byId}
+                  // Réactions et commentaires de tout le groupe : chacun
+                  // porte son event_id, donc rien ne se perd au passage.
+                  reactions={annexe?.reactions ?? RIEN}
+                  comments={annexe?.comments ?? RIEN}
+                  onToggleReaction={feed.toggleReaction}
+                  onDiscuss={discuter}
+                  // Le moment cité peut être n'importe lequel de la
+                  // salve, pas seulement l'ancre : c'est la carte
+                  // entière qu'on allume.
+                  vise={block.events.some((e) => e.id === vise)}
+                />
+              );
+            })}
+          </ul>
+        </section>
+      ))}
 
       {feed.hasMore && (
         <button
-          onClick={feed.loadMore}
+          onClick={voirPlus}
           disabled={feed.loadingMore}
-          className="mx-auto my-4 min-h-12 rounded-full bg-surface px-6 text-sm font-bold text-muted disabled:opacity-40"
+          aria-busy={feed.loadingMore}
+          // Pas d'`opacity-40` ici : « Chargement… » n'est pas un bouton
+          // désactivé, c'est un bouton occupé. Le libellé dit déjà l'état,
+          // l'estomper ne fait que le rendre illisible pendant qu'on le lit.
+          className="mx-auto my-4 min-h-12 rounded-full bg-surface px-6 text-sm font-bold text-muted"
         >
           {feed.loadingMore ? "Chargement…" : "Voir plus"}
         </button>
+      )}
+
+      {/* Le bout du fil. Il remplace le bouton qui disparaît — sans lui, le
+          focus du clavier tombait sur `<body>` au moment où la dernière page
+          arrivait, et l'écran se terminait sur une pagination éteinte. */}
+      {!feed.hasMore && feed.events !== null && feed.events.length > 0 && (
+        <p
+          ref={bout}
+          tabIndex={-1}
+          className="mx-auto my-4 text-center text-sm text-quiet"
+        >
+          Tu es remonté au tout début.
+        </p>
       )}
       <div className="pb-4" />
     </div>

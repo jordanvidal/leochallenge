@@ -10,7 +10,7 @@
 // les rassemble. events[0] est l'ancre : c'est elle qui reçoit les
 // nouvelles réactions, et c'est elle que « En parler » cite dans le tchat.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   FeedComment,
   FeedEvent,
@@ -39,6 +39,7 @@ function ReactionPill({
   pillBg: string;
 }) {
   const [showWho, setShowWho] = useState(false);
+  const quiId = useId();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Un appui long ouvre le popover ; on gèle alors le clic qui suit
   // pour ne pas déclencher la réaction par-dessus.
@@ -70,16 +71,22 @@ function ReactionPill({
     onTap();
   }
 
-  // Ferme le popover au prochain tap ailleurs (ou au scroll).
+  // Ferme le popover au prochain tap ailleurs (ou au scroll). Échap ferme
+  // aussi : au clavier, il n'y a ni tap ailleurs ni scroll à produire.
   useEffect(() => {
     if (!showWho) return;
     const close = () => setShowWho(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowWho(false);
+    };
+    document.addEventListener("keydown", onKey);
     const id = setTimeout(() => {
       document.addEventListener("pointerdown", close);
       document.addEventListener("scroll", close, true);
     }, 0);
     return () => {
       clearTimeout(id);
+      document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", close);
       document.removeEventListener("scroll", close, true);
     };
@@ -120,6 +127,12 @@ function ReactionPill({
         onContextMenu={(e) => e.preventDefault()}
         aria-pressed={mine}
         aria-label={`Réagir ${emoji}${count > 0 ? ` (${count})` : ""}`}
+        // Qui a réagi ne s'ouvrait qu'au maintien de 450 ms — un geste
+        // qu'un lecteur d'écran n'émet pas, sur un popover que rien ne
+        // référençait. L'information était donc inatteignable par toute
+        // autre route que l'œil. Elle est maintenant dans la description
+        // du bouton, sans geste à produire.
+        aria-describedby={who.length > 0 ? quiId : undefined}
         className="flex min-h-11 min-w-11 select-none items-center justify-center gap-1 rounded-full px-2 text-sm transition-transform active:scale-95"
         style={
           mine
@@ -142,6 +155,11 @@ function ReactionPill({
           </span>
         )}
       </button>
+      {who.length > 0 && (
+        <span id={quiId} className="sr-only">
+          {who.map((p) => p.name).join(", ")}
+        </span>
+      )}
     </div>
   );
 }
@@ -173,13 +191,30 @@ function Echanges({
   onDiscuss: (events: FeedEvent[]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const blocId = useId();
+
+  // Les commentaires viennent de plusieurs événements : on les remet dans
+  // l'ordre où ils ont été écrits, pas dans celui des événements porteurs.
+  // Replié — l'état par défaut de presque toutes les cartes — on ne trie
+  // rien du tout.
+  const ordonnes = useMemo(
+    () =>
+      open
+        ? [...comments].sort((a, b) => (a.created_at < b.created_at ? -1 : 1))
+        : comments,
+    [comments, open],
+  );
 
   return (
-    <div className="mt-1 flex flex-col">
-      <div className="flex items-center gap-3">
+    <div className="mt-0.5 flex flex-col">
+      {/* Les deux vraies actions de la carte. Elles étaient à 32 px sans
+          marge horizontale, donc plus étroites que leur texte : la seule
+          sortie du fil vers le tchat se ratait au pouce. Le `-mx-2` rend
+          les 8 px pris en padding, l'alignement du bloc ne bouge pas. */}
+      <div className="-mx-2 flex items-center">
         <button
           onClick={() => onDiscuss(events)}
-          className="min-h-8 text-xs font-bold"
+          className="min-h-11 px-2 text-sm font-bold"
           style={{ color: "var(--pc)" }}
         >
           En parler →
@@ -188,7 +223,8 @@ function Echanges({
           <button
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
-            className="min-h-8 text-xs font-medium text-faint"
+            aria-controls={blocId}
+            className="min-h-11 px-2 text-xs font-medium text-quiet"
           >
             {comments.length === 1
               ? "1 commentaire"
@@ -198,8 +234,8 @@ function Echanges({
       </div>
 
       {open && (
-        <div className="mt-1.5 flex flex-col gap-1.5">
-          {comments.map((c) => {
+        <div id={blocId} className="mt-1.5 flex flex-col gap-1.5">
+          {ordonnes.map((c) => {
             const author = byId.get(c.player_id);
             return (
               <p key={c.id} className="text-sm leading-snug">
@@ -213,7 +249,7 @@ function Echanges({
               </p>
             );
           })}
-          <p className="text-[11px] text-faint">
+          <p className="text-[11px] text-quiet">
             Les commentaires sont fermés. La suite se passe dans le tchat.
           </p>
         </div>
@@ -251,52 +287,56 @@ export default function Interactions({
 }: Props) {
   const anchor = events[0];
 
-  // Les commentaires viennent de plusieurs événements : on les remet dans
-  // l'ordre où ils ont été écrits, pas dans celui des événements portants.
-  const ordered = [...comments].sort((a, b) =>
-    a.created_at < b.created_at ? -1 : 1,
+  // La rangée entière, calculée une fois par changement de réaction et pas
+  // une fois par rendu. Elle coûtait cinq balayages complets de `reactions`
+  // plus cinq Set intermédiaires par carte ; multiplié par toutes les
+  // cartes chargées, à chaque re-rendu d'`App`. Mémoïser les éléments eux-
+  // mêmes suffit : React réutilise le sous-arbre quand la référence ne
+  // bouge pas, sans qu'aucune pastille ait besoin d'un `memo`.
+  const pastilles = useMemo(
+    () =>
+      REACTION_EMOJIS.map((e) => {
+        // Un joueur qui a mis le même emoji sur deux événements du
+        // groupe ne compte qu'une fois : on compte des gens, pas des
+        // lignes.
+        const who = [
+          ...new Set(
+            reactions.filter((r) => r.emoji === e).map((r) => r.player_id),
+          ),
+        ]
+          .map((id) => byId.get(id))
+          .filter((p): p is Player => Boolean(p));
+        const mine = reactions.find(
+          (r) => r.emoji === e && r.player_id === me.id,
+        );
+        // Retirer : sur l'événement qui porte VRAIMENT ma réaction,
+        // sinon le retap en ajouterait une deuxième ailleurs.
+        // Ajouter : toujours sur l'ancre.
+        const target = mine
+          ? (events.find((ev) => ev.id === mine.event_id) ?? anchor)
+          : anchor;
+        return (
+          <ReactionPill
+            key={e}
+            emoji={e}
+            count={who.length}
+            mine={!!mine}
+            who={who}
+            onTap={() => onToggleReaction(target, e)}
+            pillBg={pillBg}
+          />
+        );
+      }),
+    [reactions, byId, me.id, events, anchor, onToggleReaction, pillBg],
   );
 
   return (
     <>
-      <div className={`${gap} flex gap-1.5`}>
-        {REACTION_EMOJIS.map((e) => {
-          // Un joueur qui a mis le même emoji sur deux événements du
-          // groupe ne compte qu'une fois : on compte des gens, pas des
-          // lignes.
-          const who = [
-            ...new Set(
-              reactions.filter((r) => r.emoji === e).map((r) => r.player_id),
-            ),
-          ]
-            .map((id) => byId.get(id))
-            .filter((p): p is Player => Boolean(p));
-          const mine = reactions.find(
-            (r) => r.emoji === e && r.player_id === me.id,
-          );
-          // Retirer : sur l'événement qui porte VRAIMENT ma réaction,
-          // sinon le retap en ajouterait une deuxième ailleurs.
-          // Ajouter : toujours sur l'ancre.
-          const target = mine
-            ? (events.find((ev) => ev.id === mine.event_id) ?? anchor)
-            : anchor;
-          return (
-            <ReactionPill
-              key={e}
-              emoji={e}
-              count={who.length}
-              mine={!!mine}
-              who={who}
-              onTap={() => onToggleReaction(target, e)}
-              pillBg={pillBg}
-            />
-          );
-        })}
-      </div>
+      <div className={`${gap} flex gap-1.5`}>{pastilles}</div>
       <Echanges
         events={events}
         byId={byId}
-        comments={ordered}
+        comments={comments}
         onDiscuss={onDiscuss}
       />
     </>
