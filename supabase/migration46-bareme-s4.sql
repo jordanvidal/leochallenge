@@ -1125,3 +1125,541 @@ $$;
 
 grant execute on function public.leaderboard(date, date)
   to anon, authenticated, service_role;
+
+
+-- -------------------------------------------------------------
+-- 8. duel_results : le duel se joue sur les jours parfaits, mais il
+--    se DÉPARTAGE aux points de la semaine.
+--
+--    Le critère principal ne bouge pas d'une ligne : `tally` compte les
+--    jours parfaits directement sur entries, le jour off n'en est pas
+--    un, et il est le même pour les deux adversaires. Équitable par
+--    construction — c'est tout l'intérêt d'un jour off collectif.
+--
+--    Mais `duel_points` somme `weekpts`, qui descend de `pmpts`, donc
+--    du moteur. Trois changements S4 déplacent ces points : la série
+--    préservée par le jour off change le multiplicateur de TOUS les
+--    jours suivants (3,5 pts par jour entre ×1 et ×1,5), le 🔙 retour
+--    ne paie plus le lendemain d'un repos, et les deux nouveaux
+--    événements sont des points secs.
+--
+--    Laisser cette vue sur le moteur S3, ce serait reproduire à un mois
+--    près le bug que la migration 39 a été écrite pour corriger. Son
+--    en-tête donne l'ordre de grandeur : sur les 3 duels résolus, 1
+--    s'est joué au départage, 231,5 contre 241,0. Une marge de 9,5
+--    points suffit à faire basculer un duel — un multiplicateur
+--    préservé sur trois jours pèse plus que ça.
+--
+--    MÉTHODE, la même qu'en migration 39. La tête (de `paris` à
+--    `mirror_winner`) est la chaîne de CTE de daily_points ci-dessus,
+--    au caractère près — c'est la seule façon que les deux ne dérivent
+--    pas. La queue (`weekpts` → le select final) est recollée VERBATIM
+--    depuis pg_get_viewdef, d'où son style machine : on ne retape pas à
+--    la main ce qui décide qui gagne un duel.
+--
+--    Les colonnes jokered / premier_du_jour / jour_off traversent
+--    `base` et `premirror` sans jamais être lues par la queue. C'est
+--    déjà le cas aujourd'hui, et c'est le prix du verbatim.
+--
+--    `create or replace` avec la même liste de sortie, JAMAIS de drop :
+--    daily_points dépend de duel_results, et player_badges de
+--    daily_points.
+-- -------------------------------------------------------------
+
+create or replace view public.duel_results
+with (security_invoker = true) as
+with recursive paris as (
+  select (now() at time zone 'Europe/Paris')::date as today
+),
+e as (
+  select player_id, day,
+         (pushups::int + abs::int + squats::int) as exos,
+         (pushups and abs and squats) as perfect,
+         pushups,
+         abs,
+         squats,
+         completed_at,
+         case when completed_at is not null
+               and (completed_at at time zone 'Europe/Paris')::date = day
+              then completed_at at time zone 'Europe/Paris'
+         end as done_ts
+  from public.entries
+),
+-- ---- S4 : le jour off ------------------------------------------
+-- Le jour off appartient au calendrier, pas au joueur : jours_off ×
+-- players. On EXCLUT ceux qui étaient parfaits ce jour-là — s'ils ont
+-- coché, leur jour compte comme un vrai 3/3, et une seconde ligne
+-- dans kept décalerait le row_number(), donc toute leur série.
+--
+-- Table vide avant le 03/08 (CHECK) : sur tout jour passé, cette CTE
+-- est vide et tout ce qui suit se réduit au calcul d'avant.
+offs as (
+  select p.id as player_id, jo.day
+  from public.jours_off jo
+  cross join public.players p
+  where not exists (
+    select 1 from e
+    where e.player_id = p.id and e.day = jo.day and e.perfect
+  )
+),
+-- ---- La serie et le joker ---------------------------------------
+-- Un joker par joueur pour tout le challenge, DERIVE : pas de table,
+-- pas de cron, pas d'ecriture. Il se consomme tout seul sur le PREMIER
+-- jour rate qui interrompt une serie d'au moins 3 jours parfaits, et
+-- seulement si le joueur est revenu le lendemain : un joker ne sauve
+-- pas quelqu'un qui a arrete, il recolle deux morceaux.
+--
+-- Le jour joker entre dans l'ile (la serie survit) mais ne compte PAS
+-- dans streak_pos : il preserve, il ne recompense pas. Serie de 5,
+-- joker, puis 3/3 => 6, pas 7. Restant non-perfect avec un streak_pos
+-- nul, il ne rapporte ni multiplicateur ni points.
+--
+-- S4 : la chaîne de base part désormais des jours parfaits ET des
+-- jours off. Sans ça, base_streaks casserait à chaque repos et le
+-- joker se déclencherait sur un jour où il n'y a rien à sauver.
+kept0 as (
+  select player_id, day, true as is_perfect from e where perfect
+  union all
+  select player_id, day, false as is_perfect from offs
+),
+base_islands as (
+  select player_id, day, is_perfect,
+         (day - (row_number() over (partition by player_id order by day))::int) as island
+  from kept0
+),
+base_streaks as (
+  select player_id, day,
+         (row_number() over (partition by player_id, island order by day))::int as pos
+  from base_islands
+  where is_perfect
+),
+-- S4 : « le lendemain » saute un éventuel jour off. Il ne peut jamais
+-- y en avoir deux d'affilée (un seul par semaine, jamais le week-end),
+-- donc sauter d'un jour suffit toujours.
+--
+-- Sans ça, deux régressions : le joker brûlerait sur le premier jour
+-- off venu — les trois conditions (série ≥ 3, trou, retour) y sont
+-- toutes satisfaites — et sa collision avec offs dans kept ferait
+-- compter deux fois le même jour.
+--
+-- jours_off étant vide avant le 03/08, les deux « case when exists »
+-- rendent day + 1 sur tout jour passé : c'est le calcul de la
+-- migration 33, mot pour mot.
+joker as (
+  select distinct on (bs.player_id)
+         bs.player_id, g.trou as day
+  from base_streaks bs
+  cross join lateral (
+    select case when exists (select 1 from public.jours_off jo where jo.day = bs.day + 1)
+                then bs.day + 2 else bs.day + 1 end as trou
+  ) g
+  where bs.pos >= 3
+    -- un jour off n'est pas une cassure : il n'y a rien à racheter
+    and not exists (select 1 from public.jours_off jo where jo.day = g.trou)
+    -- le lendemain n'est pas parfait : c'est la cassure
+    and not exists (
+      select 1 from e gap
+      where gap.player_id = bs.player_id and gap.day = g.trou and gap.perfect
+    )
+    -- mais le surlendemain l'est : il y a bien deux morceaux a recoller
+    and exists (
+      select 1 from e back
+      where back.player_id = bs.player_id and back.perfect
+        and back.day = case when exists (select 1 from public.jours_off jo
+                                          where jo.day = g.trou + 1)
+                            then g.trou + 2 else g.trou + 1 end
+    )
+  order by bs.player_id, bs.day
+),
+-- Les jours qui tiennent la chaine : les parfaits, le jour off, plus
+-- le jour joker.
+kept as (
+  select player_id, day, is_perfect from kept0
+  union all
+  select player_id, day, false as is_perfect from joker
+),
+islands as (
+  select player_id, day, is_perfect,
+         (day - (row_number() over (partition by player_id order by day))::int) as island
+  from kept
+),
+-- WHERE s'applique avant la fonction de fenetre : le jour joker est
+-- retire AVANT la numerotation, donc il ne consomme pas de rang.
+streaks as (
+  select player_id, day,
+         (row_number() over (partition by player_id, island order by day))::int as streak_pos
+  from islands
+  where is_perfect
+),
+-- 🔙 le retour : 3/3 aujourd'hui, zéro hier, et déjà présent avant hier.
+--
+-- S4 : pas au lendemain d'un jour off. Un jour off EST un hier à zéro
+-- pour presque tout le monde — sans cette garde, le groupe entier
+-- encaisse +3 gratuits chaque semaine, et « la main tendue à celui
+-- qui revient » devient un salaire.
+comeback as (
+  select cur.player_id, cur.day
+  from e cur
+  where cur.perfect
+    and not exists (
+      select 1 from public.jours_off jo where jo.day = cur.day - 1
+    )
+    and not exists (
+      select 1 from e prev
+      where prev.player_id = cur.player_id
+        and prev.day = cur.day - 1
+        and prev.exos > 0
+    )
+    and exists (
+      select 1 from e hist
+      where hist.player_id = cur.player_id
+        and hist.day < cur.day - 1
+    )
+),
+-- 🤝 jour parfait collectif : la « bande du jour » = les joueurs actifs
+-- sur 7 jours glissants (au moins une coche). Tous à 3/3 ce jour-là, et
+-- au moins deux. Perfect ⇒ actif, donc le bonus va exactement aux 3/3.
+active as (
+  select distinct d.day, a.player_id
+  from (select distinct day from e) d
+  join e a on a.exos > 0 and a.day between d.day - 6 and d.day
+),
+collective_days as (
+  select act.day
+  from active act
+  left join e cur on cur.player_id = act.player_id and cur.day = act.day
+  group by act.day
+  having count(*) >= 2
+     and bool_and(coalesce(cur.perfect, false))
+),
+-- S4 : le jour off entre dans spine. Sans lui, un joueur qui se repose
+-- n'a ni entrée ni claim ce jour-là, donc AUCUNE ligne daily_points —
+-- et le drapeau jour_off n'existerait pour personne. C'est exactement
+-- le défaut que la migration 27 a corrigé pour le joker.
+spine as (
+  select player_id, day from e
+  union
+  select player_id, day from public.bonus_claims
+  union
+  select player_id, day from joker
+  union
+  select player_id, day from offs
+),
+-- Premier du jour. Jusqu'au 19/07 : le premier point, point. Depuis
+-- le 20/07 le trophée TOURNE : si tu as été premier à finir hier,
+-- le +3 du jour va au premier des autres. Exclusion d'un seul jour ;
+-- tenant seul à finir = trophée non attribué ce jour-là.
+first_done_old as (
+  select distinct on (e.day) e.day, e.player_id
+  from e, paris
+  where e.done_ts is not null and e.day < paris.today
+    and e.day < date '2026-07-20'
+  order by e.day, e.done_ts
+),
+finishers as (
+  select e.day, e.player_id, e.done_ts
+  from e, paris
+  where e.done_ts is not null and e.day < paris.today
+    and e.day >= date '2026-07-20'
+),
+-- La chaîne jour par jour : le gagnant de la veille voyage dans la
+-- récursion. Jour sans gagnant → null transmis → pas d'exclusion le
+-- lendemain.
+first_rot as (
+  select date '2026-07-20' as day,
+         (select f.player_id from finishers f
+          where f.day = date '2026-07-20'
+          order by f.done_ts limit 1) as winner
+  from paris
+  where date '2026-07-20' < paris.today
+  union all
+  select r.day + 1,
+         (select f.player_id from finishers f
+          where f.day = r.day + 1
+            and (r.winner is null or f.player_id <> r.winner)
+          order by f.done_ts limit 1)
+  from first_rot r
+  where r.day + 1 < (select today from paris)
+),
+first_done as (
+  select day, player_id from first_done_old
+  union all
+  select day, winner as player_id from first_rot where winner is not null
+),
+claims as (
+  select player_id, day, sum(points) as pts
+  from public.bonus_claims
+  group by player_id, day
+),
+-- Les puces déclarées du jour rangées par tirage qui les double, à
+-- part du reste des bonus : « les squats comptent double » a besoin
+-- de leur total à lui. Un CTE au lieu de trois depuis le 27/07 —
+-- l'appartenance ne se lit plus sur l'échelle (elle laissait les
+-- squats jump dehors) mais sur bonus_catalog.double_event, qui la
+-- déclare puce par puce et sert aussi à l'écran de déclaration.
+claims_double as (
+  select bc.player_id, bc.day, cat.double_event, sum(bc.points) as pts
+  from public.bonus_claims bc
+  join public.bonus_catalog cat on cat.key = bc.bonus_key
+  where cat.double_event is not null
+  group by bc.player_id, bc.day, cat.double_event
+),
+-- S4 : le total des puces d'EXERCICE du jour, pour 🔁 bonus doublés.
+-- Ce tirage-là ne vise aucun exo : il double la feuille entière. Il ne
+-- passe donc pas par double_event, qui dit « quel exo double cette
+-- puce ». Restreint à kind = 'exercise' : boss_dimanche est un
+-- événement déclaré, pas une puce, et ne se double pas.
+claims_exo as (
+  select bc.player_id, bc.day, sum(bc.points) as pts
+  from public.bonus_claims bc
+  join public.bonus_catalog cat on cat.key = bc.bonus_key
+  where cat.kind = 'exercise'
+  group by bc.player_id, bc.day
+),
+timed as (
+  select ws.player_id, ws.day, ws.duration_seconds, ws.finished_at
+  from public.workout_sessions ws
+  join e on e.player_id = ws.player_id and e.day = ws.day and e.perfect
+  where ws.finished_at is not null
+),
+fastest_session as (
+  select distinct on (t.day) t.day, t.player_id
+  from timed t, paris
+  where t.day < paris.today
+    and (select count(*) from timed t2 where t2.day = t.day) >= 2
+  order by t.day, t.duration_seconds asc, t.finished_at asc
+),
+base as (
+  select
+    s.player_id,
+    s.day,
+    coalesce(e.exos, 0) as exos,
+    coalesce(e.perfect, false) as perfect,
+    coalesce(st.streak_pos, 0) as streak_pos,
+    (jk.day is not null) as jokered,
+    (fd.player_id is not null) as premier_du_jour,
+    (jo.day is not null) as jour_off,
+    case when coalesce(st.streak_pos, 0) >= 7 then 2.0
+         when coalesce(st.streak_pos, 0) >= 3 then 1.5
+         else 1.0 end as multiplier,
+    -- premier du jour : retiré au 27/07 (S3). Une course, mais un réveil
+    -- malin le raflait autant qu'un vrai effort. Borné, pas supprimé :
+    -- les jours S1/S2 gardent leurs +3.
+    (case when s.day < date '2026-07-27' and fd.player_id is not null
+          then public.bonus_value('premier_du_jour') else 0 end
+     -- dès le 20/07, ne se cumule plus avec « premier du jour » (les
+     -- deux valent +3 ; si les valeurs divergent un jour, payer le
+     -- plus gros des deux au lieu de supprimer celui-ci)
+     -- avant 8h et après 22h : retirés au 27/07 (S3). L'heure de la
+     -- séance parle de l'emploi du temps, pas de la performance. Les
+     -- jours d'avant gardent leurs points, d'où la borne plutôt que
+     -- la suppression de l'arête.
+     + case when s.day < date '2026-07-27'
+                 and e.done_ts::time < time '08:00'
+                 and (s.day < date '2026-07-20' or fd.player_id is null)
+            then public.bonus_value('avant_8h') else 0 end
+     + case when s.day < date '2026-07-27'
+                 and e.done_ts::time >= time '22:00'
+            then public.bonus_value('apres_22h') else 0 end
+     -- éclair : retiré au 27/07 (S3) — 14 séances sur 16 passaient
+     -- sous les 20 min, plus personne n'était départagé.
+     + case when s.day < date '2026-07-27'
+                 and tw.duration_seconds is not null
+                 and tw.duration_seconds < public.bonus_value('cap_seance_20min')
+            -- éclair : 5 pts figés pour la S1, valeur catalogue (2) ensuite
+            then (case when s.day < date '2026-07-20' then 5
+                       else public.bonus_value('seance_20min') end) else 0 end
+     -- rapide : retirée au 27/07 (S3), même raison que l'éclair — le jeu
+     -- optimal était de lancer la séance, ne rien faire dedans, cocher à
+     -- la main et finir juste au-dessus du plancher. Bornée, pas supprimée.
+     -- (5 pts figés pour la S1, valeur catalogue (2) du 20/07 au 26/07.)
+     + case when s.day < date '2026-07-27' and fw.player_id is not null
+            then (case when s.day < date '2026-07-20' then 5
+                       else public.bonus_value('seance_rapide') end) else 0 end
+     + case when cb.player_id is not null
+            then public.bonus_value('retour') else 0 end
+     -- collectif : retiré au 27/07 (S3) — il se ramollit quand le groupe
+     -- se vide (fin août, 2 actifs à 3/3 = +5 chacun presque gratis).
+     + case when s.day < date '2026-07-27'
+                 and cd.day is not null and coalesce(e.perfect, false)
+            then public.bonus_value('jour_parfait_collectif') else 0 end
+    ) as execution_bonus,
+    -- 🎲 L'exo doublé. Un seul événement est tiré par jour : au plus une
+    -- des trois branches est vraie, les regrouper ne change rien au
+    -- montant et évite de répéter le facteur de série trois fois.
+    ((case when ev.event_key = 'pompes_double' and coalesce(e.pushups, false)
+           then public.bonus_value('pompes_double')
+           when ev.event_key = 'abdos_double' and coalesce(e.abs, false)
+           then public.bonus_value('abdos_double')
+           when ev.event_key = 'squats_double' and coalesce(e.squats, false)
+           then public.bonus_value('squats_double')
+           else 0 end)
+     -- Depuis le 27/07, doubler la coche veut dire la doubler pour de
+     -- vrai : à ×2 de série, une coche vaut 2 points, la doubler en
+     -- ajoute 2, pas 1. Le forfait de +1 rendait l'événement d'autant
+     -- plus faible qu'on était régulier — l'inverse de ce qu'il promet.
+     -- Avant le 27/07 le facteur reste 1.0 : les jours S1/S2 gardent
+     -- leur +1 au demi-point près.
+     * case when s.day < date '2026-07-27' then 1.0
+            when coalesce(st.streak_pos, 0) >= 7 then 2.0
+            when coalesce(st.streak_pos, 0) >= 3 then 1.5
+            else 1.0 end
+     -- Depuis le 27/07, l'événement double AUSSI les puces déclarées de
+     -- l'exo tiré. claim_bonus les compte déjà une fois : les rajouter
+     -- une seconde fois, c'est exactement les doubler. Elles ne suivent
+     -- pas la série — une puce est un bonus, et la série ne touche pas
+     -- aux bonus, ici pas plus qu'ailleurs. La jointure de dcl porte
+     -- déjà le test de l'événement : rien à retester ici.
+     + case when s.day < date '2026-07-27' then 0
+            else coalesce(dcl.pts, 0) end
+     -- S4 : 🔁 bonus doublés. Même mécanique que ci-dessus, mais sur la
+     -- feuille entière au lieu d'un seul exo. claim_bonus les compte
+     -- déjà une fois ; les rajouter une seconde fois les double. Hors
+     -- série, comme tout bonus.
+     + case when s.day >= date '2026-08-03' and ev.event_key = 'bonus_doubles'
+            then coalesce(cex.pts, 0) else 0 end
+     -- S4 : 🎁 jour de fête. Un forfait pour le contrat rempli, rien
+     -- d'autre à faire. Hors série : c'est un bonus d'événement, pas de
+     -- la base — le multiplicateur ne le touche pas.
+     + case when s.day >= date '2026-08-03' and ev.event_key = 'jour_de_fete'
+                 and coalesce(e.perfect, false)
+            then public.bonus_value('jour_de_fete') else 0 end
+     -- happy hour et lève-tôt : retirés au 27/07 (S3), et sortis du
+     -- tirage par la même migration. La borne tient même si un
+     -- événement était réinséré à la main dans daily_events.
+     + case when s.day < date '2026-07-27'
+                 and ev.event_key = 'happy_hour'
+                 and e.done_ts::time >= time '18:00'
+                 and e.done_ts::time < time '20:00'
+            then public.bonus_value('happy_hour') else 0 end
+     + case when s.day < date '2026-07-27'
+                 and ev.event_key = 'leve_tot'
+                 and e.done_ts::time < time '07:00'
+            then public.bonus_value('leve_tot') else 0 end
+    ) as event_bonus,
+    coalesce(c.pts, 0) as claim_bonus,
+    ev.event_key
+  from spine s
+  left join e using (player_id, day)
+  left join streaks st using (player_id, day)
+  left join joker jk on jk.player_id = s.player_id and jk.day = s.day
+  left join public.jours_off jo on jo.day = s.day
+  left join comeback cb on cb.player_id = s.player_id and cb.day = s.day
+  left join collective_days cd on cd.day = s.day
+  left join first_done fd on fd.day = s.day and fd.player_id = s.player_id
+  left join timed tw on tw.player_id = s.player_id and tw.day = s.day
+  left join fastest_session fw on fw.day = s.day and fw.player_id = s.player_id
+  left join claims c on c.player_id = s.player_id and c.day = s.day
+  -- L'événement AVANT les puces qu'il double : la jointure suivante le
+  -- lit, et une jointure ne voit que ce qui est déjà entré.
+  left join public.daily_events ev on ev.day = s.day
+  left join claims_double dcl on dcl.player_id = s.player_id
+                             and dcl.day = s.day
+                             and dcl.double_event = ev.event_key
+  left join claims_exo cex on cex.player_id = s.player_id and cex.day = s.day
+),
+premirror as (
+  select
+    player_id, day, exos, perfect, streak_pos, jokered, premier_du_jour,
+    jour_off, multiplier, event_key,
+    -- Journée parfaite : +2 jusqu'au 26/07, +4 à partir du 27/07 (S3).
+    -- Daté partout où la base est reconstruite, sinon le détail ment.
+    (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier as base_pts,
+    execution_bonus, event_bonus, claim_bonus,
+    case when event_key = 'quitte_ou_double' and perfect
+         -- depuis le 20/07 : ne double plus que la base du jour
+         then (exos + case when perfect then (case when day >= date '2026-07-27' then 4 else 2 end) else 0 end) * multiplier
+              + case when day < date '2026-07-20'
+                     then execution_bonus + event_bonus + claim_bonus
+                     else 0 end
+         else 0 end as quitte_bonus
+  from base
+),
+pmpts as (
+  select player_id, day,
+         base_pts + execution_bonus + event_bonus + claim_bonus + quitte_bonus as pts
+  from premirror
+),
+mirror_days as (
+  select de.day
+  from public.daily_events de, paris
+  where de.event_key = 'jour_miroir' and de.day < paris.today
+),
+standings as (
+  select md.day as mday, p.id as player_id,
+         coalesce(sum(pm.pts), 0) as cum
+  from mirror_days md
+  cross join public.players p
+  left join pmpts pm on pm.player_id = p.id and pm.day < md.day
+  group by md.day, p.id
+),
+mirror_winner as (
+  select distinct on (mday) mday, player_id
+  from standings
+  order by mday, cum asc, player_id
+        ), weekpts AS (
+         SELECT pmpts.player_id,
+            pmpts.day,
+            pmpts.pts
+           FROM pmpts
+        UNION ALL
+         SELECT mw.player_id,
+            mw.mday AS day,
+            bonus_value('jour_miroir'::text) AS pts
+           FROM mirror_winner mw
+        ), finished AS (
+         SELECT d.id,
+            d.week_monday,
+            d.player_a,
+            d.player_b
+           FROM duels d,
+            paris
+          WHERE d.player_b IS NOT NULL AND (d.week_monday + 7) <= paris.today
+        ), tally AS (
+         SELECT f.id,
+            f.week_monday,
+            f.player_a,
+            f.player_b,
+            count(*) FILTER (WHERE en.player_id = f.player_a AND en.pushups AND en.abs AND en.squats)::integer AS perfect_a,
+            count(*) FILTER (WHERE en.player_id = f.player_b AND en.pushups AND en.abs AND en.squats)::integer AS perfect_b,
+            COALESCE(sum(en.pushups::integer + en.abs::integer + en.squats::integer) FILTER (WHERE en.player_id = f.player_a), 0::bigint)::integer AS exos_a,
+            COALESCE(sum(en.pushups::integer + en.abs::integer + en.squats::integer) FILTER (WHERE en.player_id = f.player_b), 0::bigint)::integer AS exos_b
+           FROM finished f
+             LEFT JOIN entries en ON (en.player_id = f.player_a OR en.player_id = f.player_b) AND en.day >= f.week_monday AND en.day <= (f.week_monday + 6)
+          GROUP BY f.id, f.week_monday, f.player_a, f.player_b
+        ), duel_points AS (
+         SELECT f.id,
+            COALESCE(sum(w.pts) FILTER (WHERE w.player_id = f.player_a), 0::numeric) AS points_a,
+            COALESCE(sum(w.pts) FILTER (WHERE w.player_id = f.player_b), 0::numeric) AS points_b
+           FROM finished f
+             LEFT JOIN weekpts w ON (w.player_id = f.player_a OR w.player_id = f.player_b) AND w.day >= f.week_monday AND w.day <= (f.week_monday + 6)
+          GROUP BY f.id
+        )
+ SELECT t.id,
+    t.week_monday,
+    t.week_monday + 6 AS day,
+    t.player_a,
+    t.player_b,
+    t.perfect_a,
+    t.perfect_b,
+    t.exos_a,
+    t.exos_b,
+        CASE
+            WHEN t.perfect_a > t.perfect_b THEN t.player_a
+            WHEN t.perfect_b > t.perfect_a THEN t.player_b
+            WHEN p.points_a > p.points_b THEN t.player_a
+            WHEN p.points_b > p.points_a THEN t.player_b
+            ELSE NULL::uuid
+        END AS winner,
+        CASE
+            WHEN t.perfect_a > t.perfect_b THEN t.player_b
+            WHEN t.perfect_b > t.perfect_a THEN t.player_a
+            WHEN p.points_a > p.points_b THEN t.player_b
+            WHEN p.points_b > p.points_a THEN t.player_a
+            ELSE NULL::uuid
+        END AS loser,
+    t.perfect_a = t.perfect_b AS tiebreak_used,
+    round(p.points_a, 1) AS points_a,
+    round(p.points_b, 1) AS points_b
+   FROM tally t
+     JOIN duel_points p USING (id);
