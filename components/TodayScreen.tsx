@@ -40,6 +40,8 @@ type Props = {
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
   onStartWorkout: () => void;
+  /** Ouvre « Ma séance » sur l'onglet bonus. Absent = catalogue pas chargé. */
+  onPlanBonus?: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
   onInvite: () => void;
@@ -60,6 +62,7 @@ export default function TodayScreen({
   onDismissEvent,
   sessionStarted,
   onStartWorkout,
+  onPlanBonus,
   onClaimBonus,
   onUnclaimBonus,
   onInvite,
@@ -364,6 +367,30 @@ export default function TodayScreen({
         >
           <span aria-hidden>▶</span>
           {sessionStarted ? "Reprendre ma séance" : "Lancer ma séance"}
+        </button>
+      )}
+
+      {/* Journée bouclée : le contrat est rempli, il n'y a plus de séance à
+          lancer — mais il reste des bonus à prendre. Ce bouton n'ouvre
+          aucune séance serveur et ne coche aucun exo du contrat : il mène
+          au planificateur, et rien d'autre. C'est ce qui le distingue de
+          « Refaire un tour », retiré le 31/07 parce qu'il promettait une
+          série et rouvrait une séance que le serveur refusait ensuite.
+          Discret, parce que la journée est déjà gagnée. */}
+      {!over && perfect && onPlanBonus && (
+        <button
+          onClick={() => {
+            navigator.vibrate?.(8);
+            onPlanBonus();
+          }}
+          className="mt-3 mb-3 flex min-h-15 w-full items-center justify-center gap-2.5 rounded-2xl text-lg font-bold transition-transform active:scale-[0.98]"
+          style={{
+            background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+            color: player.color,
+          }}
+        >
+          <span aria-hidden>＋</span> Enchaîner des bonus
         </button>
       )}
 
