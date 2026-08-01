@@ -8,43 +8,9 @@
 // découpe, et il faut viser au pouce dans le noir. Une feuille arrive
 // par le bas, là où le pouce est déjà.
 
-import { useCoucheRetour } from "@/hooks/useRetour";
 import { CHAT_EMOJIS, ChatReaction, NotifyPref } from "@/lib/chat";
+import { Sheet } from "../ui";
 import { Player } from "@/lib/types";
-
-/** Le châssis commun : voile, panneau bas, fermeture au tap dehors. */
-function Sheet({
-  onClose,
-  label,
-  children,
-}: {
-  onClose: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  // Le retour arrière ferme la feuille avant de toucher à l'écran :
-  // c'est elle qui est au-dessus. Posé sur le châssis, donc les deux
-  // feuilles du tchat en héritent.
-  useCoucheRetour(onClose);
-  return (
-    <div
-      className="fixed inset-0 z-40 flex flex-col justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-label={label}
-    >
-      <button
-        aria-label="Fermer"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/50"
-      />
-      <div className="rise-in relative rounded-t-3xl bg-raised px-5 pt-4 pb-safe">
-        {children}
-        <div className="h-2" />
-      </div>
-    </div>
-  );
-}
 
 /** Actions sur un message : réagir, répondre, et supprimer si c'est le mien. */
 export function MessageSheet({

@@ -10,7 +10,7 @@
 // les rassemble. events[0] est l'ancre : c'est elle qui reçoit les
 // nouvelles réactions, et c'est elle que « En parler » cite dans le tchat.
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   FeedComment,
   FeedEvent,
@@ -18,10 +18,15 @@ import {
   REACTION_EMOJIS,
 } from "@/lib/feed";
 import { Player } from "@/lib/types";
+import { Sheet } from "../ui";
 
 /**
- * Une pastille emoji + compteur. Tap = ajoute, retap = enlève.
- * Appui long = qui a réagi (petit popover des collègues).
+ * Une réaction posée : l'emoji et le nombre de gens derrière. Tap = j'ajoute
+ * la mienne, retap = je la retire. Appui long = qui a réagi, en raccourci —
+ * la même information vit dans la feuille, qui elle est découvrable.
+ *
+ * Elle ne s'affiche jamais vide : un emoji que personne n'a posé n'a pas de
+ * pastille. C'est la feuille qui sert à en poser un nouveau.
  */
 function ReactionPill({
   emoji,
@@ -143,17 +148,17 @@ function ReactionPill({
             : { background: pillBg }
         }
       >
-        <span className={count === 0 && !mine ? "opacity-45" : undefined}>
-          {emoji}
+        {/* Plus d'`opacity-45` : une pastille n'existe que si quelqu'un l'a
+            posée, donc plus aucune n'est éteinte. C'était la moitié du
+            problème d'un 💀 à 45 % sur `raised` — une tache sombre à côté
+            d'un 🔥 parfaitement lisible. */}
+        <span>{emoji}</span>
+        <span
+          className="text-xs font-bold"
+          style={{ color: mine ? "var(--pc)" : "var(--color-muted)" }}
+        >
+          {count}
         </span>
-        {count > 0 && (
-          <span
-            className="text-xs font-bold"
-            style={{ color: mine ? "var(--pc)" : "var(--color-muted)" }}
-          >
-            {count}
-          </span>
-        )}
       </button>
       {who.length > 0 && (
         <span id={quiId} className="sr-only">
@@ -184,11 +189,15 @@ function Echanges({
   byId,
   comments,
   onDiscuss,
+  avant,
 }: {
   events: FeedEvent[];
   byId: Map<string, Player>;
   comments: FeedComment[];
   onDiscuss: (events: FeedEvent[]) => void;
+  /** Le bouton « + » quand la carte n'a encore aucune réaction : il se
+      range sur cette ligne plutôt que d'occuper une rangée pour lui seul. */
+  avant?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const blocId = useId();
@@ -212,6 +221,7 @@ function Echanges({
           sortie du fil vers le tchat se ratait au pouce. Le `-mx-2` rend
           les 8 px pris en padding, l'alignement du bloc ne bouge pas. */}
       <div className="-mx-2 flex items-center">
+        {avant}
         <button
           onClick={() => onDiscuss(events)}
           className="min-h-11 px-2 text-sm font-bold"
@@ -258,6 +268,87 @@ function Echanges({
   );
 }
 
+/** Un emoji réellement posé sur ce moment, et par qui. */
+type Pose = { emoji: string; who: Player[]; mine: boolean };
+
+/**
+ * Le choix d'une réaction, et qui a déjà réagi. Une feuille montante et pas
+ * une rangée permanente : les cinq emojis n'ont pas à occuper chaque carte
+ * du fil pour rester à un geste. C'est aussi ce qui rend « qui a réagi »
+ * atteignable autrement que par un maintien de 450 ms — un geste
+ * indécouvrable, et qu'aucun lecteur d'écran n'émet.
+ *
+ * Même grammaire que la feuille d'actions du tchat : mêmes carrés de 56 px,
+ * même anneau sur ce qu'on a déjà posé, même liste de prénoms en dessous.
+ */
+function ReactionSheet({
+  parEmoji,
+  me,
+  onReact,
+  onClose,
+}: {
+  parEmoji: Pose[];
+  me: Player;
+  onReact: (emoji: string) => void;
+  onClose: () => void;
+}) {
+  const miens = new Set(parEmoji.filter((p) => p.mine).map((p) => p.emoji));
+
+  return (
+    <Sheet onClose={onClose} label="Réagir à ce moment">
+      <div className="flex justify-between gap-1">
+        {REACTION_EMOJIS.map((e) => {
+          const deja = miens.has(e);
+          return (
+            <button
+              key={e}
+              onClick={() => {
+                onReact(e);
+                onClose();
+              }}
+              aria-pressed={deja}
+              aria-label={deja ? `Retirer ${e}` : `Réagir ${e}`}
+              className="flex size-14 items-center justify-center rounded-2xl text-2xl transition-transform active:scale-95"
+              style={{
+                background: deja
+                  ? "color-mix(in oklch, var(--pc) 22%, var(--color-surface))"
+                  : "var(--color-surface)",
+                boxShadow: deja
+                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 60%, transparent)"
+                  : undefined,
+              }}
+            >
+              {e}
+            </button>
+          );
+        })}
+      </div>
+
+      {parEmoji.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {parEmoji.map(({ emoji, who }) => (
+            <li key={emoji} className="flex items-baseline gap-2 text-sm">
+              <span className="shrink-0" aria-hidden>
+                {emoji}
+              </span>
+              <span className="min-w-0">
+                {who.map((p, i) => (
+                  <span key={p.id}>
+                    {i > 0 && <span className="text-quiet">, </span>}
+                    <span className="font-bold" style={{ color: p.color }}>
+                      {p.id === me.id ? "toi" : p.name}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Sheet>
+  );
+}
+
 type Props = {
   events: FeedEvent[]; // 1..n ; events[0] = l'ancre
   me: Player;
@@ -286,14 +377,20 @@ export default function Interactions({
   pillBg = "var(--color-raised)",
 }: Props) {
   const anchor = events[0];
+  const [feuille, setFeuille] = useState(false);
 
-  // La rangée entière, calculée une fois par changement de réaction et pas
-  // une fois par rendu. Elle coûtait cinq balayages complets de `reactions`
-  // plus cinq Set intermédiaires par carte ; multiplié par toutes les
-  // cartes chargées, à chaque re-rendu d'`App`. Mémoïser les éléments eux-
-  // mêmes suffit : React réutilise le sous-arbre quand la référence ne
-  // bouge pas, sans qu'aucune pastille ait besoin d'un `memo`.
-  const pastilles = useMemo(
+  // Qui a mis quoi, calculé une fois par changement de réaction — et pas
+  // une fois par rendu. C'était cinq balayages complets de `reactions` plus
+  // cinq Set intermédiaires PAR CARTE, rejoués à chaque re-rendu d'`App`.
+  //
+  // Seuls les emojis que quelqu'un a réellement posés survivent au filtre :
+  // c'est tout le changement de cette rangée. Les cinq pastilles permanentes
+  // faisaient 244 px de large pour 240 disponibles à 360 px, et posaient
+  // 44 px de commandes sous 14 px de récit — l'invitation à réagir criait
+  // plus fort que ce qui s'était passé. Le tchat rend déjà ses réactions
+  // comme ça (`ChatBubble`), et son commentaire cite ce fichier comme
+  // précédent : l'amélioration n'était jamais revenue dans l'autre sens.
+  const parEmoji = useMemo(
     () =>
       REACTION_EMOJIS.map((e) => {
         // Un joueur qui a mis le même emoji sur deux événements du
@@ -306,39 +403,85 @@ export default function Interactions({
         ]
           .map((id) => byId.get(id))
           .filter((p): p is Player => Boolean(p));
-        const mine = reactions.find(
-          (r) => r.emoji === e && r.player_id === me.id,
-        );
-        // Retirer : sur l'événement qui porte VRAIMENT ma réaction,
-        // sinon le retap en ajouterait une deuxième ailleurs.
-        // Ajouter : toujours sur l'ancre.
-        const target = mine
-          ? (events.find((ev) => ev.id === mine.event_id) ?? anchor)
-          : anchor;
-        return (
-          <ReactionPill
-            key={e}
-            emoji={e}
-            count={who.length}
-            mine={!!mine}
-            who={who}
-            onTap={() => onToggleReaction(target, e)}
-            pillBg={pillBg}
-          />
-        );
-      }),
-    [reactions, byId, me.id, events, anchor, onToggleReaction, pillBg],
+        return {
+          emoji: e,
+          who,
+          mine: reactions.some((r) => r.emoji === e && r.player_id === me.id),
+        };
+      }).filter((x) => x.who.length > 0),
+    [reactions, byId, me.id],
+  );
+
+  // Retirer : sur l'événement qui porte VRAIMENT ma réaction, sinon le
+  // retap en ajouterait une deuxième ailleurs. Ajouter : toujours sur
+  // l'ancre. Partagé par la rangée et par la feuille — les deux posent la
+  // même réaction, elles doivent viser la même ligne.
+  const reagir = useCallback(
+    (emoji: string) => {
+      const mine = reactions.find(
+        (r) => r.emoji === emoji && r.player_id === me.id,
+      );
+      const target = mine
+        ? (events.find((ev) => ev.id === mine.event_id) ?? anchor)
+        : anchor;
+      onToggleReaction(target, emoji);
+    },
+    [reactions, me.id, events, anchor, onToggleReaction],
+  );
+
+  const plus = (
+    <button
+      onClick={() => setFeuille(true)}
+      aria-label="Ajouter une réaction"
+      className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
+      style={{ background: pillBg, color: "var(--color-quiet)" }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M12 5.5v13M5.5 12h13"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
   );
 
   return (
     <>
-      <div className={`${gap} flex gap-1.5`}>{pastilles}</div>
+      {parEmoji.length > 0 && (
+        <div className={`${gap} flex flex-wrap gap-1.5`}>
+          {parEmoji.map(({ emoji, who, mine }) => (
+            <ReactionPill
+              key={emoji}
+              emoji={emoji}
+              count={who.length}
+              mine={mine}
+              who={who}
+              onTap={() => reagir(emoji)}
+              pillBg={pillBg}
+            />
+          ))}
+          {plus}
+        </div>
+      )}
       <Echanges
         events={events}
         byId={byId}
         comments={comments}
         onDiscuss={onDiscuss}
+        // Aucune réaction : le « + » se range sur la ligne d'« En parler »
+        // et la carte ne porte plus qu'une seule rangée de commandes.
+        avant={parEmoji.length === 0 ? <div className="px-2">{plus}</div> : undefined}
       />
+      {feuille && (
+        <ReactionSheet
+          parEmoji={parEmoji}
+          me={me}
+          onReact={reagir}
+          onClose={() => setFeuille(false)}
+        />
+      )}
     </>
   );
 }

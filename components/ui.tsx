@@ -4,6 +4,7 @@
 // Un seul vocabulaire visuel sur tous les écrans.
 
 import { useRef, useState } from "react";
+import { useCoucheRetour } from "@/hooks/useRetour";
 import { fileToAvatarDataUri } from "@/lib/image";
 import { Entry, EXERCISES, Player } from "@/lib/types";
 
@@ -279,5 +280,45 @@ export function BigButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Feuille montante : un choix qu'on ne peut pas deviner, posé en bas de
+ * l'écran, là où le pouce arrive. Voile `bg-black/50`, `rounded-t-3xl` sur
+ * `raised`, entrée `.rise-in`, et le retour arrière la referme au lieu de
+ * traverser l'écran en dessous.
+ *
+ * Vécue d'abord dans le tchat (feuille d'actions d'un message), remontée ici
+ * quand le fil a eu besoin de la même : deux feuilles identiques dans deux
+ * modules, c'est une divergence qui n'attend que la prochaine retouche.
+ */
+export function Sheet({
+  onClose,
+  label,
+  children,
+}: {
+  onClose: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  useCoucheRetour(onClose);
+  return (
+    <div
+      className="fixed inset-0 z-40 flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+    >
+      <button
+        aria-label="Fermer"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50"
+      />
+      <div className="rise-in relative rounded-t-3xl bg-raised px-5 pt-4 pb-safe">
+        {children}
+        <div className="h-2" />
+      </div>
+    </div>
   );
 }

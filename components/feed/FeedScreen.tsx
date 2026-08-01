@@ -331,13 +331,15 @@ export default function FeedScreen({
         <div role="status" aria-label="Fil en cours de chargement">
           <Skeleton className="mt-5" w={110} h={16} radius={8} />
           <ul className="mt-2 flex flex-col gap-2">
-            {/* Trois blocs à la hauteur réelle d'une carte — 176 px mesurés
-                sur une carte d'une phrase — et pas quatre à la moitié. Un
-                squelette qui ment sur la place réserve un saut d'un écran
-                entier quand la donnée tombe, en plein sous le pouce. */}
+            {/* Trois blocs à la hauteur réelle d'une carte, et pas quatre à
+                la moitié : un squelette qui ment sur la place réserve un
+                saut d'un écran entier quand la donnée tombe, en plein sous
+                le pouce. 132 px, mesuré — une carte sans réaction en fait
+                127, une carte qui en porte 179, et la plupart des moments
+                n'en ont aucune. */}
             {[0, 1, 2].map((i) => (
               <li key={i}>
-                <Skeleton h={176} radius={16} />
+                <Skeleton h={132} radius={16} />
               </li>
             ))}
           </ul>
