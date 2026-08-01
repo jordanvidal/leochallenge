@@ -125,7 +125,10 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         {!s3 && (
           <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
         )}
-        <EventRow emoji="👊">boss du dimanche : 200 pompes au total → +10</EventRow>
+        <EventRow emoji="👊">
+          boss du dimanche : 200 pompes sur la journée, les 100 de base
+          comprises → +10
+        </EventRow>
       </div>
     </div>,
   ];

@@ -125,7 +125,11 @@ export function MiniBareme({
     )}
     <div className="flex items-baseline gap-3">
       <dt className="w-6 shrink-0 text-center" aria-hidden>👊</dt>
-      <dd>boss du dimanche : 200 pompes au total → +10 (dimanche only)</dd>
+      <dd>
+        boss du dimanche : 200 pompes sur la journée, <b>les 100 de base
+        comprises</b> → +10 (dimanche only). La puce « +100 pompes » se
+        coche en plus
+      </dd>
     </div>
   </dl>
 </div>
