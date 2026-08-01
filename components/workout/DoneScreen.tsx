@@ -1,8 +1,8 @@
 "use client";
 
 // L'écran de fin : la durée totale en très gros, l'état de la journée,
-// puis un bloc à deux cellules — les points du jour lus au serveur, et
-// la série.
+// puis un bloc à deux cellules — la série, et les points du jour lus au
+// serveur.
 //
 // Le partage a été retiré d'ici : le bouton appelait le même shareWeek()
 // que l'écran du jour, qui l'affiche déjà dès le 3/3 — deux boutons pour
@@ -18,6 +18,13 @@
 // bonus passe sous le bloc : c'est une précision sur un chiffre déjà lu,
 // pas un troisième compteur.
 //
+// La série passe à gauche, les points à droite : le regard part de
+// l'acquis (la série, qui vient de tenir) vers ce que la séance rapporte.
+// Les deux chiffres bougent, et pas en même temps — la roulette des
+// points tombe en 900 ms, la série tient encore 900 ms avant de basculer.
+// Ce décalage n'est pas un réglage : c'est ce qui empêche l'œil d'avoir
+// deux choses à suivre sur la même image.
+//
 // Le bloc série a deux états, parce qu'on peut finir une séance sans
 // avoir bouclé la journée : une config à 25/25/0 se termine normalement
 // et arrive ici à 2/3 (ConfigScreen ne bloque le lancement que si TOUT
@@ -29,6 +36,7 @@ import { entryCount, EXERCISES, Exercise } from "@/lib/types";
 import type { Player } from "@/lib/types";
 import { DayBreakdown, formatClock } from "@/lib/workout";
 import { fmtPoints } from "@/lib/gamification";
+import PointsCount from "../PointsCount";
 import StreakCount from "../StreakCount";
 
 /** Durée du beat de fond, alignée sur .streak-beat-block dans globals.css.
@@ -119,28 +127,6 @@ export default function DoneScreen({
               background: `color-mix(in oklch, ${player.color} 9%, var(--color-surface))`,
             }}
           >
-            {breakdown !== null && (
-              <div className="flex-1 px-2">
-                <p
-                  className="num-display text-5xl"
-                  style={{ color: player.color }}
-                >
-                  {fmtPoints(breakdown.points)}
-                </p>
-                <p className="mt-2 text-xs font-bold tracking-wide text-muted uppercase">
-                  points aujourd&apos;hui
-                </p>
-              </div>
-            )}
-            {breakdown !== null && streak > 0 && (
-              <div
-                className="w-px self-stretch"
-                style={{
-                  background: `color-mix(in oklch, ${player.color} 18%, transparent)`,
-                }}
-                aria-hidden
-              />
-            )}
             {streak > 0 && (
               <div className="flex-1 px-2">
                 <p
@@ -170,6 +156,28 @@ export default function DoneScreen({
                   {perfect
                     ? "jours d'affilée"
                     : `en jeu — il te manque ${missingLabel(missing)}`}
+                </p>
+              </div>
+            )}
+            {breakdown !== null && streak > 0 && (
+              <div
+                className="w-px self-stretch"
+                style={{
+                  background: `color-mix(in oklch, ${player.color} 18%, transparent)`,
+                }}
+                aria-hidden
+              />
+            )}
+            {breakdown !== null && (
+              <div className="flex-1 px-2">
+                <p
+                  className="num-display text-5xl"
+                  style={{ color: player.color }}
+                >
+                  <PointsCount value={breakdown.points} />
+                </p>
+                <p className="mt-2 text-xs font-bold tracking-wide text-muted uppercase">
+                  points aujourd&apos;hui
                 </p>
               </div>
             )}
