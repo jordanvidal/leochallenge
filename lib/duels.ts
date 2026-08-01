@@ -8,7 +8,36 @@
 // que le CTE `active` recopié dans reminders.ts.
 
 import { addDays, CHALLENGE_START, FENETRE_ENV, Fenetre, mondayOf } from "./challenge";
+import { normalizeName } from "./palette";
 import { Entry, entryCount, entryKey } from "./types";
+
+/**
+ * Prénoms tenus hors de l'appariement, lus depuis `DUELS_EXCLUS` (variable
+ * serveur, prénoms séparés par des virgules — « Jerem, Hugo, Nathan »).
+ *
+ * Pourquoi une variable d'env et pas une colonne : un joueur qui décroche
+ * n'a pas quitté la ligue. Il garde son classement, ses points, ses badges
+ * et ses notifications ; on ne lui cherche simplement plus d'adversaire.
+ * Le retirer du roster serait une autre décision, bien plus lourde.
+ *
+ * Et pourquoi le prénom plutôt que l'uuid : c'est la seule clé qui se tape
+ * de mémoire dans un champ Vercel à 23h. La casse et les accents sont donc
+ * pardonnés (`normalizeName`, la même normalisation que les doublons de
+ * prénom côté client), et l'unicité du prénom par ligue en base garantit
+ * qu'un prénom ne désigne qu'une personne.
+ *
+ * Portée : l'appariement du lundi, rien d'autre. Un duel déjà en cours va
+ * jusqu'à son terme et se résout normalement — on n'efface pas une semaine
+ * commencée.
+ */
+export function nomsExclus(raw: string | undefined): Set<string> {
+  return new Set(
+    (raw ?? "")
+      .split(",")
+      .map(normalizeName)
+      .filter((n) => n.length > 0),
+  );
+}
 
 /**
  * Premier lundi de duels d'une ligue : sa 2e semaine. La semaine 1 sert à
