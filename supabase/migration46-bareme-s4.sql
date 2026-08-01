@@ -75,9 +75,18 @@ on conflict (key) do nothing;
 -- -------------------------------------------------------------
 
 create table if not exists public.jours_off (
-  day     date primary key
-          check (day between date '2026-08-03' and date '2026-08-28'),
-  tire_le timestamptz not null default now()
+  day         date primary key
+              check (day between date '2026-08-03' and date '2026-08-28'),
+  -- Le lundi de la semaine du jour off. Redondant avec `day`, et c'est
+  -- exprès : il porte la contrainte d'unicité ci-dessous. Un jour off
+  -- par semaine devient alors une garantie de la BASE, et plus
+  -- seulement une propriété de l'échelle de tirage.
+  week_monday date not null,
+  tire_le     timestamptz not null default now(),
+  constraint jour_off_ouvre check (extract(isodow from day) between 1 and 5),
+  constraint jour_off_lundi
+    check (week_monday = day - (extract(isodow from day)::int - 1)),
+  constraint jour_off_un_par_semaine unique (week_monday)
 );
 
 alter table public.jours_off enable row level security;
@@ -88,6 +97,14 @@ create policy "jours_off lecture publique"
 
 -- Aucune policy d'écriture : seule get_jour_off() (security definer)
 -- insère. Le client ne décide jamais de son repos.
+
+-- ⚠️ LA LIGNE LA PLUS RISQUÉE DU FICHIER, et elle ne parle pas du jour
+-- off. daily_points est `with (security_invoker = true)` : elle lit
+-- jours_off avec les droits de l'appelant. Sans ce SELECT pour anon, ce
+-- n'est pas le repos qui casse, c'est LA VUE ENTIÈRE — donc le
+-- classement, donc l'app. Supabase pose ce grant par défaut sur public ;
+-- on ne parie pas l'application sur un défaut de plateforme.
+grant select on public.jours_off to anon, authenticated, service_role;
 
 -- -------------------------------------------------------------
 -- 3. Le jour off : le tirage.
@@ -149,8 +166,11 @@ begin
   end if;
 
   -- Deux clients qui tirent en même temps : le premier inséré gagne.
-  insert into public.jours_off (day) values (paris_today)
-  on conflict (day) do nothing;
+  -- `on conflict do nothing` SANS cible, pour couvrir la clé primaire ET
+  -- l'unicité de week_monday — le cron de 6h et un lève-tôt qui ouvre
+  -- l'app ne doivent jamais se lever d'exception à la figure.
+  insert into public.jours_off (day, week_monday) values (paris_today, lundi)
+  on conflict do nothing;
 
   return exists (select 1 from public.jours_off where day = paris_today);
 end;

@@ -93,6 +93,9 @@ create table if not exists public.workout_sessions (
 
 create table if not exists public.duel_results (day date not null, winner uuid, loser uuid);
 
+-- jours_off est créée par la migration 46 elle-même ; ce fichier suppose
+-- qu'elle a déjà été appliquée sur la base jetable.
+
 create or replace function public.bonus_value(p_key text) returns numeric
 language sql stable as $$ select points from public.bonus_catalog where key = p_key $$;
 
@@ -203,7 +206,8 @@ select count(*) as lignes_divergentes from (
 --    et la nommer `dp_sim`. Les attendus ci-dessous sont ceux de `dp_sim`.
 -- ===========================================================================
 
-insert into public.jours_off (day) values (date '2026-08-05') on conflict do nothing;
+insert into public.jours_off (day, week_monday)
+  values (date '2026-08-05', date '2026-08-03') on conflict do nothing;
 
 -- A s'entraîne les 7 jours, jour off compris.
 insert into public.entries (player_id, day, pushups, abs, squats, completed_at)
@@ -279,7 +283,7 @@ begin
   if found then return deja = p_day; end if;
   restants := 6 - dow;
   if random() >= 1.0 / restants then return false; end if;
-  insert into public.jours_off (day) values (p_day) on conflict (day) do nothing;
+  insert into public.jours_off (day, week_monday) values (p_day, lundi) on conflict do nothing;
   return exists (select 1 from public.jours_off where day = p_day);
 end; $$;
 
