@@ -130,7 +130,7 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 | 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche **et** tous les bonus déclarés qui travaillent cet exo. La coche double à sa vraie valeur du jour, série comprise (+1, +1,5 ou +2) ; les bonus doublent au nominal. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, seule la coche, et pour un forfait de +1 |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
-| 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
+| 👊 Boss du dimanche | +10 si tu montes à 200 pompes sur la journée, **les 100 du contrat comprises** — 100 de plus, donc, pas 200 de plus. Se déclare à la main, dans son bandeau sur l'écran Aujourd'hui, dimanche uniquement. Il s'ajoute aux puces de volume : la même journée coche aussi « +100 pompes » (+7), soit +17 en tout |
 
 🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 

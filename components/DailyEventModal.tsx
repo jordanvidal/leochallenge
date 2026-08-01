@@ -55,9 +55,12 @@ const COPY: Record<string, { howto: string }> = {
     howto:
       "Le dernier du classement général reçoit un coup de pouce pour se relancer. Le bas de tableau a sa chance.",
   },
+  // « 200 au total » se lisait comme 200 EN PLUS des 100 du contrat, et
+  // rien ne disait que la puce « +100 pompes » restait cochable à côté.
+  // Les deux se disent en une phrase : le compte, puis le cumul.
   boss_dimanche: {
     howto:
-      "200 pompes au total dans la journée. À déclarer dans le bandeau de l'écran Aujourd'hui.",
+      "200 pompes au total sur la journée, les 100 du challenge comprises : 100 de plus, et c'est plié. À déclarer dans le bandeau de l'écran Aujourd'hui — la puce « +100 pompes » se coche en plus.",
   },
 };
 
