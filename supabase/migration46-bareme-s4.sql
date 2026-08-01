@@ -192,13 +192,21 @@ grant execute on function public.get_jour_off() to anon, authenticated;
 --    b) Les probabilités du 03/08. « rien » reste autour de la moitié
 --       (un événement quotidien n'est plus un événement) et quitte ou
 --       double ne remonte pas — il était redevenu la première source
---       de points du jeu. Les deux nouveaux se financent sur les
---       doublements d'exo, qui passent de 12 à 10 % chacun.
+--       de points du jeu. Les deux nouveaux se financent sur « rien »
+--       et sur les doublements d'exo, qui passent de 12 à 9 %.
 --
---       lun–sam : rien 50, pompes/abdos/squats 10 chacun,
---                 quitte ou double 10, bonus doublés 5, fête 5.
---       dimanche : rien 43, boss 25, les trois doubles 5 chacun,
---                 quitte ou double 10, bonus doublés 4, fête 3.
+--       lun–sam : rien 47, pompes/abdos/squats 9 chacun,
+--                 quitte ou double 10, bonus doublés 8, fête 8.
+--       dimanche : rien 41, boss 25, les trois doubles 4 chacun,
+--                 quitte ou double 10, bonus doublés 7, fête 5.
+--
+--       Pourquoi 8 % et pas 5. Il ne reste que 29 jours, dont quatre
+--       seront des jours off — donc sans tirage. À 5 %, il y avait une
+--       chance sur trois qu'un des deux nouveaux ne sorte JAMAIS d'ici
+--       le 31/08 : une règle annoncée au groupe et jamais vue. À 8 %,
+--       chacun a ~86 % de chances de tomber au moins une fois.
+--       C'est le calendrier qui décide ici, pas l'équilibrage : sur un
+--       challenge de 50 jours, 5 % aurait été le bon chiffre.
 --
 --    Avant le 03/08 l'ancien tirage s'applique mot pour mot. La
 --    fonction ne tire de toute façon que pour aujourd'hui : les jours
@@ -239,23 +247,23 @@ begin
   if paris_today >= date '2026-08-03' then
     if extract(isodow from paris_today) = 7 then
       drawn := case
-        when r < 0.43 then 'rien'
-        when r < 0.68 then 'boss_dimanche'
-        when r < 0.73 then 'pompes_double'
-        when r < 0.78 then 'abdos_double'
-        when r < 0.83 then 'squats_double'
-        when r < 0.93 then 'quitte_ou_double'
-        when r < 0.97 then 'bonus_doubles'
+        when r < 0.41 then 'rien'
+        when r < 0.66 then 'boss_dimanche'
+        when r < 0.70 then 'pompes_double'
+        when r < 0.74 then 'abdos_double'
+        when r < 0.78 then 'squats_double'
+        when r < 0.88 then 'quitte_ou_double'
+        when r < 0.95 then 'bonus_doubles'
         else 'jour_de_fete'
       end;
     else
       drawn := case
-        when r < 0.50 then 'rien'
-        when r < 0.60 then 'pompes_double'
-        when r < 0.70 then 'abdos_double'
-        when r < 0.80 then 'squats_double'
-        when r < 0.90 then 'quitte_ou_double'
-        when r < 0.95 then 'bonus_doubles'
+        when r < 0.47 then 'rien'
+        when r < 0.56 then 'pompes_double'
+        when r < 0.65 then 'abdos_double'
+        when r < 0.74 then 'squats_double'
+        when r < 0.84 then 'quitte_ou_double'
+        when r < 0.92 then 'bonus_doubles'
         else 'jour_de_fete'
       end;
     end if;
@@ -868,3 +876,136 @@ where not exists (
   select 1 from premirror pm
   where pm.player_id = x.player_id and pm.day = x.day
 );
+
+-- -------------------------------------------------------------
+-- 6. player_badges : les badges de série enjambent le jour off.
+--
+--    Reprise telle quelle de la migration 2, avec deux changements.
+--
+--    Cette vue porte SA PROPRE notion de série (la CTE `islands`), qui
+--    ne connaît ni le joker ni rien d'autre : elle compte les runs de
+--    jours parfaits, point. Sans correctif, un joueur qui prend son
+--    jour off voit sa course aux badges repartir de zéro chaque
+--    semaine — 🌱 la première semaine (7 d'affilée) devient hors
+--    d'atteinte, et 🛡️ increvable (30) aussi.
+--
+--    Ce n'est pas « impossible pour tout le monde » : qui s'entraîne le
+--    jour off garde sa course entière. Mais faire des badges la
+--    récompense de celui qui ne se repose jamais, c'est reprendre d'une
+--    main ce que le jour off donne de l'autre. Décision de Jordan : le
+--    jour off enjambe aussi les badges.
+--
+--    Le jour off PRÉSERVE sans ALLONGER, comme partout ailleurs :
+--    `count(*) filter (where is_perfect)` ne compte que les vrais
+--    jours parfaits. Six jours parfaits autour d'un jour off font une
+--    île de 6, pas de 7.
+--
+--    jours_off étant vide avant le 03/08, les badges déjà décrochés
+--    ne bougent pas.
+-- -------------------------------------------------------------
+
+create or replace view public.player_badges
+with (security_invoker = true) as
+with e as (
+  select player_id, day,
+         (pushups::int + abs::int + squats::int) as exos,
+         (pushups and abs and squats) as perfect
+  from public.entries
+),
+paris as (
+  select (now() at time zone 'Europe/Paris')::date as today
+),
+elapsed as (
+  select d::date as day
+  from generate_series(
+    date '2026-07-13',
+    least((select today from paris), date '2026-08-31'),
+    interval '1 day'
+  ) d
+),
+-- 😴 Le jour off, joueur par joueur — sauf pour qui s'est entraîné
+-- quand même : celui-là a déjà sa ligne parfaite, et un doublon
+-- décalerait la numérotation des îles.
+repos as (
+  select p.id as player_id, jo.day
+  from public.jours_off jo
+  cross join public.players p
+  where not exists (
+    select 1 from e
+    where e.player_id = p.id and e.day = jo.day and e.perfect
+  )
+),
+islands as (
+  select player_id, count(*) filter (where is_perfect) as len
+  from (
+    select player_id, day, is_perfect,
+           (day - (row_number() over (partition by player_id order by day))::int) as island
+    from (
+      select player_id, day, true as is_perfect from e where perfect
+      union all
+      select player_id, day, false as is_perfect from repos
+    ) k
+  ) t
+  group by player_id, island
+),
+-- classement cumulé jour par jour, pour "Premier de la classe"
+grid as (
+  select pl.id as player_id, d.day, coalesce(dp.points, 0) as pts
+  from public.players pl
+  cross join elapsed d
+  left join public.daily_points dp on dp.player_id = pl.id and dp.day = d.day
+),
+dayrank as (
+  select player_id, day,
+         rank() over (partition by day order by cum_pts desc) as r
+  from (
+    select player_id, day,
+           sum(pts) over (partition by player_id order by day) as cum_pts
+    from grid
+  ) c
+),
+top_runs as (
+  select player_id, count(*) as len
+  from (
+    select player_id, day,
+           (day - (row_number() over (partition by player_id order by day))::int) as island
+    from dayrank where r = 1
+  ) t
+  group by player_id, island
+)
+select player_id, 'premiere_semaine' as badge
+  from islands group by player_id having max(len) >= 7
+union all
+select player_id, 'machine'
+  from islands group by player_id having max(len) >= 14
+union all
+select player_id, 'increvable'
+  from islands group by player_id having max(len) >= 30
+union all
+select p.id, 'sans_faute'
+  from public.players p
+  where exists (select 1 from e where e.player_id = p.id and e.perfect)
+    and not exists (
+      select 1 from elapsed d
+      where d.day < (select today from paris)
+        -- 😴 Un jour off n'est pas une faute. Sans cette ligne, 💎 sans
+        -- faute tombe pour tout le groupe le premier mercredi venu.
+        and not exists (select 1 from public.jours_off jo where jo.day = d.day)
+        and not exists (
+          select 1 from e
+          where e.player_id = p.id and e.day = d.day and e.perfect
+        )
+    )
+union all
+select player_id, 'retour_de_flamme'
+  from islands where len >= 5
+  group by player_id having count(*) >= 2
+union all
+select player_id, 'premier_de_la_classe'
+  from top_runs group by player_id having max(len) >= 7
+union all
+select player_id, 'finisseur'
+  from e where day = date '2026-08-31' and perfect
+union all
+select player_id, 'centurion'
+  from e group by player_id having sum(exos) >= 100;
