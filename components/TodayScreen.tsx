@@ -259,8 +259,9 @@ export default function TodayScreen({
             fermé    — aucune séance lancée : série, groupe, et un lanceur
             en cours — séance ouverte, journée pas bouclée : l'état des trois
                        exos s'ajoute, et le lanceur dit « Reprendre »
-            bouclé   — 3/3 : le lanceur s'en va, le groupe reste seul en
-                       place, parce que c'est ce qu'on vient voir
+            bouclé   — 3/3 : le lanceur s'en va, le groupe prend toute la
+                       place parce que c'est ce qu'on vient voir, et la
+                       seule action restante mène aux bonus (01/08)
 
           L'état des trois exos vit en une rangée de pastilles. Elle n'est
           pas tappable et ne le sera jamais : ce serait rouvrir le chemin

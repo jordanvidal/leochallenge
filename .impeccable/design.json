@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-01T07:30:00Z",
+  "generatedAt": "2026-08-01T08:05:00Z",
   "title": "Design System: 100 · 100 · 100",
   "extensions": {
     "colorMeta": {
@@ -399,6 +399,14 @@
       "css": ".ds-btn-neutral { width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-neutral:active { transform: scale(0.98); } .ds-btn-neutral:disabled { opacity: 0.4; } .ds-btn-neutral:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
     },
     {
+      "name": "Bouton accent en retrait",
+      "kind": "button",
+      "refersTo": "button-accent-quiet",
+      "description": "Une action qui appartient au joueur sans être l'action principale de l'écran : même couleur et même hauteur que le lanceur, dix fois moins de surface colorée. Fond mixé à 12 %, anneau à 45 %.",
+      "html": "<button class=\"ds-btn-quiet\"><span aria-hidden=\"true\">＋</span> Enchaîner des bonus</button>",
+      "css": ".ds-btn-quiet { display: flex; align-items: center; justify-content: center; gap: 0.625rem; width: 100%; min-height: 3.75rem; padding: 0 1.25rem; border: none; border-radius: 1rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1.125rem; font-weight: 700; background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 12%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 45%, transparent); color: var(--pc, oklch(0.74 0.17 150)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-quiet:active { transform: scale(0.98); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
+    },
+    {
       "name": "Bloc de séance",
       "kind": "custom",
       "refersTo": "button-block",
@@ -447,6 +455,14 @@
       "css": ".ds-tabbar { display: flex; border-top: 1px solid var(--color-line, oklch(0.27 0 0)); background: color-mix(in oklch, var(--color-bg, oklch(0.115 0 0)) 95%, transparent); backdrop-filter: blur(8px); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-tab { display: flex; flex: 1 1 0%; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-height: 3.5rem; color: var(--color-quiet, oklch(0.62 0 0)); text-decoration: none; } .ds-tab span { font-size: 11px; font-weight: 700; } .ds-tab-on { color: var(--pc, oklch(0.74 0.17 150)); } .ds-tab-ico { position: relative; display: inline-flex; } .ds-tab-badge { position: absolute; top: -0.375rem; right: -0.625rem; display: flex; align-items: center; justify-content: center; height: 1rem; min-width: 1rem; padding: 0 0.25rem; border-radius: 9999px; background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); font-size: 10px; font-weight: 700; }"
     },
     {
+      "name": "Onglets segmentés",
+      "kind": "nav",
+      "refersTo": "segment-tab",
+      "description": "Deux choix côte à côte quand un même écran prépare deux choses — « Le contrat » et « Des bonus ». Ce ne sont pas les onglets de navigation : ceux-là vivent en bas, en caption et sans fond. L'actif reprend la grammaire d'une puce déclarée, mixée à 22 %.",
+      "html": "<div role=\"tablist\" aria-label=\"Ce que je prépare\" class=\"ds-segs\"><button role=\"tab\" aria-selected=\"true\" class=\"ds-seg ds-seg-on\">Le contrat</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-seg\">Des bonus</button></div>",
+      "css": ".ds-segs { display: flex; gap: 0.5rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-seg { flex: 1 1 0%; min-height: 2.75rem; border: none; border-radius: 1rem; font-size: 0.875rem; font-weight: 700; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-muted, oklch(0.68 0 0)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-seg:active { transform: scale(0.98); } .ds-seg:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; } .ds-seg-on { background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 22%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 65%, transparent); color: var(--pc, oklch(0.74 0.17 150)); }"
+    },
+    {
       "name": "Toast",
       "kind": "custom",
       "refersTo": "toast",
@@ -460,6 +476,14 @@
       "description": "L'identité, en deux variantes : photo recadrée, ou initiale sur un fond mixé à 18 % de l'accent. L'anneau intérieur à 55 % passe par-dessus l'image — sinon object-cover le recouvrirait. C'est le seul endroit où les huit accents cohabitent sur un même écran.",
       "html": "<span class=\"ds-avatars\"><span class=\"ds-avatar ds-av-vert\">H</span><span class=\"ds-avatar ds-av-cyan\">D</span><span class=\"ds-avatar ds-av-rose\">J</span></span>",
       "css": ".ds-avatars { display: inline-flex; gap: 0.75rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 9999px; font-size: 18px; font-weight: 700; } .ds-av-vert { color: oklch(0.74 0.17 150); background: color-mix(in oklch, oklch(0.74 0.17 150) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.74 0.17 150) 55%, transparent); } .ds-av-cyan { color: oklch(0.80 0.13 195); background: color-mix(in oklch, oklch(0.80 0.13 195) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.80 0.13 195) 55%, transparent); } .ds-av-rose { color: oklch(0.73 0.17 350); background: color-mix(in oklch, oklch(0.73 0.17 350) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.73 0.17 350) 55%, transparent); } "
+    },
+    {
+      "name": "Feuille de confirmation",
+      "kind": "custom",
+      "refersTo": "sheet-confirm",
+      "description": "La sortie d'un plein écran quand du travail serait perdu. Elle ne pose pas une question abstraite : elle liste ce qu'on s'apprête à perdre, avec les montants. L'issue qui garde le travail est en aplat d'accent, celle qui le jette en surface — la moins coûteuse est la plus visible.",
+      "html": "<div class=\"ds-sheet\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Quitter la séance bonus\"><div class=\"ds-sheet-box\"><p class=\"ds-sheet-t\">1 bloc fait, rien de déclaré</p><ul class=\"ds-sheet-l\"><li><span>🤸 100 jumping jacks</span><b>+3</b></li></ul><div class=\"ds-sheet-a\"><button class=\"ds-sheet-go\">Valider +3</button><button class=\"ds-sheet-no\">Sortir sans rien</button></div><button class=\"ds-sheet-back\">Continuer la séance</button></div></div>",
+      "css": ".ds-sheet { display: flex; align-items: flex-end; padding: 0 1.25rem; background: rgb(0 0 0 / 0.6); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-sheet-box { width: 100%; margin-bottom: 1rem; padding: 1.25rem; border-radius: 1.5rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); animation: ds-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both; } @keyframes ds-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } } @media (prefers-reduced-motion: reduce) { .ds-sheet-box { animation: none; } } .ds-sheet-t { margin: 0; font-size: 1.125rem; font-weight: 700; } .ds-sheet-l { list-style: none; margin: 0.75rem 0 0; padding: 0; } .ds-sheet-l li { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.875rem; color: var(--color-muted, oklch(0.68 0 0)); } .ds-sheet-l b { color: var(--pc, oklch(0.74 0.17 150)); } .ds-sheet-a { display: flex; gap: 0.5rem; margin-top: 1rem; } .ds-sheet-a button { flex: 1 1 0%; min-height: 3rem; border: none; border-radius: 1rem; font-size: 1rem; font-weight: 700; } .ds-sheet-go { background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); } .ds-sheet-no { background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-muted, oklch(0.68 0 0)); } .ds-sheet-back { width: 100%; min-height: 2.75rem; margin-top: 0.5rem; border: none; background: none; font-size: 0.875rem; font-weight: 500; color: var(--color-quiet, oklch(0.62 0 0)); }"
     }
   ],
   "narrative": {

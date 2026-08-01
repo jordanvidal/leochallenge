@@ -109,6 +109,28 @@ components:
     backgroundColor: "color-mix(in oklch, {colors.x2} 14%, {colors.surface})"
     textColor: "{colors.ink}"
     rounded: "{rounded.full}"
+  button-accent-quiet:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 12%, {colors.surface})"
+    textColor: "{colors.player-vert}"
+    typography: "{typography.title}"
+    rounded: "{rounded.lg}"
+    padding: "0 1.25rem"
+    height: "3.75rem"
+  segment-tab:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.muted}"
+    typography: "{typography.label}"
+    rounded: "{rounded.lg}"
+    height: "2.75rem"
+  segment-tab-active:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 22%, {colors.surface})"
+    textColor: "{colors.player-vert}"
+    rounded: "{rounded.lg}"
+  sheet-confirm:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.xl}"
+    padding: "1.25rem"
   rank-line:
     backgroundColor: "color-mix(in oklch, {colors.player-vert} 10%, {colors.surface})"
     textColor: "{colors.player-vert}"
@@ -296,6 +318,7 @@ Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparati
 - **Neutral (`BigButton tone="neutral"`):** aplat `raised`, texte `ink`. Pour l'action secondaire d'un écran.
 - **Lanceur de séance:** 3.75rem (`min-h-15`), `rounded-2xl`, libellé en `title` (1.125rem/700) précédé d'un ▶. Un demi-cran au-dessus du bouton principal parce que c'est *le* geste du produit, et pas un de plus. Dernier élément de l'accueil, `mb-3` au-dessus de la barre d'onglets — sans cette marge, un tap un peu bas part au Tchat.
 - **Bouton de bloc (séance):** 5rem (`min-h-20`), `rounded-3xl`, libellé en `headline`. Le seul bouton du système qui dépasse 60 px, et il le peut : son écran ne contient qu'un chiffre et lui. `navigator.vibrate(18)` au tap, contre 8 ailleurs.
+- **Accent en retrait:** fond `color-mix(in oklch, <accent> 12%, var(--color-surface))`, anneau `45%` 1.5px, texte à l'accent. C'est la forme d'une action qui appartient au joueur sans être l'action principale de l'écran — « Enchaîner des bonus » sur l'accueil bouclé et sur l'écran de fin. Elle se distingue de l'aplat plein sans changer de famille : même couleur, même hauteur, dix fois moins de surface colorée.
 - **Active:** `active:scale-[0.98]` (0.95 sur les boutons ronds), `transition-transform`. Pas d'état `:hover` : il n'y a pas de souris.
 - **Disabled:** `opacity-40`, aucun changement de couleur.
 - **Icon button:** `size-11` (44 px) minimum, `rounded-full`, SVG 16–18 px au centre.
@@ -324,6 +347,22 @@ La puce déclarative de la feuille de bonus : `min-h-11`, `rounded-full`, `px-4`
 - **Doublée (`x2`):** fond mixé 14 % `x2`, anneau 70 % `x2`, montant en `x2`, et un badge `×2` posé sur le **contour** en haut à droite — jamais dans la ligne de texte, où il se lirait comme une seconde valeur à côté des points. Le badge ne déborde que par le haut : la liste est en `overflow-y-auto`, donc un débordement à droite se ferait rogner.
 - **Éteinte:** `opacity-35`, `disabled`.
 - **Feedback:** `navigator.vibrate(18)` à la coche, 8 à la décoche.
+
+### Onglets segmentés
+
+Deux choix côte à côte, `flex-1`, `min-h-11`, `rounded-2xl`, libellé en `label`. Ils servent quand un même écran prépare deux choses différentes — « Le contrat » et « Des bonus » dans « Ma séance ». Ce ne sont pas les onglets de navigation : ceux-là vivent en bas dans la `TabBar`, en `caption` et sans fond.
+
+- **Actif:** fond mixé 22 % accent, anneau 65 % 1.5px, texte à l'accent — exactement la grammaire d'une puce déclarée.
+- **Inactif:** fond `surface`, texte `muted`, pas d'anneau.
+- **ARIA:** le conteneur porte `role="tablist"` et un `aria-label`, chaque bouton `role="tab"` + `aria-selected` + `aria-controls` vers le panneau, et le panneau `role="tabpanel"` + `aria-labelledby`. Un `role="tab"` seul, hors `tablist`, est de l'ARIA invalide : le lecteur d'écran annonce « onglet » sans jamais dire lequel sur combien.
+
+### Feuille de confirmation
+
+Un choix qu'on ne peut pas deviner, posé en bas de l'écran : `fixed inset-0`, voile `bg-black/60`, feuille `rounded-3xl` sur `raised`, `p-5`, entrée `.rise-in`. Elle sert à la sortie d'un plein écran quand du travail serait perdu — abandonner une séance du contrat, quitter une séance bonus sans avoir déclaré.
+
+- **Contenu:** un titre qui nomme l'enjeu, puis la liste de ce qui est en jeu avec son montant. Jamais une question abstraite : on montre ce qu'on s'apprête à perdre.
+- **Issues:** deux boutons `flex-1` `min-h-12` côte à côte — celle qui garde le travail en aplat d'accent, celle qui le jette en `surface`/`muted` — et un troisième lien en `quiet` pour revenir en arrière. L'issue la moins coûteuse est toujours la plus visible.
+- **Retour arrière:** `useCoucheRetour` referme la feuille au lieu de la traverser.
 
 ### Ligne de pote
 
