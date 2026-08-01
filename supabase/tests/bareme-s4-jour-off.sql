@@ -34,9 +34,17 @@
 -- suivant, la semaine pleine qui reste atteignable, et les deux nouveaux
 -- événements.
 --
--- NON COUVERT : `player_breakdown`, `duel_results`, `leaderboard` et
--- `player_badges`, qui portent chacun leur copie du moteur et se vérifient
--- avec le même protocole, vue par vue.
+-- Les quatre autres porteurs du moteur — `player_breakdown`,
+-- `duel_results`, `leaderboard()` et `player_badges` — se vérifient avec le
+-- MÊME protocole : charger leur définition d'avant sous un autre nom, puis
+-- diffusion `except all` dans les deux sens, jours_off vide. Les définitions
+-- d'avant se prennent respectivement dans migration34, migration39,
+-- migration35 et migration2.
+--
+-- NON COUVERT : rien de ce qui est daté au 03/08 ne peut être testé sur les
+-- vraies données, puisqu'aucune n'existe après cette date. Une faute de
+-- frappe dans un `day >= date '2026-08-03'` passerait sans bruit sur la
+-- prod — d'où la section 4, qui la fabrique.
 -- ---------------------------------------------------------------------------
 
 -- ===========================================================================
