@@ -203,9 +203,29 @@ function recitPhrase(p: FeedPayload): { emoji: string; text: string } {
       };
     case "chute": {
       const vides = Number(p.jours_vides ?? 0);
+      const parfaits = Number(p.parfaits ?? 0);
+      // Le plancher. Les huit angles savaient tous mesurer une chute, et
+      // aucun ne savait dire ce qui restait debout : celui qui est dernier
+      // ouvrait le fil chaque lundi sur une carte qui nomme le vainqueur,
+      // puis son propre rang, et rien d'autre. Sept semaines de ça, dans un
+      // groupe de six qui doit encore être un groupe le 31/08.
+      //
+      // Ce n'est pas une consolation, et surtout pas un badge : c'est un
+      // second fait, du même registre que le premier et chiffré comme lui
+      // (spéc §7, règle 5 — jamais un adjectif sans un chiffre derrière).
+      // La chute n'est pas adoucie d'un mot ; elle cesse juste d'être tout
+      // ce que la carte sait dire de quelqu'un.
+      //
+      // `parfaits` voyage dans le payload de base, donc pour tous les
+      // angles : rien à changer côté job SQL. Et une semaine à zéro jour
+      // parfait ne se maquille pas — dans ce cas on n'ajoute rien.
+      const socle =
+        parfaits > 0
+          ? `, et ${parfaits} jour${parfaits > 1 ? "s" : ""} parfait${parfaits > 1 ? "s" : ""}`
+          : "";
       const suite =
         vides > 0
-          ? ` ${vides} jour${vides > 1 ? "s" : ""} sans une seule coche.`
+          ? ` ${vides} jour${vides > 1 ? "s" : ""} sans une seule coche${socle}.`
           : ` ${fmtPoints(finish)} pts sur les deux derniers jours` +
             finishCompare(finish, p.foil, p.foil_finish) +
             ".";
