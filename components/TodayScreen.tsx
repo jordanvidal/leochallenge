@@ -104,89 +104,50 @@ export default function TodayScreen({
       .map((c) => emojiByKey.get(c.bonus_key) ?? "")
       .join(" ");
 
-  // Journée bouclée : les potes ne sont plus une bande qu'on longe du
-  // pouce, ils sont le contenu. En colonne, un par ligne, avec leurs trois
-  // pastilles alignées à droite — on lit qui a fini d'un seul regard au
-  // lieu de faire défiler. C'est aussi ce qui remplit l'écran une fois le
-  // lanceur parti : la bande horizontale y laissait 270 px de vide.
-  const potesEnColonne = (
-    <ul className="flex flex-col">
-      {others.map((p) => {
-        const live = liveAt(p.id);
-        // 48 px de ligne : à sept potes, la colonne tient l'écran sans
-        // déborder sous la barre d'onglets. Ces lignes ne sont pas des
-        // cibles, leur hauteur est du rythme — le plancher des 44 px ne
-        // s'y applique pas.
-        return (
-          <li key={p.id} className="flex min-h-12 items-center gap-3">
-            <div
-              key={live ?? undefined}
-              className={live ? "live-pulse" : undefined}
-              style={{ "--lc": p.color } as React.CSSProperties}
-            >
-              <Avatar name={p.name} color={p.color} photo={p.photo} size={36} />
-            </div>
-            <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
-            {live ? (
-              <span
-                className="text-[11px] font-bold"
-                style={{ color: p.color }}
-              >
-                à l&apos;instant
-              </span>
-            ) : (
-              claimedEmojis(p.id) && (
-                <span
-                  className="text-[11px]"
-                  title="Bonus déclarés aujourd'hui"
-                >
-                  {claimedEmojis(p.id)}
-                </span>
-              )
-            )}
-            <ExoDots
-              entry={entries.get(entryKey(p.id, today))}
-              color={p.color}
-            />
-          </li>
-        );
-      })}
-    </ul>
-  );
-
-  // La ligne des potes, montée en variable : selon le temps de la journée
-  // elle n'est pas au même endroit de l'écran, ni de la même forme.
+  // Les potes en colonne : un par ligne, avatar + nom, les trois pastilles
+  // alignées à droite. On lit qui a fini d'un seul regard au lieu de longer
+  // une bande du pouce — à huit, deux têtes sortaient de l'écran sans que
+  // rien ne le dise.
+  //
+  // Cette forme est née le 31/07 pour la seule journée bouclée, où la bande
+  // horizontale laissait 270 px de vide. Le même vide existait dans l'état
+  // lanceur (330 px de noir entre les potes et les bonus) : il venait des
+  // trois cartes de 96 px remplacées par un bouton, et personne n'avait
+  // réattribué la place. Une seule forme dans tous les états, et c'est du
+  // contenu qui remplit l'écran — pas un ressort.
   const lesPotes =
     others.length > 0 ? (
       <>
         <h2 className="mb-2 text-xs font-bold tracking-wide text-faint uppercase">
           Les potes aujourd&apos;hui
         </h2>
-        <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1">
+        <ul className="flex flex-col">
           {others.map((p) => {
             const live = liveAt(p.id);
+            // 48 px de ligne : à huit potes, la colonne tient l'écran sans
+            // déborder sous la barre d'onglets. Ces lignes ne sont pas des
+            // cibles, leur hauteur est du rythme — le plancher des 44 px ne
+            // s'y applique pas.
             return (
-              <div
-                key={p.id}
-                className="flex shrink-0 flex-col items-center gap-1.5"
-              >
+              <li key={p.id} className="flex min-h-12 items-center gap-3">
                 <div
                   key={live ?? undefined}
                   className={live ? "live-pulse" : undefined}
                   style={{ "--lc": p.color } as React.CSSProperties}
                 >
-                  <Avatar name={p.name} color={p.color} photo={p.photo} size={46} />
+                  <Avatar
+                    name={p.name}
+                    color={p.color}
+                    photo={p.photo}
+                    size={36}
+                  />
                 </div>
-                <span className="max-w-16 truncate text-xs font-medium text-muted">
+                <span className="min-w-0 flex-1 truncate font-medium">
                   {p.name}
                 </span>
-                <ExoDots
-                  entry={entries.get(entryKey(p.id, today))}
-                  color={p.color}
-                />
                 {live ? (
                   <span
-                    className="text-[11px] font-bold leading-none"
+                    className="text-[11px] font-bold"
                     style={{ color: p.color }}
                   >
                     à l&apos;instant
@@ -194,17 +155,21 @@ export default function TodayScreen({
                 ) : (
                   claimedEmojis(p.id) && (
                     <span
-                      className="text-[11px] leading-none"
+                      className="text-[11px]"
                       title="Bonus déclarés aujourd'hui"
                     >
                       {claimedEmojis(p.id)}
                     </span>
                   )
                 )}
-              </div>
+                <ExoDots
+                  entry={entries.get(entryKey(p.id, today))}
+                  color={p.color}
+                />
+              </li>
             );
           })}
-        </div>
+        </ul>
       </>
     ) : (
       <button
@@ -288,84 +253,68 @@ export default function TodayScreen({
 
           Maintenant l'écran change de métier selon le moment :
 
-            fermé    — aucune séance lancée : c'est un lanceur, un seul objet
-            en cours — séance ouverte, journée pas bouclée : « Reprendre »
-            bouclé   — 3/3 : les cartes disparaissent, les potes prennent
-                       leur place, parce que c'est ce qu'on vient voir
+            fermé    — aucune séance lancée : série, groupe, et un lanceur
+            en cours — séance ouverte, journée pas bouclée : l'état des trois
+                       exos s'ajoute, et le lanceur dit « Reprendre »
+            bouclé   — 3/3 : le lanceur s'en va, le groupe reste seul en
+                       place, parce que c'est ce qu'on vient voir
 
-          L'état des trois exos descend sous le bouton en une rangée de
-          pastilles. Elle n'est pas tappable et ne le sera jamais : ce serait
-          rouvrir le chemin d'écriture manuel fermé le 21/07.
+          L'état des trois exos vit en une rangée de pastilles. Elle n'est
+          pas tappable et ne le sera jamais : ce serait rouvrir le chemin
+          d'écriture manuel fermé le 21/07.
+
+          Deux corrections le 01/08, après un écran vu en vrai.
+
+          Le bouton faisait 176 px de haut. Il était seul sur l'écran — rien
+          à battre du pouce, donc la taille n'achetait aucune vitesse de tap,
+          juste 61 000 px² d'aplat saturé dans une chambre à 23 h. Il tombe à
+          60 px et descend en bas de page : l'action principale vit dans la
+          zone du pouce (Thumb-Zone Rule), pas dans le tiers haut. C'est la
+          seule couleur pleine de l'écran, elle reste impossible à rater.
+
+          La rangée d'état ne s'affiche plus qu'en séance. Avant le lancement
+          rien ne peut être coché : elle annonçait trois cercles vides et les
+          mêmes trois mots que le titre juste au-dessus. Elle ne dit quelque
+          chose qu'une fois la séance ouverte, au moment où « il me reste
+          quoi ? » se pose vraiment — juste avant « Reprendre ».
+
+          La phrase « Les coches s'ouvrent quand la séance démarre » est
+          partie avec les cartes verrouillées qu'elle expliquait : depuis le
+          31/07 il n'y a plus une seule coche sur cet écran.
       ------------------------------------------------------------------- */}
-      {!over && !perfect && (
-        <div className="mt-5">
-          <button
-            onClick={() => {
-              navigator.vibrate?.(8);
-              onStartWorkout();
-            }}
-            className="flex min-h-44 w-full items-center justify-center gap-3 rounded-3xl text-2xl font-bold transition-transform active:scale-[0.98]"
-            style={{ background: player.color, color: "oklch(0.15 0 0)" }}
-          >
-            <span aria-hidden>▶</span>
-            {sessionStarted ? "Reprendre ma séance" : "Lancer ma séance"}
-          </button>
-
-          {/* L'état du jour : trois pastilles, pas trois cibles. */}
-          <div
-            className="mt-4 flex items-center justify-between px-1"
-            aria-label="Ton état du jour"
-          >
-            {EXERCISES.map(({ key, label }) => {
-              const done = mine?.[key] ?? false;
-              return (
-                <div key={key} className="flex items-center gap-2">
-                  <span
-                    className="size-3 shrink-0 rounded-full"
-                    style={
-                      done
-                        ? { background: player.color }
-                        : { boxShadow: "inset 0 0 0 1.5px var(--color-line)" }
-                    }
-                    aria-hidden
-                  />
-                  <span
-                    className="text-sm font-medium"
-                    style={{
-                      color: done ? player.color : "var(--color-muted)",
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="sr-only">
-                    {done ? "fait" : "pas encore fait"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {!sessionStarted && (
-            <p className="mt-3 text-center text-[13px] text-muted">
-              Les coches s&apos;ouvrent quand la séance démarre.
-            </p>
-          )}
+      {!over && !perfect && sessionStarted && (
+        <div
+          className="mt-5 flex items-center justify-between px-1"
+          aria-label="Ton état du jour"
+        >
+          {EXERCISES.map(({ key, label }) => {
+            const done = mine?.[key] ?? false;
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span
+                  className="size-3 shrink-0 rounded-full"
+                  style={
+                    done
+                      ? { background: player.color }
+                      : { boxShadow: "inset 0 0 0 1.5px var(--color-line)" }
+                  }
+                  aria-hidden
+                />
+                <span
+                  className={`text-sm ${done ? "font-bold" : "font-medium"}`}
+                  style={{
+                    color: done ? player.color : "var(--color-muted)",
+                  }}
+                >
+                  {label}
+                </span>
+                <span className="sr-only">
+                  {done ? "fait" : "pas encore fait"}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* Bouclé : les potes deviennent le contenu de l'écran, en colonne.
-          La célébration, elle, appartient à DoneScreen — on ne refait pas
-          la fête ici, on constate. */}
-      {!over && perfect && others.length > 0 && (
-        <section className="mt-4">
-          <h2 className="mb-1 text-xs font-bold tracking-wide text-faint uppercase">
-            Les potes aujourd&apos;hui
-          </h2>
-          {potesEnColonne}
-        </section>
-      )}
-      {!over && perfect && others.length === 0 && (
-        <section className="mt-5">{lesPotes}</section>
       )}
 
       {over && (
@@ -377,17 +326,16 @@ export default function TodayScreen({
         </div>
       )}
 
-      {/* Les potes, à leur place habituelle tant que la journée n'est pas
-          bouclée — mais AVANT les bonus maintenant. La ligne des potes fait
-          tenir le truc, les bonus sont l'assaisonnement : l'ordre disait
-          l'inverse. */}
-      {!over && !perfect && <section className="mt-6">{lesPotes}</section>}
+      {/* Les potes, avant les bonus : la ligne des potes fait tenir le truc,
+          les bonus sont l'assaisonnement — l'ordre disait l'inverse. Même
+          bloc dans les deux états depuis le 01/08, la journée bouclée n'a
+          plus sa mise en page à part. */}
+      {!over && <section className="mt-5">{lesPotes}</section>}
 
-      {/* Ce qui reste d'espace tombe ici : les bonus se posent en bas, à
-          portée de pouce. Pas dans l'état bouclé : la colonne des potes
-          remplit déjà l'écran, et pousser encore ferait passer « Refaire un
-          tour » sous la barre d'onglets. */}
-      {!perfect && <div className="flex-1" />}
+      {/* Ce qui reste d'espace tombe ici. À huit potes la colonne le mange
+          en entier et ce ressort vaut zéro ; à deux, il pousse les bonus et
+          le lanceur en bas plutôt que de laisser un trou sous eux. */}
+      {!over && <div className="flex-1" />}
 
       {/* Bonus : bandeau événement + puces déclaratives. L'assaisonnement,
           pas le plat — la séance de base reste le héros. */}
@@ -399,6 +347,24 @@ export default function TodayScreen({
           onUnclaim={onUnclaimBonus}
           showToast={showToast}
         />
+      )}
+
+      {/* Le lanceur, dernier de la page et collé au pouce. 60 px et non 176,
+          texte au pas « title » du système : c'est un bouton, plus une dalle.
+          `mb-3` le décolle de la barre d'onglets — sans ça un tap un peu bas
+          part au Tchat. */}
+      {!over && !perfect && (
+        <button
+          onClick={() => {
+            navigator.vibrate?.(8);
+            onStartWorkout();
+          }}
+          className="mt-3 mb-3 flex min-h-15 w-full items-center justify-center gap-2.5 rounded-2xl text-lg font-bold transition-transform active:scale-[0.98]"
+          style={{ background: player.color, color: "oklch(0.15 0 0)" }}
+        >
+          <span aria-hidden>▶</span>
+          {sessionStarted ? "Reprendre ma séance" : "Lancer ma séance"}
+        </button>
       )}
 
       {/* Journée bouclée : plus de lanceur, comme avant le 31/07.
