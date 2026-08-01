@@ -164,25 +164,42 @@ self.addEventListener("push", (event) => {
     payload.body = event.data.text();
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      // Deux notifications de même tag se remplacent au lieu de s'empiler.
+    (async () => {
+      // Pastille de l'icône, app fermée. `payload.badge` n'est renseigné
+      // que par les familles qui comptent du non-lu (le tchat) ; les
+      // rappels ne l'envoient pas et la pastille les ignore donc.
       //
-      // Le tag était « lc100 » pour tout le monde, et c'était bien tant
-      // qu'il n'existait qu'une famille de notifications. Le tchat en
-      // envoie une par message : sans tag à lui, sa dixième vanne
-      // effacerait le rappel « ta série est en jeu » tombé juste avant.
-      // La seule notification qui compte vraiment dans cette app serait
-      // devenue effaçable par un « lol ».
-      //
-      // Le repli sur « lc100 » n'est pas une précaution de style : les
-      // sept notifications déjà en production n'envoient pas de tag, et
-      // leur comportement ne doit pas bouger d'un iota.
-      tag: payload.tag || "lc100",
-      data: { url: payload.url || "/" },
-    }),
+      // L'ordre compte : la pastille passe AVANT showNotification. Si
+      // l'API manque ou refuse, on ne veut pas que ça emporte la
+      // notification avec elle — c'est elle, l'essentiel.
+      if (typeof payload.badge === "number" && "setAppBadge" in self.navigator) {
+        try {
+          if (payload.badge > 0) await self.navigator.setAppBadge(payload.badge);
+          else await self.navigator.clearAppBadge();
+        } catch {
+          // rien à rattraper : une pastille est un bonus
+        }
+      }
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        // Deux notifications de même tag se remplacent au lieu de s'empiler.
+        //
+        // Le tag était « lc100 » pour tout le monde, et c'était bien tant
+        // qu'il n'existait qu'une famille de notifications. Le tchat en
+        // envoie une par message : sans tag à lui, sa dixième vanne
+        // effacerait le rappel « ta série est en jeu » tombé juste avant.
+        // La seule notification qui compte vraiment dans cette app serait
+        // devenue effaçable par un « lol ».
+        //
+        // Le repli sur « lc100 » n'est pas une précaution de style : les
+        // sept notifications déjà en production n'envoient pas de tag, et
+        // leur comportement ne doit pas bouger d'un iota.
+        tag: payload.tag || "lc100",
+        data: { url: payload.url || "/" },
+      });
+    })(),
   );
 });
 

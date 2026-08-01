@@ -4,6 +4,7 @@
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAppBadge } from "@/hooks/useAppBadge";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useChat } from "@/hooks/useChat";
@@ -193,6 +194,11 @@ export default function App() {
   // derrière elle (docs/spec-tchat.md §3).
   const chat = useChat(effTab === "chat", playerId, data.showToast, joueursDeLaLigue);
 
+  // Le même chiffre que les pastilles d'onglets, posé sur l'icône de
+  // l'écran d'accueil. C'est ce qui fait rouvrir l'app quand elle est
+  // fermée — et ça s'éteint tout seul dès qu'on a tout lu.
+  useAppBadge(feed.unread + chat.unread);
+
   /** Après toute écriture qui compte : classement rechargé, moments
       détectés côté serveur (/api/moments), puis fil rafraîchi. */
   const rescore = useCallback(
@@ -220,16 +226,6 @@ export default function App() {
   useEffect(() => {
     if (playerId) resyncPush(playerId);
   }, [playerId]);
-
-  // Ménage ponctuel : le badge d'icône a existé une soirée (feature/badge-pwa,
-  // revertée depuis). Le revert a emporté le code qui l'effaçait, donc le
-  // chiffre posé sur l'écran d'accueil y reste gravé pour toujours. On l'efface
-  // une fois par appareil. À supprimer quand tout le monde aura rouvert l'app.
-  useEffect(() => {
-    if (localStorage.getItem("lc100.badgeCleared")) return;
-    navigator.clearAppBadge?.().catch(() => {});
-    localStorage.setItem("lc100.badgeCleared", "1");
-  }, []);
 
   // Événement du jour : plus d'ouverture forcée à l'accueil. Un bandeau non
   // bloquant l'annonce dans TodayScreen (EventBanner) ; la modale — la roue,
