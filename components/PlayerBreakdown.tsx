@@ -221,7 +221,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
 
       {data && total === 0 && (
         <p className="mt-8 text-muted">
-          Pas encore de points. Ça commence par cocher trois exos.
+          Pas encore de points. Ça commence par lancer une séance.
         </p>
       )}
 

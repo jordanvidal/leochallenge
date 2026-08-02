@@ -172,40 +172,9 @@ export function useChallengeData() {
     };
   }, []);
 
-  /** Bascule un exo. Optimiste : état local d'abord, rollback si la base dit non. */
-  const toggleExercise = useCallback(
-    async (playerId: string, day: string, exo: Exercise) => {
-      const key = entryKey(playerId, day);
-      const before = entries.get(key);
-      const next: Entry = {
-        player_id: playerId,
-        day,
-        pushups: before?.pushups ?? false,
-        abs: before?.abs ?? false,
-        squats: before?.squats ?? false,
-        [exo]: !(before?.[exo] ?? false),
-      };
-      setEntries((prev) => new Map(prev).set(key, next));
-
-      const { error } = await supabase
-        .from("entries")
-        .upsert(next, { onConflict: "player_id,day" });
-      if (error) {
-        // rollback visible : on ne fait pas semblant
-        setEntries((prev) => {
-          const map = new Map(prev);
-          if (before) map.set(key, before);
-          else map.delete(key);
-          return map;
-        });
-        showToast(humanError(error.message));
-      }
-    },
-    [entries, showToast],
-  );
-
-  /** Force des exos à "fait" sans jamais en décocher (fin de séance
-      guidée). Même chemin que toggleExercise : optimiste + rollback. */
+  /** Force des exos à "fait" sans jamais en repasser un à faux (fin de
+      séance guidée). Optimiste : état local d'abord, rollback visible si
+      la base dit non — on ne fait pas semblant. */
   const setExercisesDone = useCallback(
     async (playerId: string, day: string, exos: Exercise[]) => {
       if (exos.length === 0) return true;
@@ -332,7 +301,6 @@ export function useChallengeData() {
     toast,
     showToast,
     refresh,
-    toggleExercise,
     setExercisesDone,
     createPlayer,
     deletePlayer,

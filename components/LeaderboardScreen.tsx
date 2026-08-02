@@ -162,8 +162,8 @@ export default function LeaderboardScreen({
         {enPanne ? (
           <>
             <p className="mt-4 text-muted">
-              Impossible de charger le classement. Tes coches sont bien
-              enregistrées — c&apos;est l&apos;affichage qui coince.
+              Impossible de charger le classement. Ta séance est bien
+              enregistrée — c&apos;est l&apos;affichage qui coince.
             </p>
             <button
               onClick={onRetry}

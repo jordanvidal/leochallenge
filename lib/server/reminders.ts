@@ -170,9 +170,9 @@ export async function sendReminders(
 /** Message "série en danger" : personnalisé, court, il fait mal gentiment. */
 function streakBody(streak: number): string {
   if (streak >= 7) {
-    return `${streak} jours parfaits d'affilée et rien de coché aujourd'hui. Ton ×2 saute à minuit.`;
+    return `${streak} jours parfaits d'affilée et pas de séance aujourd'hui. Ton ×2 saute à minuit.`;
   }
-  return `Ta série de ${streak} jours tombe à minuit. 3 exos ce soir et elle tient.`;
+  return `Ta série de ${streak} jours tombe à minuit. Une séance ce soir et elle tient.`;
 }
 
 /** 17h — la série en danger. La série vient du RPC leaderboard
