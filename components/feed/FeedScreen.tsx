@@ -311,7 +311,7 @@ export default function FeedScreen({
       {feed.enPanne && feed.events === null && (
         <>
           <p className="mt-4 text-muted">
-            Impossible de charger le fil. Tes coches sont bien enregistrées —
+            Impossible de charger le fil. Ta séance est bien enregistrée —
             c&apos;est l&apos;affichage qui coince.
           </p>
           <button

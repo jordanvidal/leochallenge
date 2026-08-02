@@ -204,8 +204,8 @@ function useGlisserPourFermer(onClose: () => void) {
   return { dy, tire, feuille, prise };
 }
 
-/** La feuille de déclaration : tout le catalogue, même pattern que
-    DayEditor (fond cliquable, poignée, Échap).
+/** La feuille de déclaration : tout le catalogue, en feuille montante
+    (fond cliquable, poignée, Échap).
 
     Un tap sur une puce ne déclare rien : il coche un brouillon. Rien ne
     part en base — donc rien ne réveille les cinq autres — tant que

@@ -38,8 +38,8 @@ export default function GlobalError({
           Ça a cassé
         </p>
         <p style={{ margin: 0, color: "#adadad" }}>
-          L&apos;app n&apos;a pas pu démarrer. Rien n&apos;est perdu : tes
-          coches sont en base.
+          L&apos;app n&apos;a pas pu démarrer. Rien n&apos;est perdu : ta
+          séance est en base.
         </p>
         <button
           onClick={reset}

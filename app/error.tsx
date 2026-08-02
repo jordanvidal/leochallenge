@@ -31,7 +31,7 @@ export default function Error({
       <p className="text-lg font-bold">Ça a cassé</p>
       <p className="text-muted">
         L&apos;app s&apos;est arrêtée en cours de route. Rien n&apos;est
-        perdu : tes coches sont en base.
+        perdu : ta séance est en base.
       </p>
       <div className="mt-2 flex flex-col items-center gap-2">
         <button

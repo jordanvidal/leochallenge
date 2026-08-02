@@ -65,12 +65,12 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         Chaque jour, jusqu&apos;au {frenchDayMonth(f.end)}
       </h1>
       <p className="mt-3 text-muted">
-        100 pompes, 100 abdos, 100 squats. Tu lances ta séance, tu les fais,
-        tu coches. Les trois cartes restent fermées tant que la séance
-        n&apos;est pas partie.
+        100 pompes, 100 abdos, 100 squats. Tu lances ta séance, tu déroules
+        les blocs, et la journée se valide à la fin. Pas de séance, pas de
+        journée.
       </p>
       <p className="mt-3 text-muted">
-        Et tout le groupe voit qui a coché quoi. La pression, c&apos;est le jeu.
+        Et tout le groupe voit qui a fait quoi. La pression, c&apos;est le jeu.
       </p>
     </div>,
 

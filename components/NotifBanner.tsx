@@ -58,7 +58,7 @@ export default function NotifBanner({
 
   return (
     <div className="mt-3 rounded-2xl bg-surface p-4">
-      <p className="font-bold">Un rappel à 20h si t&apos;as rien coché ?</p>
+      <p className="font-bold">Un rappel à 20h si t&apos;as pas fait ta séance ?</p>
       <p className="mt-0.5 text-sm text-muted">
         Avec le nombre de potes qui ont déjà fini. La pression, la vraie.
       </p>

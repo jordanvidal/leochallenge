@@ -79,11 +79,11 @@ export default function LaunchS4Screen({
       </p>
       <h1 className="mt-4 text-4xl font-black">Trois règles de plus.</h1>
       <p className="mt-4 text-lg text-muted">
-        Rien ne disparaît : le barème de la S3 tient. On lui ajoute un jour de
-        repos et deux tirages.
+        Rien ne disparaît : le barème de la S3 tient. On lui ajoute un jour
+        off et deux tirages.
       </p>
       <p className={vanne} style={{ borderColor: player.color }}>
-        Un jour de repos dans la poche, et deux façons de plus de rafler des
+        Un jour off dans la poche, et deux façons de plus de rafler des
         points. Personne n&apos;a dit que ça serait plus facile. 💪
       </p>
     </div>,
