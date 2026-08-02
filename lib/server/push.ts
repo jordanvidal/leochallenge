@@ -135,6 +135,24 @@ export type PushPayload = {
   body: string;
   tag?: string;
   url?: string;
+  /**
+   * Chiffre à poser sur l'icône de l'écran d'accueil, app fermée comprise
+   * (le service worker l'applique, voir public/sw.js). Absent : la
+   * pastille ne bouge pas — c'est le cas des sept notifications de rappel,
+   * et ce n'est pas un oubli.
+   *
+   * Une pastille ne compte QUE du contenu non lu, jamais un rappel. La
+   * nuance a coûté un revert le 17/07 : badger les exos restants posait un
+   * « 3 » chaque matin sur l'écran d'accueil, que seule la séance faisait
+   * disparaître. Un rappel qu'on ne peut pas acquitter, c'est du harcèlement
+   * poli. Un non-lu s'éteint en l'ouvrant.
+   *
+   * Seul le tchat le renseigne aujourd'hui : lui seul a de quoi compter par
+   * destinataire côté serveur (`chat_reads.last_read_at`). Les non-lus du
+   * fil vivent dans le localStorage de chacun — le serveur ne peut pas les
+   * connaître, donc il ne prétend pas les compter.
+   */
+  badge?: number;
 };
 
 /**

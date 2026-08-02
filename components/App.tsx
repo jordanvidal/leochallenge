@@ -4,6 +4,7 @@
 // Tout l'état d'identité vit en localStorage, la donnée vit dans Supabase.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAppBadge } from "@/hooks/useAppBadge";
 import { useBonus } from "@/hooks/useBonus";
 import { useChallengeData } from "@/hooks/useChallengeData";
 import { useChat } from "@/hooks/useChat";
@@ -20,6 +21,8 @@ import {
   challengeIsOver,
   parisToday,
   saison3Started,
+  saison4Started,
+  SAISON4_START,
 } from "@/lib/challenge";
 import { FeedEvent } from "@/lib/feed";
 import { useFenetre } from "./ligue/LigueContexte";
@@ -43,6 +46,7 @@ import StatsScreen from "./StatsScreen";
 import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import LaunchS3Screen from "./LaunchS3Screen";
+import LaunchS4Screen from "./LaunchS4Screen";
 import TutorialScreen from "./TutorialScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
@@ -75,6 +79,8 @@ export default function App() {
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
   const [workoutOpen, setWorkoutOpen] = useState(false);
+  // Ouverture directe sur l'onglet bonus (entrée « Enchaîner des bonus »).
+  const [workoutOnBonus, setWorkoutOnBonus] = useState(false);
   // Rouvrir le tuto à la demande (« Revoir les règles »), même déjà vu.
   const [replayTuto, setReplayTuto] = useState(false);
   // Idem pour l'écran de lancement S3. forceLaunch = aperçu manuel hors date
@@ -191,6 +197,11 @@ export default function App() {
   // derrière elle (docs/spec-tchat.md §3).
   const chat = useChat(effTab === "chat", playerId, data.showToast, joueursDeLaLigue);
 
+  // Le même chiffre que les pastilles d'onglets, posé sur l'icône de
+  // l'écran d'accueil. C'est ce qui fait rouvrir l'app quand elle est
+  // fermée — et ça s'éteint tout seul dès qu'on a tout lu.
+  useAppBadge(feed.unread + chat.unread);
+
   /** Après toute écriture qui compte : classement rechargé, moments
       détectés côté serveur (/api/moments), puis fil rafraîchi. */
   const rescore = useCallback(
@@ -219,16 +230,6 @@ export default function App() {
     if (playerId) resyncPush(playerId);
   }, [playerId]);
 
-  // Ménage ponctuel : le badge d'icône a existé une soirée (feature/badge-pwa,
-  // revertée depuis). Le revert a emporté le code qui l'effaçait, donc le
-  // chiffre posé sur l'écran d'accueil y reste gravé pour toujours. On l'efface
-  // une fois par appareil. À supprimer quand tout le monde aura rouvert l'app.
-  useEffect(() => {
-    if (localStorage.getItem("lc100.badgeCleared")) return;
-    navigator.clearAppBadge?.().catch(() => {});
-    localStorage.setItem("lc100.badgeCleared", "1");
-  }, []);
-
   // Événement du jour : plus d'ouverture forcée à l'accueil. Un bandeau non
   // bloquant l'annonce dans TodayScreen (EventBanner) ; la modale — la roue,
   // le détail — devient une destination qu'on ouvre au tap, jamais une porte
@@ -239,6 +240,38 @@ export default function App() {
     if (!player || !bonus?.event) return;
     setEventSeen(localStorage.getItem("lc100.eventSeenDay") === parisToday());
   }, [player, bonus?.event]);
+
+  /**
+   * L'écran de lancement de la saison en cours (S3, puis S4 à partir du
+   * 03/08) ne s'affiche jamais à quelqu'un qui n'a jamais joué — et on le
+   * marque vu, pour qu'il ne lui tombe pas dessus non plus le jour où il
+   * commence.
+   *
+   * C'est un diff de saison : « Bilan S2 », « Ce qui arrive », « Ce qui
+   * dégage », « le double d'avant ». Six écrans qui racontent un changement
+   * à quelqu'un qui n'a pas d'avant — et qui lui montrent au passage son
+   * bilan de la saison 2, c'est-à-dire des zéros.
+   *
+   * C'est le pire endroit possible pour ça : les données disent que quatre
+   * inscrits sur neuf n'ont jamais eu de jour 1. Le barème en vigueur, lui,
+   * est déjà enseigné par le tutoriel, qui lit le même drapeau `s3`.
+   *
+   * `entries` arrive dans le même `Promise.all` que `players`, donc la
+   * réponse est fiable dès que les joueurs sont là. Hors ligne, on ne
+   * conclut rien : une liste vide serait un échec de chargement, pas une
+   * absence de jeu.
+   */
+  useEffect(() => {
+    if (!player || data.players === null || data.offline) return;
+    const s4 = saison4Started(f);
+    if (s4 ? id.launchS4Seen : id.launchS3Seen) return;
+    const aDejaJoue = [...data.entries.values()].some(
+      (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+    );
+    if (aDejaJoue) return;
+    if (s4) id.markLaunchS4Seen();
+    else id.markLaunchS3Seen();
+  }, [player, id, data.players, data.entries, data.offline, f]);
 
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
       bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
@@ -351,31 +384,67 @@ export default function App() {
     );
   }
 
-  // Écran de lancement S3 : une fois à partir du 27/07, ou en aperçu manuel
-  // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
-  if (
-    !over &&
-    (forceLaunch || replayLaunch || (saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen))
-  ) {
+  // Écran de lancement de la saison en cours : une fois à partir du 27/07
+  // (S3), puis du 03/08 (S4), ou en aperçu manuel (?lancement=1) / rejeu.
+  // Passe avant l'install pour ouvrir sur du positif.
+  //
+  // Une seule porte pour les deux saisons, jamais deux carrousels à la
+  // suite : dès que la S4 est là, c'est elle qui parle. Le diff de la S3
+  // n'a plus rien à apprendre à personne — ses règles sont en vigueur
+  // depuis une semaine, et le tutoriel les enseigne déjà.
+  //
+  // `aDejaJoue` garde la porte : l'effet plus haut marque l'écran vu pour un
+  // nouveau, mais le rendu ne doit pas l'afficher une seule frame en
+  // attendant. L'aperçu manuel et « Revoir le lancement » passent toujours —
+  // eux sont demandés.
+  // `forceLaunch` compte comme S4 : l'aperçu manuel sert précisément à
+  // relire le carrousel AVANT sa date, et le seul qui reste à relire est
+  // celui de la S4. Sans ça, ?lancement=1 le 02/08 rejouerait la S3 —
+  // l'écran qu'on ne cherche justement pas à revoir.
+  const s4 = saison4Started(f) || forceLaunch;
+  const aDejaJoue = [...data.entries.values()].some(
+    (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+  );
+  const lancementDu = s4
+    ? !id.launchS4Seen
+    : saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen;
+  if (!over && (forceLaunch || replayLaunch || (lancementDu && aDejaJoue))) {
+    const marquerVu = () => {
+      // Un aperçu manuel ne consomme pas l'affichage unique : relire
+      // l'écran le dimanche soir ne doit pas priver du lundi matin.
+      if (!forceLaunch) {
+        if (s4) id.markLaunchS4Seen();
+        else id.markLaunchS3Seen();
+      }
+      setReplayLaunch(false);
+      setForceLaunch(false);
+    };
     return (
       <div style={accent}>
-        <LaunchS3Screen
-          player={player}
-          players={data.players}
-          replay={replayLaunch}
-          onLaunchSession={() => {
-            id.markLaunchS3Seen();
-            setReplayLaunch(false);
-            setForceLaunch(false);
-            setTab("today");
-            setWorkoutOpen(true);
-          }}
-          onDone={() => {
-            id.markLaunchS3Seen();
-            setReplayLaunch(false);
-            setForceLaunch(false);
-          }}
-        />
+        {s4 ? (
+          <LaunchS4Screen
+            player={player}
+            replay={replayLaunch}
+            onLaunchSession={() => {
+              marquerVu();
+              setTab("today");
+              setWorkoutOpen(true);
+            }}
+            onDone={marquerVu}
+          />
+        ) : (
+          <LaunchS3Screen
+            player={player}
+            players={data.players}
+            replay={replayLaunch}
+            onLaunchSession={() => {
+              marquerVu();
+              setTab("today");
+              setWorkoutOpen(true);
+            }}
+            onDone={marquerVu}
+          />
+        )}
         <Toast message={data.toast} />
       </div>
     );
@@ -404,11 +473,19 @@ export default function App() {
       <div style={accent}>
         <WorkoutMode
           player={player}
+          players={data.players}
           todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
+          bonus={bonus}
+          leaderboard={gamification?.total ?? null}
+          onClaimBonus={(item) => claim(player.id, item)}
+          startOnBonus={workoutOnBonus}
           onValidate={validateWorkout}
           streak={myStreak}
           onSessionStart={session.markStarted}
-          onClose={() => setWorkoutOpen(false)}
+          onClose={() => {
+            setWorkoutOpen(false);
+            setWorkoutOnBonus(false);
+          }}
           showToast={data.showToast}
         />
         <Toast message={data.toast} />
@@ -445,10 +522,16 @@ export default function App() {
             onOpenEvent={() => setShowEventModal(true)}
             onDismissEvent={dismissEventModal}
             sessionStarted={session.started}
-            onStartWorkout={() => setWorkoutOpen(true)}
+            onStartWorkout={() => {
+              setWorkoutOnBonus(false);
+              setWorkoutOpen(true);
+            }}
+            onPlanBonus={() => {
+              setWorkoutOnBonus(true);
+              setWorkoutOpen(true);
+            }}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
-            onShareWeek={shareWeek}
             onInvite={invite}
             onGoLeaderboard={() => setTab("leaderboard")}
             showToast={data.showToast}
@@ -512,56 +595,40 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            joursOff={bonus?.joursOff}
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             onShareWeek={shareWeek}
             onSetPhoto={data.setPhoto}
             showToast={data.showToast}
+            onReplayTuto={() => setReplayTuto(true)}
+            onReplayLaunch={
+              // La fenêtre du lien suit la saison en cours : sept jours
+              // après le 03/08 pour la S4, comme elle l'a été après le
+              // 27/07 pour la S3. Passé ce délai, un carrousel de
+              // lancement n'est plus une nouvelle, c'est une archive —
+              // et les règles vivent au mini-barème.
+              (
+                s4
+                  ? parisToday() <= addDays(SAISON4_START, 6)
+                  : saison3Started(f) &&
+                    aUneBasculeDeBareme(f) &&
+                    parisToday() <= addDays(f.saison3, 6)
+              )
+                ? () => setReplayLaunch(true)
+                : null
+            }
+            onForget={id.forgetPlayer}
           />
         )}
       </div>
-      {/* Masqué sur le tchat : la barre de saisie est collée juste
-          au-dessus des onglets, et ces trois liens se glisseraient entre
-          les deux. Une conversation n'est de toute façon pas l'endroit
-          où l'on revoit les règles.
-          Les liens sont à 44 px et en `quiet` : c'est la seule route vers
-          les règles et vers le changement de joueur, donc ni un texte
-          qu'on devine ni une cible qu'on rate. Les séparateurs, eux,
-          restent en `faint` — ils sont aria-hidden et purement graphiques. */}
-      <div
-        className={`items-center justify-center gap-4 px-5 pb-1 ${
-          effTab === "chat" ? "hidden" : "flex"
-        }`}
-      >
-        <button
-          onClick={() => setReplayTuto(true)}
-          className="min-h-11 text-[11px] text-quiet"
-        >
-          Revoir les règles
-        </button>
-        {saison3Started(f) && aUneBasculeDeBareme(f) && parisToday() <= addDays(f.saison3, 6) && (
-          <>
-            <span className="text-[11px] text-faint" aria-hidden>
-              ·
-            </span>
-            <button
-              onClick={() => setReplayLaunch(true)}
-              className="min-h-11 text-[11px] text-quiet"
-            >
-              Revoir le lancement
-            </button>
-          </>
-        )}
-        <span className="text-[11px] text-faint" aria-hidden>
-          ·
-        </span>
-        <button
-          onClick={id.forgetPlayer}
-          className="min-h-11 text-[11px] text-quiet"
-        >
-          Ce n&apos;est pas moi ({player.name})
-        </button>
-      </div>
+      {/* Les trois liens d'aide et d'identité vivaient ici, sous la barre
+          d'onglets, donc sur TOUS les écrans — y compris le chemin des dix
+          secondes, où ils n'ont rien à faire. Ils sont descendus dans Stats,
+          qui porte déjà le profil : « revoir les règles » et « ce n'est pas
+          moi » sont des gestes de profil, pas des gestes de tous les soirs.
+          L'ancien bloc restait par ailleurs masqué à la main sur le tchat,
+          preuve qu'il n'était pas à sa place. */}
       <TabBar
         tab={effTab}
         onChange={setTab}

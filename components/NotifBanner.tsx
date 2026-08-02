@@ -8,6 +8,8 @@ import { pushSupported, subscribePush } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 
 const DISMISS_KEY = "lc100.notifDismissed";
+/** Marqué à la première apparition : le bandeau ne se propose qu'une fois. */
+const VU_KEY = "lc100.notifVu";
 
 export default function NotifBanner({
   player,
@@ -19,12 +21,19 @@ export default function NotifBanner({
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Au premier lancement, et là seulement. Le bandeau occupait l'accueil
+  // tous les soirs tant que personne n'avait tranché — sur le chemin des
+  // dix secondes, pour une demande de permission qui ne se pose qu'une
+  // fois. On le montre à la première ouverture, on note qu'il a été vu,
+  // et l'accueil lui est rendu pour toujours.
   useEffect(() => {
-    setVisible(
+    const proposable =
       pushSupported() &&
-        Notification.permission === "default" &&
-        localStorage.getItem(DISMISS_KEY) !== "1",
-    );
+      Notification.permission === "default" &&
+      localStorage.getItem(DISMISS_KEY) !== "1";
+    const dejaVu = localStorage.getItem(VU_KEY) === "1";
+    setVisible(proposable && !dejaVu);
+    if (proposable && !dejaVu) localStorage.setItem(VU_KEY, "1");
   }, []);
 
   if (!visible) return null;

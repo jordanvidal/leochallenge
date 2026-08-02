@@ -12,6 +12,7 @@
 // Réactions et commentaires vivent dans Interactions, partagé avec la
 // carte de bilan du lundi.
 
+import { memo } from "react";
 import {
   eventPhrase,
   FeedComment,
@@ -36,7 +37,7 @@ type Props = {
   vise?: boolean;
 };
 
-export default function FeedItem({
+function FeedItem({
   events,
   me,
   byId,
@@ -81,7 +82,10 @@ export default function FeedItem({
             </p>
           );
         })}
-        <p className="mt-0.5 text-[11px] text-faint">{timeOf(anchor.created_at)}</p>
+        {/* L'heure d'un moment est une information, pas du décor : c'est
+            la seule chose sur la carte qui dise quand. `faint` la posait à
+            2,6:1 — le tchat a déjà eu cette correction sur le même appel. */}
+        <p className="mt-0.5 text-[11px] text-quiet">{timeOf(anchor.created_at)}</p>
         <Interactions
           events={events}
           me={me}
@@ -95,3 +99,9 @@ export default function FeedItem({
     </li>
   );
 }
+
+// Le fil est monté dans `App`, qui se re-rend à chaque message du tchat, à
+// chaque battement de présence, à chaque toast. Sans ce `memo`, chacun de
+// ces rendus retraversait toutes les cartes chargées et recalculait leurs
+// réactions. `FeedScreen` garde l'identité des props en face.
+export default memo(FeedItem);

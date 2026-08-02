@@ -6,21 +6,22 @@
 // réel est recalculé à la reprise, pas perdu.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parisToday } from "@/lib/challenge";
 import { Exercise, EXERCISES } from "@/lib/types";
 import {
+  CLE_SEANCE,
   finishSession,
   humanWorkoutError,
+  relireSeance,
   startSession,
   touchPreset,
   WorkoutConfig,
+  WorkoutStep,
 } from "@/lib/workout";
 
 export type Block = { exo: Exercise; label: string; reps: number };
 
-export type WorkoutStep =
-  | { kind: "block"; round: number; blockIdx: number }
-  | { kind: "rest"; nextRound: number; endsAt: number }
-  | { kind: "done" };
+export type { WorkoutStep };
 
 /** Blocs d'un tour : les exos à 0 répétition sont sautés. */
 export function configBlocks(c: WorkoutConfig): Block[] {
@@ -52,6 +53,39 @@ export function useWorkout(
 
   const running = !!config && !!step;
   const blocks = config ? configBlocks(config) : [];
+
+  // Reprise : au montage, on relit la séance du jour si elle existe. C'est
+  // ce qui fait qu'un rechargement, une PWA évincée ou un onglet fermé au
+  // 3e tour ne coûtent plus la séance. Aucun appel serveur : le chrono est
+  // déjà ouvert, on ne le rouvre pas — on récupère juste où on en était.
+  useEffect(() => {
+    const reprise = relireSeance(localStorage.getItem(CLE_SEANCE), parisToday());
+    if (!reprise) {
+      localStorage.removeItem(CLE_SEANCE);
+      return;
+    }
+    startedAt.current = reprise.startedAt;
+    sessionDay.current = reprise.sessionDay;
+    setConfig(reprise.config);
+    setStep(reprise.step);
+  }, []);
+
+  // Sauvegarde à chaque étape. Le repos est stocké par son `endsAt` absolu,
+  // comme partout ici : au retour, le temps réel se recalcule tout seul et
+  // un repos écoulé pendant l'absence enchaîne sur le bloc suivant.
+  useEffect(() => {
+    if (!config || !step || step.kind === "done") return;
+    localStorage.setItem(
+      CLE_SEANCE,
+      JSON.stringify({
+        day: parisToday(),
+        config,
+        step,
+        startedAt: startedAt.current,
+        sessionDay: sessionDay.current,
+      }),
+    );
+  }, [config, step]);
 
   /** Lance la séance : chrono serveur ouvert, format mémorisé (MRU). */
   const launch = useCallback(
@@ -99,6 +133,9 @@ export function useWorkout(
       }
     } else {
       setStep({ kind: "done" });
+      // Séance finie : plus rien à reprendre, la sauvegarde n'a plus lieu
+      // d'être. La laisser ferait proposer une reprise après coup.
+      localStorage.removeItem(CLE_SEANCE);
       closeSession();
     }
   }, [config, step, blocks.length, closeSession]);
@@ -130,6 +167,9 @@ export function useWorkout(
     setConfig(null);
     setStep(null);
     sessionDay.current = null;
+    // Fermeture volontaire (fin ou abandon confirmé) : on efface. Une
+    // reprise ne se propose qu'après une interruption SUBIE.
+    localStorage.removeItem(CLE_SEANCE);
   }, []);
 
   // Décompte du repos : recalculé depuis le timestamp de fin à chaque

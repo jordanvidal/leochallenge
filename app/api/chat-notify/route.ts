@@ -176,6 +176,11 @@ export async function POST(request: Request) {
       // n'effacent aucune autre famille.
       tag: "lc100-chat",
       url: "/?tab=chat",
+      // Le même `n` sur l'icône de l'écran d'accueil. Il ne compte que le
+      // tchat : les non-lus du fil vivent dans le localStorage de chacun,
+      // le serveur ne les connaît pas. L'app corrige le total dès qu'on
+      // la rouvre (hooks/useAppBadge.ts).
+      badge: n,
     });
   }
 
