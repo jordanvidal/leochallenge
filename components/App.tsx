@@ -24,6 +24,7 @@ import {
   saison4Started,
   SAISON4_START,
 } from "@/lib/challenge";
+import { CLE_EVENEMENT_VU } from "@/lib/bonus";
 import { FeedEvent } from "@/lib/feed";
 import { useFenetre } from "./ligue/LigueContexte";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
@@ -233,12 +234,23 @@ export default function App() {
   // Événement du jour : plus d'ouverture forcée à l'accueil. Un bandeau non
   // bloquant l'annonce dans TodayScreen (EventBanner) ; la modale — la roue,
   // le détail — devient une destination qu'on ouvre au tap, jamais une porte
-  // sur le chemin de la coche. `eventSeen` pilote la visibilité du bandeau :
-  // vrai tant qu'on ne sait pas (pas de flash), recalculé dès l'événement connu.
-  const [eventSeen, setEventSeen] = useState(true);
+  // sur le chemin de la coche. `eventSeen` pilote la visibilité du bandeau.
+  //
+  // Lu dès le premier rendu, pas dans un effet : TodayScreen réserve la
+  // place du bandeau avec un skeleton tant que `bonus` n'est pas revenu, et
+  // le bandeau doit le remplacer dans la MÊME frame que l'arrivée de la
+  // donnée. Avec l'ancienne init à `true` corrigée en effet, il manquait
+  // une frame — le temps qu'elle passe, la place se refermait puis se
+  // rouvrait sous le pouce. L'effet reste pour re-poser la question à
+  // chaque fetch (retour d'arrière-plan, passage de minuit).
+  const [eventSeen, setEventSeen] = useState(
+    () =>
+      typeof window === "undefined" ||
+      localStorage.getItem(CLE_EVENEMENT_VU) === parisToday(),
+  );
   useEffect(() => {
     if (!player || !bonus?.event) return;
-    setEventSeen(localStorage.getItem("lc100.eventSeenDay") === parisToday());
+    setEventSeen(localStorage.getItem(CLE_EVENEMENT_VU) === parisToday());
   }, [player, bonus?.event]);
 
   /**
@@ -276,7 +288,7 @@ export default function App() {
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
       bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
   function dismissEventModal() {
-    localStorage.setItem("lc100.eventSeenDay", parisToday());
+    localStorage.setItem(CLE_EVENEMENT_VU, parisToday());
     setEventSeen(true);
     setShowEventModal(false);
   }

@@ -11,6 +11,7 @@ import {
   BonusState,
   estJourOffAujourdhui,
 } from "@/lib/bonus";
+import { useIndiceAccueil } from "@/hooks/useIndiceAccueil";
 import {
   daysLeft,
   frenchDate,
@@ -24,8 +25,21 @@ import EventBanner from "./EventBanner";
 import JourOffBanner from "./JourOffBanner";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
-import { Avatar, ExoDots } from "./ui";
+import { Avatar, ExoDots, Skeleton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
+
+// Hauteurs mesurées sur le rendu réel (Chromium, 375/390/430 px de large) —
+// la règle du Skeleton : la place finale exacte, pas une approximation.
+/** EventBanner : 68 px quel que soit le libellé (le titre est tronqué). */
+const H_BANDEAU_EVENEMENT = 68;
+/** Bandeau événement interne à BonusSection : 64 px pour un libellé de
+    deux lignes, l'état le plus probable (les libellés du catalogue font
+    ~45 caractères). Le boss du dimanche (bouton dans le bandeau) monte à
+    68-84 px : l'écart résiduel ne dure que le temps du fetch, on ne stocke
+    pas la forme exacte de chaque événement pour 4 px un jour sur sept. */
+const H_BANDEAU_BONUS = 64;
+/** Le rang « Déclarer un bonus » : min-h-12, donc 48 px exactement. */
+const H_RANG_BONUS = 48;
 
 type Props = {
   player: Player;
@@ -81,6 +95,11 @@ export default function TodayScreen({
   const mine = entries.get(entryKey(player.id, today));
   const perfect = entryCount(mine) === 3;
   const others = players.filter((p) => p.id !== player.id);
+
+  // L'indice du jour (voir hooks/useIndiceAccueil.ts) : ce que les fetchs
+  // vont rapporter, su avant leur retour. C'est lui qui décide des places
+  // réservées — et de rien d'autre.
+  const { attendu, enSeance } = useIndiceAccueil(bonus, sessionStarted);
 
   // Le beat du 3/3 vivait ici, déclenché par le tap qui complétait la
   // journée. C'est la séance qui valide maintenant, et elle a sa propre
@@ -245,19 +264,35 @@ export default function TodayScreen({
       </header>
 
       {/* L'événement du jour, annoncé sans bloquer. Tap → la roue et le
-          détail ; ✕ → écarté pour la journée. */}
-      {!over && showEvent && (
-        <EventBanner
-          event={showEvent}
-          onOpen={onOpenEvent}
-          onDismiss={onDismissEvent}
-        />
-      )}
+          détail ; ✕ → écarté pour la journée. Tant que `bonus` n'est pas
+          revenu et que l'indice promet un bandeau pas encore vu, sa place
+          exacte est tenue — l'arrivée de la donnée ne pousse plus le
+          lanceur sous le pouce. */}
+      {!over &&
+        (showEvent ? (
+          <EventBanner
+            event={showEvent}
+            onOpen={onOpenEvent}
+            onDismiss={onDismissEvent}
+          />
+        ) : bonus === null && attendu.banniereHaut ? (
+          <Skeleton
+            className="mt-4"
+            h={H_BANDEAU_EVENEMENT}
+            radius={16}
+          />
+        ) : null)}
 
       {/* 😴 Le jour off. Il ne peut jamais cohabiter avec un événement :
           get_daily_event() rend « rien » ce jour-là, exprès — deux
-          annonces opposées le même matin ne s'expliquent pas. */}
-      {estJourOffAujourdhui(bonus) && <JourOffBanner />}
+          annonces opposées le même matin ne s'expliquent pas.
+          Avant le retour du fetch, l'indice suffit à le rendre pour de
+          vrai : son contenu est entièrement statique, autant afficher le
+          bandeau que réserver sa place avec du gris — sa hauteur dépend
+          du retour à la ligne, un skeleton ne peut pas la connaître. */}
+      {(estJourOffAujourdhui(bonus) || (bonus === null && attendu.off)) && (
+        <JourOffBanner />
+      )}
 
       {/* La ligne de statut : rang + série, et la série seule quand elle
           est en jeu. C'est cette phrase qui fait faire les pompes. */}
@@ -317,7 +352,7 @@ export default function TodayScreen({
           partie avec les cartes verrouillées qu'elle expliquait : depuis le
           31/07 il n'y a plus une seule coche sur cet écran.
       ------------------------------------------------------------------- */}
-      {!over && !perfect && sessionStarted && (
+      {!over && !perfect && enSeance && (
         <div
           className="mt-5 flex items-center justify-between px-1"
           aria-label="Ton état du jour"
@@ -373,21 +408,44 @@ export default function TodayScreen({
       {!over && <div className="flex-1" />}
 
       {/* Bonus : bandeau événement + puces déclaratives. L'assaisonnement,
-          pas le plat — la séance de base reste le héros. */}
-      {!over && (
-        <BonusSection
-          player={player}
-          bonus={bonus}
-          onClaim={onClaimBonus}
-          onUnclaim={onUnclaimBonus}
-          showToast={showToast}
-        />
-      )}
+          pas le plat — la séance de base reste le héros.
+          Avant le retour du fetch, sa place est tenue : le rang « Déclarer
+          un bonus » vient toujours (48 px), le bandeau interne seulement si
+          l'indice promet un événement. C'est le bloc juste au-dessus du
+          lanceur — son arrivée était le saut le plus sûr de l'écran. */}
+      {!over &&
+        (bonus ? (
+          <BonusSection
+            player={player}
+            bonus={bonus}
+            onClaim={onClaimBonus}
+            onUnclaim={onUnclaimBonus}
+            showToast={showToast}
+          />
+        ) : (
+          <section
+            className="mt-5"
+            role="status"
+            aria-label="Bonus du jour en cours de chargement"
+          >
+            {attendu.ev && (
+              <Skeleton className="mb-3" h={H_BANDEAU_BONUS} radius={16} />
+            )}
+            <Skeleton h={H_RANG_BONUS} radius={16} />
+          </section>
+        ))}
 
       {/* Le lanceur, dernier de la page et collé au pouce. 60 px et non 176,
           texte au pas « title » du système : c'est un bouton, plus une dalle.
           `mb-3` le décolle de la barre d'onglets — sans ça un tap un peu bas
-          part au Tchat. */}
+          part au Tchat.
+          Pas de `sticky bottom` par-dessus la TabBar : le ressort le colle
+          déjà en bas quand l'écran n'est pas plein, et quand il l'est (huit
+          potes), un lanceur collant flotterait sur la colonne en défilant —
+          contenu visible dans les gouttières et sous les coins arrondis, ou
+          alors un fond pleine largeur avec son trait, c'est-à-dire une
+          deuxième barre. Rien ne flotte ici, et le seul trait de l'app est
+          sous la TabBar. Sa stabilité vient des places réservées au-dessus. */}
       {!over && !perfect && (
         <button
           onClick={() => {
@@ -398,7 +456,7 @@ export default function TodayScreen({
           style={{ background: player.color, color: "oklch(0.15 0 0)" }}
         >
           <span aria-hidden>▶</span>
-          {sessionStarted ? "Reprendre ma séance" : "Lancer ma séance"}
+          {enSeance ? "Reprendre ma séance" : "Lancer ma séance"}
         </button>
       )}
 
