@@ -306,6 +306,7 @@ export default function TodayScreen({
           perfect={perfect}
           onGoLeaderboard={onGoLeaderboard}
           jourOff={estJourOffAujourdhui(bonus)}
+          joursOff={bonus?.joursOff}
         />
       )}
 

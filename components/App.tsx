@@ -361,6 +361,7 @@ export default function App() {
       data.players ?? [],
       gamification.total,
       data.entries,
+      bonus?.joursOff,
     );
     if (channel === "clipboard")
       data.showToast("Copié ! Colle-le dans WhatsApp 💬");
@@ -583,6 +584,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            joursOff={bonus?.joursOff}
             gamification={gamification}
             onShareFinal={shareFinal}
             onRematch={rematch}

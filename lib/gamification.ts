@@ -12,6 +12,7 @@ import {
 } from "./challenge";
 import { Duel } from "./duels";
 import { argLigue, leGroupPass } from "./ligue";
+import { ordonneClassement } from "./score";
 import { supabase } from "./supabase";
 
 export type LeaderboardRow = {
@@ -299,37 +300,11 @@ export async function fetchWeekLeaderboard(
   return (data as LeaderboardRow[]).map(numify);
 }
 
-/**
- * L'ordre d'affichage d'un classement.
- *
- * `app.leaderboard()` n'a **pas** d'`order by` (migration38, le select final
- * lit `from app.players p`) et l'app ne triait rien : le Classement était
- * affiché dans l'ordre où Postgres voulait bien rendre les lignes. Ça marche
- * aujourd'hui parce qu'une fenêtre `rank() over (order by points desc)` sort
- * en général déjà triée — c'est un détail d'implémentation, pas une garantie.
- * Un plan qui change (index, parallélisation, un joueur de plus) et le podium
- * couronne quelqu'un d'autre : `podium[0]` est *supposé* premier, rien ne
- * l'impose.
- *
- * Le tri porte donc sur `rank`, que le serveur calcule, et le nom départage
- * les ex æquo. Sans ce second critère, deux joueurs à égalité de points
- * échangent leur place d'un rechargement à l'autre, et le podium du bilan
- * hebdo peut contredire celui du Classement au même instant — deux ordres
- * pour une même égalité, dans un groupe qui se chambre sur un point d'écart.
- */
-export function ordonneClassement<T extends { player_id: string; rank: number }>(
-  rows: T[],
-  noms: Map<string, string>,
-): T[] {
-  return [...rows].sort(
-    (a, b) =>
-      a.rank - b.rank ||
-      (noms.get(a.player_id) ?? "").localeCompare(
-        noms.get(b.player_id) ?? "",
-        "fr",
-      ),
-  );
-}
+// L'ordre d'affichage d'un classement vit dans le moteur de score
+// (lib/score.ts), avec les autres règles rejouées côté client. Ré-exporté
+// ici parce que c'est la couche qui livre les lignes à trier — les écrans
+// qui importent le classement n'ont qu'une porte.
+export { ordonneClassement };
 
 /** Postgres renvoie les numeric en string : on renormalise. */
 function numify(r: LeaderboardRow): LeaderboardRow {

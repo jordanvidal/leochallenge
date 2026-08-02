@@ -13,7 +13,7 @@ import {
   parisToday,
 } from "./challenge";
 import { Gamification, LeaderboardRow } from "./gamification";
-import { computeStats } from "./stats";
+import { computeStats } from "./score";
 import { Entry, entryCount, entryKey } from "./types";
 import { Player } from "./types";
 import { fetchTodaySessionDuration, formatDuration } from "./workout";
@@ -36,6 +36,9 @@ export function buildWeekShare(
   todayBonuses?: string[],
   sessionLabel?: string | null,
   f: Fenetre = FENETRE_ENV,
+  // 😴 Les jours off tirés (S4) : la série du message doit dire la même
+  // chose que le classement — un repos ne la casse pas.
+  joursOff: ReadonlySet<string> = new Set(),
 ): string {
   const today = parisToday();
   const monday = mondayOf(today > f.end ? f.end : today);
@@ -56,7 +59,7 @@ export function buildWeekShare(
     squares.push(daySquare(n));
   }
 
-  const { streak } = computeStats(player.id, entries, f);
+  const { streak } = computeStats(player.id, entries, f, joursOff);
   const left = daysLeft(f);
   const rankLine = rankInfo
     ? [
@@ -104,6 +107,7 @@ export function buildFinalShare(
   rows: LeaderboardRow[],
   entries: Map<string, Entry>,
   f: Fenetre = FENETRE_ENV,
+  joursOff: ReadonlySet<string> = new Set(),
 ): string {
   const byId = new Map(players.map((p) => [p.id, p]));
   const ranked = [...rows]
@@ -123,10 +127,11 @@ export function buildFinalShare(
   const groupPerfect = ranked.reduce((s, r) => s + r.perfect_days, 0);
   const groupReps = ranked.reduce((s, r) => s + reps(r.exos_done), 0);
 
-  // Meilleure série du groupe : calculée sur les entries déjà chargées.
+  // Meilleure série du groupe : calculée sur les entries déjà chargées,
+  // joker et jours off enjambés — la même série que le Classement.
   let best = { name: "", streak: 0 };
   for (const p of players) {
-    const { bestStreak } = computeStats(p.id, entries, f);
+    const { bestStreak } = computeStats(p.id, entries, f, joursOff);
     if (bestStreak > best.streak) best = { name: p.name, streak: bestStreak };
   }
 
@@ -155,8 +160,9 @@ export function shareFinalFlow(
   players: Player[],
   rows: LeaderboardRow[],
   entries: Map<string, Entry>,
+  joursOff?: ReadonlySet<string>,
 ): Promise<"share" | "clipboard"> {
-  return shareText(buildFinalShare(players, rows, entries));
+  return shareText(buildFinalShare(players, rows, entries, FENETRE_ENV, joursOff));
 }
 
 /** Prépare le message « on remet ça » pour le groupe. */
@@ -191,6 +197,10 @@ export async function shareWeekFlow(
       mine ? { rank: mine.rank, points: mine.points } : null,
       todayBonuses,
       duration !== null ? formatDuration(duration) : null,
+      FENETRE_ENV,
+      // Les jours off voyagent avec l'état bonus : même source que les
+      // bandeaux, la série du message ne peut pas les contredire.
+      bonus?.joursOff,
     ),
   );
 }
