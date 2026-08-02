@@ -21,6 +21,8 @@ import {
   challengeIsOver,
   parisToday,
   saison3Started,
+  saison4Started,
+  SAISON4_START,
 } from "@/lib/challenge";
 import { FeedEvent } from "@/lib/feed";
 import { useFenetre } from "./ligue/LigueContexte";
@@ -44,6 +46,7 @@ import StatsScreen from "./StatsScreen";
 import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import LaunchS3Screen from "./LaunchS3Screen";
+import LaunchS4Screen from "./LaunchS4Screen";
 import TutorialScreen from "./TutorialScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
@@ -239,9 +242,10 @@ export default function App() {
   }, [player, bonus?.event]);
 
   /**
-   * L'écran de lancement S3 ne s'affiche jamais à quelqu'un qui n'a jamais
-   * joué — et on le marque vu, pour qu'il ne lui tombe pas dessus non plus
-   * le jour où il commence.
+   * L'écran de lancement de la saison en cours (S3, puis S4 à partir du
+   * 03/08) ne s'affiche jamais à quelqu'un qui n'a jamais joué — et on le
+   * marque vu, pour qu'il ne lui tombe pas dessus non plus le jour où il
+   * commence.
    *
    * C'est un diff de saison : « Bilan S2 », « Ce qui arrive », « Ce qui
    * dégage », « le double d'avant ». Six écrans qui racontent un changement
@@ -258,13 +262,16 @@ export default function App() {
    * absence de jeu.
    */
   useEffect(() => {
-    if (!player || id.launchS3Seen || data.players === null || data.offline)
-      return;
+    if (!player || data.players === null || data.offline) return;
+    const s4 = saison4Started(f);
+    if (s4 ? id.launchS4Seen : id.launchS3Seen) return;
     const aDejaJoue = [...data.entries.values()].some(
       (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
     );
-    if (!aDejaJoue) id.markLaunchS3Seen();
-  }, [player, id, data.players, data.entries, data.offline]);
+    if (aDejaJoue) return;
+    if (s4) id.markLaunchS4Seen();
+    else id.markLaunchS3Seen();
+  }, [player, id, data.players, data.entries, data.offline, f]);
 
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
       bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
@@ -377,44 +384,59 @@ export default function App() {
     );
   }
 
-  // Écran de lancement S3 : une fois à partir du 27/07, ou en aperçu manuel
-  // (?lancement=1) / rejeu. Passe avant l'install pour ouvrir sur du positif.
+  // Écran de lancement de la saison en cours : une fois à partir du 27/07
+  // (S3), puis du 03/08 (S4), ou en aperçu manuel (?lancement=1) / rejeu.
+  // Passe avant l'install pour ouvrir sur du positif.
+  //
+  // Une seule porte pour les deux saisons, jamais deux carrousels à la
+  // suite : dès que la S4 est là, c'est elle qui parle. Le diff de la S3
+  // n'a plus rien à apprendre à personne — ses règles sont en vigueur
+  // depuis une semaine, et le tutoriel les enseigne déjà.
   //
   // `aDejaJoue` garde la porte : l'effet plus haut marque l'écran vu pour un
   // nouveau, mais le rendu ne doit pas l'afficher une seule frame en
   // attendant. L'aperçu manuel et « Revoir le lancement » passent toujours —
   // eux sont demandés.
+  const s4 = saison4Started(f);
   const aDejaJoue = [...data.entries.values()].some(
     (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
   );
-  if (
-    !over &&
-    (forceLaunch ||
-      replayLaunch ||
-      (saison3Started(f) &&
-        aUneBasculeDeBareme(f) &&
-        !id.launchS3Seen &&
-        aDejaJoue))
-  ) {
+  const lancementDu = s4
+    ? !id.launchS4Seen
+    : saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen;
+  if (!over && (forceLaunch || replayLaunch || (lancementDu && aDejaJoue))) {
+    const marquerVu = () => {
+      if (s4) id.markLaunchS4Seen();
+      else id.markLaunchS3Seen();
+      setReplayLaunch(false);
+      setForceLaunch(false);
+    };
     return (
       <div style={accent}>
-        <LaunchS3Screen
-          player={player}
-          players={data.players}
-          replay={replayLaunch}
-          onLaunchSession={() => {
-            id.markLaunchS3Seen();
-            setReplayLaunch(false);
-            setForceLaunch(false);
-            setTab("today");
-            setWorkoutOpen(true);
-          }}
-          onDone={() => {
-            id.markLaunchS3Seen();
-            setReplayLaunch(false);
-            setForceLaunch(false);
-          }}
-        />
+        {s4 ? (
+          <LaunchS4Screen
+            player={player}
+            replay={replayLaunch}
+            onLaunchSession={() => {
+              marquerVu();
+              setTab("today");
+              setWorkoutOpen(true);
+            }}
+            onDone={marquerVu}
+          />
+        ) : (
+          <LaunchS3Screen
+            player={player}
+            players={data.players}
+            replay={replayLaunch}
+            onLaunchSession={() => {
+              marquerVu();
+              setTab("today");
+              setWorkoutOpen(true);
+            }}
+            onDone={marquerVu}
+          />
+        )}
         <Toast message={data.toast} />
       </div>
     );
@@ -573,9 +595,18 @@ export default function App() {
             showToast={data.showToast}
             onReplayTuto={() => setReplayTuto(true)}
             onReplayLaunch={
-              saison3Started(f) &&
-              aUneBasculeDeBareme(f) &&
-              parisToday() <= addDays(f.saison3, 6)
+              // La fenêtre du lien suit la saison en cours : sept jours
+              // après le 03/08 pour la S4, comme elle l'a été après le
+              // 27/07 pour la S3. Passé ce délai, un carrousel de
+              // lancement n'est plus une nouvelle, c'est une archive —
+              // et les règles vivent au mini-barème.
+              (
+                s4
+                  ? parisToday() <= addDays(SAISON4_START, 6)
+                  : saison3Started(f) &&
+                    aUneBasculeDeBareme(f) &&
+                    parisToday() <= addDays(f.saison3, 6)
+              )
                 ? () => setReplayLaunch(true)
                 : null
             }
