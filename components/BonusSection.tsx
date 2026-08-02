@@ -5,14 +5,22 @@
 // une feuille : des dizaines de puces en permanence, c'était un catalogue
 // posé sur le chemin des 10 secondes. Déclarer est un acte volontaire — un
 // tap pour ouvrir, et ce qui est déjà déclaré reste visible sur le rang.
-// Dans la feuille, les puces sont rangées par famille (migration 31).
+//
+// La feuille elle-même ouvre sur le chemin court (02/08) : les habitués
+// du joueur (ses déclarations des 7 derniers jours, déjà chargées), les
+// puces ×2 du tirage, et ce qui est déjà déclaré aujourd'hui. « J'ai fait
+// mes 10 000 pas » = un tap sur le rang, un tap sur la puce, Valider.
+// Le mur de vingt-trois puces attend derrière « Tout voir », rangé par
+// famille (migration 31).
 
 import { useEffect, useRef, useState } from "react";
 import {
   BonusCatalogItem,
+  BonusGroup,
   BonusState,
   claimableGroups,
   doubledToday,
+  frequentClaimables,
   movementLockedBy,
   pointsToday,
   todayClaimPoints,
@@ -230,11 +238,38 @@ function BonusSheet({
     bonus.catalog.filter((c) => c.kind === "exercise").map((c) => c.key),
   );
   const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
-  const groups = claimableGroups(bonus);
+  const groupes = claimableGroups(bonus);
+
+  // Le chemin court : les habitués du joueur d'abord, puis les puces que
+  // le tirage double (la nouvelle du jour doit se voir sans « Tout voir »),
+  // puis ce qui est déjà déclaré aujourd'hui — sans quoi décocher
+  // demanderait d'ouvrir tout le catalogue.
+  const raccourci: BonusCatalogItem[] = [];
+  {
+    const declarables = new Map<string, BonusCatalogItem>();
+    for (const g of groupes) for (const i of g.items) declarables.set(i.key, i);
+    const pousse = (item: BonusCatalogItem | undefined) => {
+      if (item && !raccourci.some((r) => r.key === item.key)) raccourci.push(item);
+    };
+    for (const item of frequentClaimables(bonus, player.id)) pousse(item);
+    for (const item of declarables.values()) {
+      if (doubledToday(bonus, item)) pousse(item);
+    }
+    for (const c of mineToday) pousse(declarables.get(c.bonus_key));
+  }
+
+  // Sans historique, il n'y a rien à raccourcir : la feuille ouvre sur le
+  // catalogue. L'état ne vit que le temps de la feuille — la rouvrir
+  // revient au chemin court.
+  const [tout, setTout] = useState(raccourci.length === 0);
+  const groups: BonusGroup[] = tout
+    ? groupes
+    : [{ title: null, items: raccourci }];
 
   // Les puces que cette feuille affiche : c'est sur elles, et elles
   // seules, que « Valider » a le droit d'écrire. Le boss du dimanche se
-  // déclare dans son bandeau, il ne doit pas se faire retirer ici.
+  // déclare dans son bandeau, il ne doit pas se faire retirer ici — et en
+  // chemin court, le reste du catalogue n'est pas non plus touché.
   const affichees = new Map<string, BonusCatalogItem>();
   for (const g of groups) for (const i of g.items) affichees.set(i.key, i);
 
@@ -523,6 +558,24 @@ function BonusSheet({
                       </button>
                     );
                   })}
+                  {/* Le reste du catalogue, derrière un seul geste. Une
+                    puce parmi les puces — même rangée, même hauteur — mais
+                    en retrait : elle n'est pas une déclaration. */}
+                  {!tout && (
+                    <button
+                      onClick={() => {
+                        navigator.vibrate?.(8);
+                        setTout(true);
+                      }}
+                      className="min-h-11 rounded-full px-4 text-sm font-bold text-quiet transition-transform active:scale-[0.97]"
+                      style={{
+                        background: "var(--color-surface)",
+                        boxShadow: "inset 0 0 0 1px var(--color-line)",
+                      }}
+                    >
+                      Tout voir
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

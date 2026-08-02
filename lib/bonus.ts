@@ -176,6 +176,34 @@ export function claimableGroups(state: BonusState): BonusGroup[] {
   return groups;
 }
 
+/** Les habitués du joueur : les bonus d'exercice qu'il a déclarés ces
+    7 derniers jours, les plus fréquents d'abord, le plus récent en
+    départage. Lu dans `weekClaims`, déjà chargé pour le plafond hebdo —
+    aucune table ni requête de plus. C'est le chemin court de la feuille
+    de déclaration : on re-déclare surtout ce qu'on fait chaque semaine. */
+export function frequentClaimables(
+  state: BonusState,
+  playerId: string,
+  max = 5,
+): BonusCatalogItem[] {
+  const byKey = new Map(claimables(state).map((c) => [c.key, c]));
+  const freq = new Map<string, { n: number; last: string }>();
+  for (const c of state.weekClaims) {
+    if (c.player_id !== playerId || !byKey.has(c.bonus_key)) continue;
+    const f = freq.get(c.bonus_key);
+    if (f) {
+      f.n += 1;
+      if (c.day > f.last) f.last = c.day;
+    } else {
+      freq.set(c.bonus_key, { n: 1, last: c.day });
+    }
+  }
+  return [...freq.entries()]
+    .sort(([, a], [, b]) => b.n - a.n || (a.last < b.last ? 1 : -1))
+    .slice(0, max)
+    .map(([k]) => byKey.get(k)!);
+}
+
 // --- Un seul déplacement par jour -----------------------------------
 // Trois puces décrivent la même chose : la distance parcourue dans la
 // journée. 🏃 5 km, 🏃 10 km, 🚶 10 000 pas. Une seule peut être vraie,
