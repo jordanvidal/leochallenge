@@ -1,0 +1,459 @@
+"use client";
+
+// La feuille de déclaration des bonus, sortie de BonusSection.tsx tel
+// quel (02/08) : le fichier dépassait les 500 lignes de CLAUDE.md. La
+// section (bandeau + rang) reste là-bas ; ici vivent la feuille, son
+// brouillon et le glissé qui la ferme.
+
+import { useEffect, useRef, useState } from "react";
+import { useGlisserPourFermer } from "@/hooks/useGlisserPourFermer";
+import {
+  BonusCatalogItem,
+  BonusGroup,
+  BonusState,
+  claimableGroups,
+  doubledToday,
+  frequentClaimables,
+  movementLockedBy,
+  pointsToday,
+  weekBonusPoints,
+} from "@/lib/bonus";
+import { useCoucheRetour } from "@/hooks/useRetour";
+import { fmtPoints } from "@/lib/gamification";
+import { Player } from "@/lib/types";
+
+type Props = {
+  player: Player;
+  bonus: BonusState;
+  onClaim: (item: BonusCatalogItem) => void;
+  onUnclaim: (item: BonusCatalogItem) => void;
+  /** Ouvre le planificateur (« Enchaîner des bonus »). Depuis le 02/08,
+      c'est ici qu'il vit : une option au bas de la feuille, plus un onglet
+      en face du contrat. Absent = catalogue pas chargé. */
+  onPlanBonus?: () => void;
+  showToast: (msg: string) => void;
+  onClose: () => void;
+};
+
+/** La feuille de déclaration : tout le catalogue, en feuille montante
+    (fond cliquable, poignée, Échap).
+
+    Un tap sur une puce ne déclare rien : il coche un brouillon. Rien ne
+    part en base — donc rien ne réveille les cinq autres — tant que
+    « Valider » n'est pas touché. Avant, le pouce qui glissait à 23h
+    envoyait une notification au groupe, et la seule réparation était de
+    re-taper pour décocher, ce qui n'efface pas la notification déjà
+    partie. Sortir autrement (glissé, fond, Échap, retour) jette le
+    brouillon : c'est la contrepartie, et elle est dite au passage. */
+export default function BonusSheet({
+  player,
+  bonus,
+  onClaim,
+  onUnclaim,
+  onPlanBonus,
+  showToast,
+  onClose,
+}: Props) {
+  const capDay =
+    bonus.catalog.find((c) => c.key === "cap_claims_jour")?.points ?? 3;
+  const capWeek =
+    bonus.catalog.find((c) => c.key === "cap_points_semaine")?.points ?? 25;
+  const exerciseKeys = new Set(
+    bonus.catalog.filter((c) => c.kind === "exercise").map((c) => c.key),
+  );
+  const mineToday = bonus.todayClaims.filter((c) => c.player_id === player.id);
+  const groupes = claimableGroups(bonus);
+
+  // Le chemin court : les habitués du joueur d'abord, puis les puces que
+  // le tirage double (la nouvelle du jour doit se voir sans « Tout voir »),
+  // puis ce qui est déjà déclaré aujourd'hui — sans quoi décocher
+  // demanderait d'ouvrir tout le catalogue.
+  const raccourci: BonusCatalogItem[] = [];
+  {
+    const declarables = new Map<string, BonusCatalogItem>();
+    for (const g of groupes) for (const i of g.items) declarables.set(i.key, i);
+    const pousse = (item: BonusCatalogItem | undefined) => {
+      if (item && !raccourci.some((r) => r.key === item.key)) raccourci.push(item);
+    };
+    for (const item of frequentClaimables(bonus, player.id)) pousse(item);
+    for (const item of declarables.values()) {
+      if (doubledToday(bonus, item)) pousse(item);
+    }
+    for (const c of mineToday) pousse(declarables.get(c.bonus_key));
+  }
+
+  // Sans historique, il n'y a rien à raccourcir : la feuille ouvre sur le
+  // catalogue. L'état ne vit que le temps de la feuille — la rouvrir
+  // revient au chemin court.
+  const [tout, setTout] = useState(raccourci.length === 0);
+  const groups: BonusGroup[] = tout
+    ? groupes
+    : [{ title: null, items: raccourci }];
+
+  // Les puces que cette feuille affiche : c'est sur elles, et elles
+  // seules, que « Valider » a le droit d'écrire. Le boss du dimanche se
+  // déclare dans son bandeau, il ne doit pas se faire retirer ici — et en
+  // chemin court, le reste du catalogue n'est pas non plus touché.
+  const affichees = new Map<string, BonusCatalogItem>();
+  for (const g of groups) for (const i of g.items) affichees.set(i.key, i);
+
+  // Le brouillon, parti de ce qui est déjà déclaré aujourd'hui : rouvrir
+  // la feuille montre son état du jour, et décocher redevient possible.
+  const [choisies, setChoisies] = useState<Set<string>>(
+    () =>
+      new Set(
+        mineToday
+          .filter((c) => affichees.has(c.bonus_key))
+          .map((c) => c.bonus_key),
+      ),
+  );
+  const initiales = useRef(choisies); // le point de départ, pour le diff
+
+  function basculer(cle: string) {
+    setChoisies((prev) => {
+      const s = new Set(prev);
+      if (s.has(cle)) s.delete(cle);
+      else s.add(cle);
+      return s;
+    });
+  }
+
+  const ajouts = [...affichees.values()].filter(
+    (i) => choisies.has(i.key) && !initiales.current.has(i.key),
+  );
+  const retraits = [...affichees.values()].filter(
+    (i) => !choisies.has(i.key) && initiales.current.has(i.key),
+  );
+  const enAttente = ajouts.length + retraits.length;
+  // Ce que le bouton promet : le montant du jour, doublement compris,
+  // pour que la somme annoncée soit celle que les puces viennent d'écrire.
+  const gainNet =
+    ajouts.reduce((s, i) => s + pointsToday(bonus, i), 0) -
+    retraits.reduce((s, i) => s + pointsToday(bonus, i), 0);
+
+  /** Envoie le brouillon. Les retraits d'abord : sans ça, échanger les
+      10 km contre les 10 000 pas se ferait retoquer par le filet de
+      useBonus, qui verrait encore la course déclarée au moment où la
+      marche part. */
+  function valider() {
+    for (const item of retraits) onUnclaim(item);
+    for (const item of ajouts) onClaim(item);
+    onClose();
+  }
+
+  /** Sortie sans validation : le brouillon est jeté. Silencieusement,
+      ce serait un travail perdu sans un mot — la ligne ne s'affiche donc
+      que s'il y avait vraiment quelque chose à valider. */
+  function abandonner() {
+    if (enAttente > 0) showToast("Bonus non validés");
+    onClose();
+  }
+
+  // Le retour arrière la ferme, comme le glissé vers le bas et Échap :
+  // trois chemins vers la même sortie, et aucun ne traverse la feuille.
+  useCoucheRetour(abandonner);
+
+  // Échap pour fermer (desktop / clavier)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && abandonner();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const { dy, tire, feuille, prise } = useGlisserPourFermer(abandonner);
+
+  // Les règles se jugent sur le brouillon, pas sur la base : une puce
+  // cochée compte tout de suite, sinon cocher les 10 km puis les 10 000
+  // pas dans la même passe contournerait l'exclusion de déplacement.
+  // S'y ajoute ce qui est déclaré aujourd'hui hors de cette feuille.
+  const retenues = new Set(choisies);
+  for (const c of mineToday) {
+    if (!affichees.has(c.bonus_key)) retenues.add(c.bonus_key);
+  }
+
+  const mineCount = [...choisies].filter((k) => exerciseKeys.has(k)).length;
+  // Le plafond hebdo se juge sur ce que la feuille s'apprête à envoyer.
+  const weekUsed =
+    weekBonusPoints(bonus, player.id) +
+    ajouts.reduce((s, i) => s + i.points, 0) -
+    retraits.reduce((s, i) => s + i.points, 0);
+
+  /** Une puce est déclarable tant que les plafonds le permettent. Les
+      paliers d'une même échelle se cumulent depuis la migration 22 :
+      +50 pompes et +100 pompes cochés, c'est 150 pompes déclarées. */
+  function blocked(item: BonusCatalogItem): boolean {
+    if (item.kind !== "exercise") return false; // le boss échappe aux plafonds
+    return mineCount >= capDay || weekUsed + item.points > capWeek;
+  }
+
+  /** Un déplacement déclaré ferme-t-il les deux autres puces ? Une puce
+      éteinte sans un mot passerait pour un bug — c'est la seule raison de
+      fermeture que le joueur ne peut pas deviner.
+
+      Lu sur les puces réellement affichées, pas sur le catalogue : la
+      phrase doit décrire ce que le joueur voit, jamais une puce de plus. */
+  const movementClash = [...affichees.values()].some(
+    (item) =>
+      !choisies.has(item.key) &&
+      movementLockedBy(bonus.catalog, retenues, item),
+  );
+
+  // Le bandeau de l'événement est derrière la feuille : sans cette
+  // ligne, les puces ×2 arriveraient sans personne pour les annoncer.
+  // Une seule phrase, et seulement les jours de doublement.
+  //
+  // L'ordre sert aussi au halo : les puces doublées s'allument de haut en
+  // bas plutôt que toutes ensemble, l'œil suit la liste au lieu de choisir.
+  const x2Order = new Map<string, number>();
+  for (const g of groups) {
+    for (const item of g.items) {
+      if (doubledToday(bonus, item) && !x2Order.has(item.key)) {
+        x2Order.set(item.key, x2Order.size);
+      }
+    }
+  }
+  const doubleDay = x2Order.size > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60"
+      onClick={abandonner}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Déclarer un bonus"
+    >
+      {/* Le transform du glissé vit sur cette enveloppe : sur la feuille
+          elle-même, il se ferait écraser par l'animation d'entrée
+          (rise-in, fill both, et une animation bat un style inline). */}
+      <div
+        ref={feuille}
+        className={`sheet-drag${tire ? " is-dragging" : ""}`}
+        style={dy ? { transform: `translateY(${dy}px)` } : undefined}
+      >
+        <div
+          className="rise-in flex max-h-[80dvh] flex-col rounded-t-3xl bg-raised px-5 pt-4 pb-safe"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* La prise : la poignée et le titre. Plus bas, le doigt appartient
+            à la liste de puces, qui a son propre défilement — et depuis le
+            rangement par familles, elle en a bien plus à faire défiler. */}
+          <div {...prise}>
+            <div
+              className="mx-auto mb-4 h-1 w-10 rounded-full bg-line"
+              aria-hidden
+            />
+            <div className="mb-3 flex items-baseline justify-between">
+              <p className="text-lg font-bold">Déclarer un bonus</p>
+              {/* Les plafonds sont levés en S2 (cap jour >= 99, cap semaine >= 999) :
+                plus rien à afficher. Un total sans plafond ne guide aucune
+                décision — il se lisait comme une jauge et semait le doute. Le
+                compteur ne revient que si un plafond revient. */}
+              {(capDay < 99 || capWeek < 999) && (
+                <span className="text-[11px] font-medium text-faint">
+                  {capDay < 99 && `${mineCount}/${capDay} aujourd'hui`}
+                  {capDay < 99 && capWeek < 999 && " · "}
+                  {capWeek < 999 &&
+                    `${fmtPoints(weekUsed)}/${fmtPoints(capWeek)} pts / 7 j`}
+                </span>
+              )}
+            </div>
+            {doubleDay && bonus.event && (
+              <p className="mb-3 text-[13px] font-medium text-muted">
+                <span aria-hidden>🎲 </span>
+                {bonus.event.label} — les puces ×2 rapportent le double.
+              </p>
+            )}
+          </div>
+
+          {/* Vingt-trois pastilles à plat, c'était un mur. Quatre paquets
+            titrés : on cherche « du cardio », pas une pastille précise. */}
+          <div className="flex flex-col gap-4 overflow-y-auto pb-1">
+            {groups.map((g) => (
+              <div key={g.title ?? "tout"}>
+                {g.title && (
+                  <h3 className="mb-2 text-xs font-bold tracking-wide text-faint uppercase">
+                    {g.title}
+                  </h3>
+                )}
+                {/* Le badge ×2 déborde en haut de la puce : les jours de
+                  doublement, la rangée respire un cran de plus, sinon il
+                  vient buter contre la puce du dessus. */}
+                <div
+                  className={`flex flex-wrap content-start gap-2 ${
+                    doubleDay ? "gap-y-4 pt-1.5" : ""
+                  }`}
+                >
+                  {g.items.map((item) => {
+                    // Cochée dans le brouillon, ce qui inclut ce qui est
+                    // déjà déclaré aujourd'hui : la puce a exactement
+                    // l'allure qu'elle avait quand elle écrivait direct.
+                    const claimed = choisies.has(item.key);
+                    // Doublée par le tirage du jour : la puce le dit, et
+                    // le dit avant le tap. Pas de réordonnancement — on
+                    // vise une pastille connue, la déplacer coûterait
+                    // plus de secondes que le ×2 n'en fait gagner.
+                    const x2 = doubledToday(bonus, item);
+                    // Deux raisons d'éteindre une puce : les plafonds, et
+                    // l'exclusion de déplacement. Seule la seconde s'explique
+                    // sous les groupes — l'autre est déjà lisible au compteur.
+                    const off =
+                      !claimed &&
+                      (blocked(item) ||
+                        movementLockedBy(bonus.catalog, retenues, item));
+                    return (
+                      <button
+                        key={item.key}
+                        aria-pressed={claimed}
+                        disabled={off}
+                        onClick={() => {
+                          navigator.vibrate?.(claimed ? 8 : 18);
+                          basculer(item.key);
+                        }}
+                        className="relative flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-35"
+                        style={
+                          claimed
+                            ? {
+                                background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
+                                color: player.color,
+                              }
+                            : {
+                                // L'or, pas la couleur joueur : l'événement
+                                // est le même pour tout le groupe, il
+                                // n'appartient à personne. Le trait seul ne
+                                // se voyait pas — une puce doublée doit
+                                // sortir de la liste, c'est tout son intérêt.
+                                background: x2
+                                  ? "color-mix(in oklch, var(--color-x2) 14%, var(--color-surface))"
+                                  : "var(--color-surface)",
+                                boxShadow: x2
+                                  ? "inset 0 0 0 1.5px color-mix(in oklch, var(--color-x2) 70%, transparent)"
+                                  : "inset 0 0 0 1px var(--color-line)",
+                                color: "var(--color-ink)",
+                              }
+                        }
+                      >
+                        {/* Une onde, une fois, au moment où la feuille
+                          s'ouvre. Éteinte sur une puce déjà déclarée ou
+                          hors plafond : elle appellerait un tap impossible. */}
+                        {x2 && !off && !claimed && (
+                          <span
+                            className="x2-halo pointer-events-none absolute inset-0 rounded-full"
+                            style={{
+                              animationDelay: `${260 + 70 * (x2Order.get(item.key) ?? 0)}ms`,
+                            }}
+                            aria-hidden
+                          />
+                        )}
+                        <span aria-hidden>{item.emoji}</span>
+                        {item.label}
+                        <span
+                          className="font-medium"
+                          style={{
+                            color: claimed
+                              ? player.color
+                              : x2
+                                ? "var(--color-x2)"
+                                : "var(--color-faint)",
+                          }}
+                        >
+                          {/* Le montant déjà doublé : « +1 ×2 » laissait la
+                            multiplication au joueur, et un bonus qu'on doit
+                            calculer n'attire personne. Facteur exact 2,
+                            vérifié en base (migration 33). */}
+                          +{fmtPoints(pointsToday(bonus, item))}
+                        </span>
+                        {claimed && <span aria-hidden>✓</span>}
+                        {/* Le ×2 est posé sur le contour, pas dans la ligne :
+                          au milieu du texte il se lisait comme une deuxième
+                          valeur à côté des points. Sur le bord, c'est une
+                          étiquette collée sur la puce — elle qualifie la
+                          puce entière, et elle survit à la coche. */}
+                        {/* Il ne déborde que par le haut : la liste des
+                          groupes est en overflow-y-auto, ce qui fait passer
+                          overflow-x de visible à auto. Un badge qui dépasse
+                          à droite d'une puce en bout de rangée se ferait
+                          rogner, ou ouvrirait un défilement horizontal. */}
+                        {x2 && (
+                          <span className="num-display bg-x2 text-bg absolute -top-2 right-1 rounded-full px-1.5 py-0.5 text-[11px] font-bold">
+                            ×2
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {/* Le reste du catalogue, derrière un seul geste. Une
+                    puce parmi les puces — même rangée, même hauteur — mais
+                    en retrait : elle n'est pas une déclaration. */}
+                  {!tout && (
+                    <button
+                      onClick={() => {
+                        navigator.vibrate?.(8);
+                        setTout(true);
+                      }}
+                      className="min-h-11 rounded-full px-4 text-sm font-bold text-quiet transition-transform active:scale-[0.97]"
+                      style={{
+                        background: "var(--color-surface)",
+                        boxShadow: "inset 0 0 0 1px var(--color-line)",
+                      }}
+                    >
+                      Tout voir
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {movementClash && (
+            // `quiet`, pas `faint` : c'est la seule explication des puces
+            // éteintes — une information seule, elle doit se lire (DESIGN.md).
+            <p className="mt-3 text-[11px] font-medium text-quiet">
+              🚶 Un seul déplacement par jour : 5 km, 10 km ou 10 000 pas. Tes
+              kilomètres comptent une fois. Décoche pour changer.
+            </p>
+          )}
+
+          {/* Le seul chemin qui écrit. Il s'allume à la couleur du joueur
+            dès qu'il y a quelque chose à envoyer, et annonce le gain net,
+            doublement compris — c'est le même montant que celui promis
+            par les puces juste au-dessus. Sans rien à valider, il reste
+            gris et ne fait que fermer : un bouton de sortie, comme avant. */}
+          <button
+            onClick={valider}
+            className="mt-4 mb-2 min-h-12 w-full rounded-2xl font-bold transition-transform active:scale-[0.99]"
+            style={
+              enAttente > 0
+                ? { background: player.color, color: "oklch(0.15 0 0)" }
+                : {
+                    background: "var(--color-surface)",
+                    color: "var(--color-ink)",
+                  }
+            }
+          >
+            Valider
+            {gainNet > 0 && (
+              <span className="num-display ml-1.5">+{fmtPoints(gainNet)}</span>
+            )}
+          </button>
+
+          {/* Le planificateur vit ici depuis le 02/08 : une option au bas
+            de la feuille, plus un onglet en face du contrat. Sortir par
+            là jette le brouillon, comme toute sortie sans Valider — et
+            c'est dit par le même toast. */}
+          {onPlanBonus && (
+            <button
+              onClick={() => {
+                abandonner();
+                onPlanBonus();
+              }}
+              className="mb-2 min-h-11 w-full text-sm font-medium text-quiet"
+            >
+              Enchaîner des bonus en séance guidée
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
