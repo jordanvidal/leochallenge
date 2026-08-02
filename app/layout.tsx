@@ -35,7 +35,10 @@ export const viewport: Viewport = {
   themeColor: "#131313",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1, // pas de zoom accidentel en tapant les cartes
+  // Pas de maximumScale : le pinch-zoom appartient aux yeux fatigués.
+  // Il bloquait « le zoom accidentel en tapant les cartes » — un écran
+  // supprimé depuis — et `touch-action: manipulation` neutralise déjà le
+  // double-tap-zoom sans confisquer le pincement.
   viewportFit: "cover", // safe areas de l'encoche
 };
 

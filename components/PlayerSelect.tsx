@@ -114,7 +114,10 @@ export default function PlayerSelect({
               maxLength={30}
               autoComplete="off"
               autoFocus
-              className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg outline-none focus:border-faint"
+              // focus:ring-2 à la couleur du joueur : il remplace l'outline
+              // global, il ne le supprime pas (pattern ChatComposer).
+              className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg focus:outline-none focus:ring-2"
+              style={{ "--tw-ring-color": "var(--pc)" } as React.CSSProperties}
             />
             {duplicate && (
               <div className="rise-in mt-3 rounded-2xl bg-surface p-4">

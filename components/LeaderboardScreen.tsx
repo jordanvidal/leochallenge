@@ -260,7 +260,8 @@ export default function LeaderboardScreen({
             role="tab"
             aria-selected={view === key}
             onClick={() => setView(key)}
-            className="min-h-10 flex-1 rounded-lg text-sm font-bold transition-colors"
+            // min-h-11 : 44 px de cible, le plancher du pouce (DESIGN.md).
+            className="min-h-11 flex-1 rounded-lg text-sm font-bold transition-colors"
             style={
               view === key
                 ? { background: "var(--color-raised)", color: "var(--color-ink)" }
@@ -287,7 +288,9 @@ export default function LeaderboardScreen({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setWeekIdx(w.current ? null : w.index)}
-                className="min-h-9 shrink-0 rounded-full px-4 text-sm font-bold transition-colors"
+                // min-h-11 : 36 px rataient le plancher des 44 px. Le rayon
+                // plein rond ne change pas, seule la cible grandit.
+                className="min-h-11 shrink-0 rounded-full px-4 text-sm font-bold transition-colors"
                 style={
                   active
                     ? { background: "var(--color-raised)", color: "var(--color-ink)" }

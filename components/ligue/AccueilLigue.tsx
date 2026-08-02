@@ -90,7 +90,10 @@ export default function AccueilLigue({
             autoCapitalize="off"
             spellCheck={false}
             placeholder="K7M-2QP"
-            className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg outline-none focus:border-faint"
+            // focus:ring-2 à la couleur du joueur : il remplace l'outline
+            // global, il ne le supprime pas (pattern ChatComposer).
+            className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg focus:outline-none focus:ring-2"
+            style={{ "--tw-ring-color": "var(--pc)" } as React.CSSProperties}
           />
           {affiche && (
             <p className="mt-2 text-sm font-medium text-danger" role="alert">

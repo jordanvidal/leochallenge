@@ -79,7 +79,12 @@ export default function PasswordGate({ onPass }: { onPass: () => void }) {
               setValue(e.target.value);
               setWrong(false);
             }}
-            className="mt-2 min-h-14 w-full rounded-2xl border border-line bg-surface px-5 text-lg text-ink outline-none focus:border-faint"
+            // Anneau intérieur au lieu d'une border (Inset-Only Rule : la
+            // boîte ne change pas de taille), et le focus reprend le pattern
+            // de l'app (ChatComposer) : ring-2 à la couleur du joueur, au
+            // lieu d'un outline-none qui supprimait le focus clavier.
+            className="mt-2 min-h-14 w-full rounded-2xl bg-surface px-5 text-lg text-ink inset-ring inset-ring-line focus:outline-none focus:ring-2"
+            style={{ "--tw-ring-color": "var(--pc)" } as React.CSSProperties}
             autoFocus
           />
           {wrong && (

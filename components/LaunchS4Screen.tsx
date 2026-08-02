@@ -191,8 +191,12 @@ export default function LaunchS4Screen({
   const [i, setI] = useState(0);
   const last = i === cards.length - 1;
 
+  // Sur la dernière slide, la zone de tap termine au lieu de se désactiver :
+  // un « bouton, non disponible » qui recouvre le CTA final décrivait un
+  // contrôle cassé (même pattern que TutorialScreen).
   function next() {
-    if (!last) setI((v) => v + 1);
+    if (last) finish();
+    else setI((v) => v + 1);
   }
 
   function finish() {
@@ -221,11 +225,10 @@ export default function LaunchS4Screen({
         </button>
       </div>
 
-      {/* Zone de tap : tape n'importe où pour avancer (sauf sur la dernière). */}
+      {/* Zone de tap : tape n'importe où pour avancer, terminer sur la dernière. */}
       <button
         onClick={next}
-        disabled={last}
-        aria-label="Slide suivante"
+        aria-label={last ? "Terminer" : "Slide suivante"}
         className="flex flex-1 flex-col justify-center px-8 text-left"
       >
         <div key={i} className="rise-in">

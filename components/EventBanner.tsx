@@ -66,13 +66,21 @@ export default function EventBanner({
           ›
         </span>
       </button>
+      {/* 44 px de cible, 32 px de visuel : le bouton s'élargit, l'anneau
+          reste sur un span intérieur. Les marges négatives compensent les
+          6 px gagnés de chaque côté — le bandeau ne bouge pas d'un pixel. */}
       <button
         onClick={onDismiss}
         aria-label="Masquer l'événement pour aujourd'hui"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full text-sm text-faint"
-        style={{ boxShadow: "inset 0 0 0 1px var(--color-line)" }}
+        className="-my-1.5 -mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full text-sm text-faint"
       >
-        ✕
+        <span
+          aria-hidden
+          className="flex size-8 items-center justify-center rounded-full"
+          style={{ boxShadow: "inset 0 0 0 1px var(--color-line)" }}
+        >
+          ✕
+        </span>
       </button>
     </div>
   );
