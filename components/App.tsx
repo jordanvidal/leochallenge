@@ -80,7 +80,8 @@ export default function App() {
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
   const [workoutOpen, setWorkoutOpen] = useState(false);
-  // Ouverture directe sur l'onglet bonus (entrée « Enchaîner des bonus »).
+  // Ouverture directe sur le planificateur de bonus (« Enchaîner des
+  // bonus », ou la séance guidée proposée par la feuille de déclaration).
   const [workoutOnBonus, setWorkoutOnBonus] = useState(false);
   // Rouvrir le tuto à la demande (« Revoir les règles »), même déjà vu.
   const [replayTuto, setReplayTuto] = useState(false);
@@ -514,10 +515,8 @@ export default function App() {
       <div style={accent}>
         <WorkoutMode
           player={player}
-          players={data.players}
           todayEntry={data.entries.get(entryKey(player.id, parisToday()))}
           bonus={bonus}
-          leaderboard={gamification?.total ?? null}
           onClaimBonus={(item) => claim(player.id, item)}
           startOnBonus={workoutOnBonus}
           onValidate={validateWorkout}

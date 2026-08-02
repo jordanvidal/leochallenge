@@ -18,27 +18,23 @@ import {
   presetToConfig,
   WorkoutPreset,
 } from "@/lib/workout";
-import BonusPlanner, { SeanceTab } from "./BonusPlanner";
+import BonusPlanner from "./BonusPlanner";
 import ConfigScreen from "./ConfigScreen";
 import DoneScreen from "./DoneScreen";
 import { BonusCatalogItem, BonusState } from "@/lib/bonus";
-import { LeaderboardRow } from "@/lib/gamification";
 import { BlockScreen, RestScreen } from "./SessionScreens";
 import { useLigueCourante } from "@/components/ligue/LigueContexte";
 
 type Props = {
   player: Player;
-  players: Player[];
   todayEntry: Entry | undefined;
-  /** Catalogue + déclarations du jour. null = pas encore chargé : les
-      onglets n'apparaissent pas plutôt que d'ouvrir un écran vide. */
+  /** Catalogue + déclarations du jour. null = pas encore chargé : le
+      planificateur de bonus n'existe pas plutôt qu'un écran vide. */
   bonus: BonusState | null;
-  /** Pour l'objectif « passer X » du planificateur. */
-  leaderboard: LeaderboardRow[] | null;
   /** Déclare un bonus. Appelé à la validation d'une séance bonus, jamais
       bloc par bloc — voir BonusRunScreen. */
   onClaimBonus: (item: BonusCatalogItem) => void;
-  /** Ouvrir directement sur l'onglet bonus (entrée « Enchaîner »). */
+  /** Ouvrir directement sur le planificateur (entrée « Enchaîner »). */
   startOnBonus: boolean;
   /** Écrit les exos validés par le chemin existant. Résout après l'upsert. */
   onValidate: (exos: Exercise[]) => Promise<boolean>;
@@ -53,10 +49,8 @@ type Props = {
 
 export default function WorkoutMode({
   player,
-  players,
   todayEntry,
   bonus,
-  leaderboard,
   onClaimBonus,
   startOnBonus,
   onValidate,
@@ -71,9 +65,11 @@ export default function WorkoutMode({
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [breakdown, setBreakdown] = useState<DayBreakdown | null>(null);
   const validated = useRef(false);
-  // L'onglet de « Ma séance ». Le contrat par défaut : c'est lui qui ouvre
-  // la journée, et il reste le chemin par défaut de tout le monde.
-  const [tab, setTab] = useState<SeanceTab>(startOnBonus ? "bonus" : "contrat");
+  // Le planificateur de bonus, ouvert seulement par ses entrées dédiées
+  // (« Enchaîner des bonus », la feuille de déclaration). Il n'est plus un
+  // onglet en face du contrat (02/08) : le contrat ouvre la journée, le
+  // planificateur est une option.
+  const [planner, setPlanner] = useState(startOnBonus);
 
   useEffect(() => {
     fetchPresets(player.id).then(setPresets);
@@ -117,21 +113,17 @@ export default function WorkoutMode({
   if (presets === null)
     return <div className="fixed inset-0 z-40 bg-bg" aria-hidden />;
 
-  // Les onglets n'existent que si le catalogue est là. Sans lui, « Ma
+  // Le planificateur n'existe que si le catalogue est là. Sans lui, « Ma
   // séance » reste exactement l'écran qu'elle a toujours été.
-  const onglets = bonus !== null;
+  const bonusPret = bonus !== null;
 
   let content: React.ReactNode;
   if (!w.config || !w.step) {
     content =
-      onglets && tab === "bonus" ? (
+      bonusPret && planner ? (
         <BonusPlanner
           player={player}
-          players={players}
           bonus={bonus}
-          leaderboard={leaderboard}
-          tab={tab}
-          onTab={setTab}
           onClaim={onClaimBonus}
           onClose={onClose}
           showToast={showToast}
@@ -143,8 +135,6 @@ export default function WorkoutMode({
           initial={
             presets.length > 0 ? presetToConfig(presets[0]) : DEFAULT_CONFIG
           }
-          tab={onglets ? tab : undefined}
-          onTab={onglets ? setTab : undefined}
           onLaunch={w.launch}
           onClose={onClose}
         />
@@ -162,12 +152,12 @@ export default function WorkoutMode({
         streak={streak}
         breakdown={breakdown}
         onPlanBonus={
-          onglets
+          bonusPret
             ? () => {
                 // La séance du contrat est finie et validée : on rend la
                 // main au planificateur sans repasser par l'accueil.
                 w.reset();
-                setTab("bonus");
+                setPlanner(true);
               }
             : undefined
         }

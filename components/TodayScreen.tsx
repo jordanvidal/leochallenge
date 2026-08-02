@@ -59,7 +59,7 @@ type Props = {
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
   onStartWorkout: () => void;
-  /** Ouvre « Ma séance » sur l'onglet bonus. Absent = catalogue pas chargé. */
+  /** Ouvre le planificateur de bonus. Absent = catalogue pas chargé. */
   onPlanBonus?: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
@@ -420,6 +420,7 @@ export default function TodayScreen({
             bonus={bonus}
             onClaim={onClaimBonus}
             onUnclaim={onUnclaimBonus}
+            onPlanBonus={onPlanBonus}
             showToast={showToast}
           />
         ) : (

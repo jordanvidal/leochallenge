@@ -1,11 +1,12 @@
 // Composer une séance à partir du catalogue de bonus.
 //
-// Trois axes, combinables : la durée est un BUDGET, les zones un FILTRE,
-// les points un PLANCHER. Le composeur cherche la séance la plus variée
-// qui tient dans le budget — pas le meilleur rendement au point. Sans
-// cette préférence il sort quatre blocs de cardio, parce qu'ils paient le
-// mieux à la minute : ce n'est plus une séance préparée, c'est un barème
-// exploité.
+// Un seul axe depuis le 02/08 : la durée, un BUDGET. Le composeur cherche
+// la séance la plus variée qui tient dedans — pas le meilleur rendement
+// au point. Sans cette préférence il sort quatre blocs de cardio, parce
+// qu'ils paient le mieux à la minute : ce n'est plus une séance préparée,
+// c'est un barème exploité. L'objectif de points et le filtre par zones
+// ont été retirés avec les rangées de réglages du planificateur : la
+// variété n'est pas une option, c'est la raison d'être du composeur.
 //
 // Rien ici ne touche un score. Les points viennent du catalogue en base
 // comme partout ailleurs, et les durées ci-dessous sont des estimations
@@ -78,9 +79,9 @@ const MAX_BLOCKS = 5;
 /** Un bloc de séance. `points` reste le montant du catalogue — c'est lui
     que les plafonds comptent, comme dans la feuille de déclaration.
     `todayPoints` est ce que le bloc rapporte VRAIMENT aujourd'hui,
-    doublement du jour compris (migration 33) : c'est ce qu'on affiche, et
-    c'est sur lui que l'objectif se juge. Un jour de doublement, composer
-    sur les points bruts annoncerait la moitié de ce que la séance paie. */
+    doublement du jour compris (migration 33) : c'est ce qu'on affiche.
+    Un jour de doublement, composer sur les points bruts annoncerait la
+    moitié de ce que la séance paie. */
 export type PlanBlock = BonusCatalogItem & {
   minutes: number;
   todayPoints: number;
@@ -96,17 +97,16 @@ export type Plan = {
   zones: number;
 };
 
-/** Les zones proposées comme filtre. Libellés courts : ce sont des puces
-    sur une ligne, pas les titres de la feuille de déclaration. */
-export const PLAN_ZONES: { key: BonusFamily; short: string; long: string }[] = [
-  { key: "cardio", short: "Cardio", long: "Cardio" },
-  { key: "haut", short: "Haut", long: "Haut du corps" },
-  { key: "abdos", short: "Abdos", long: "Abdos & gainage" },
-  { key: "jambes", short: "Jambes", long: "Jambes" },
-];
+/** Libellés des zones, pour la ligne de détail d'un bloc. */
+const ZONES: Record<BonusFamily, string> = {
+  cardio: "Cardio",
+  haut: "Haut du corps",
+  abdos: "Abdos & gainage",
+  jambes: "Jambes",
+};
 
 export function zoneLabel(family: BonusFamily | null): string {
-  return PLAN_ZONES.find((z) => z.key === family)?.long ?? "Bonus";
+  return family ? ZONES[family] : "Bonus";
 }
 
 export function bonusMinutes(item: BonusCatalogItem): number {
@@ -139,23 +139,10 @@ export function planLabel(
   return `${item.label.replace(/^\+/, "")} de plus`;
 }
 
-export type PlanOptions = {
-  /** Budget en minutes, repos compris. null = pas de plafond. */
-  budget: number | null;
-  /** Plancher de points. null = aucun objectif. */
-  goal: number | null;
-  /** Zones retenues. Vide = toutes. */
-  zones: Set<BonusFamily>;
-  /** Cherche la séance la plus COURTE qui atteint l'objectif, budget
-      ignoré. Sert à répondre « il te faudrait N min », pas à composer. */
-  shortest?: boolean;
-};
-
 /** Les bonus qu'on peut encore mettre dans une séance aujourd'hui. */
 function pool(
   state: BonusState,
   playerId: string,
-  zones: Set<BonusFamily>,
   claimedKeys: Set<string>,
 ): PlanBlock[] {
   return claimables(state)
@@ -163,8 +150,7 @@ function pool(
       (c) =>
         !claimedKeys.has(c.key) &&
         !HORS_SEANCE.has(c.key) &&
-        !movementLocked(state, playerId, c) &&
-        (zones.size === 0 || (c.family !== null && zones.has(c.family))),
+        !movementLocked(state, playerId, c),
     )
     .map((c) => ({
       ...c,
@@ -174,22 +160,18 @@ function pool(
 }
 
 /**
- * La séance proposée, ou null si rien ne rentre.
- *
- * Sous contrainte de temps et de zones :
- *   · avec objectif  → toute séance qui l'atteint (c'est un plancher, pas
- *                      une cible : « au moins tant », jamais « arrête-toi là »)
- *   · le départage   → d'abord le nombre de zones, ensuite les points,
- *                      ensuite la durée la plus courte
+ * La séance proposée dans le budget de temps (null = pas de plafond),
+ * ou null si rien ne rentre. Le départage : d'abord le nombre de zones,
+ * ensuite les points, ensuite la durée la plus courte.
  */
 export function composePlan(
   state: BonusState,
   playerId: string,
-  opts: PlanOptions,
+  budget: number | null,
 ): Plan | null {
   const mine = state.todayClaims.filter((c) => c.player_id === playerId);
   const claimedKeys = new Set(mine.map((c) => c.bonus_key));
-  const items = pool(state, playerId, opts.zones, claimedKeys);
+  const items = pool(state, playerId, claimedKeys);
 
   // Les plafonds sont levés depuis la S2, mais on ne compose pas une
   // séance que la base refusera : si un plafond revient, elle rétrécit.
@@ -207,21 +189,12 @@ export function composePlan(
   const found: { best: Plan | null } = { best: null };
   const combo: PlanBlock[] = [];
 
-  // Sans plafond de temps mais avec un objectif, « la plus dense » n'a
-  // plus de sens : le composeur remplirait cinq blocs et proposerait
-  // trois quarts d'heure pour reprendre 2,5 points. Là, la plus courte
-  // qui atteint l'objectif EST la bonne réponse.
-  const shortest =
-    opts.shortest ?? (opts.budget === null && opts.goal !== null);
-
   const consider = () => {
     if (combo.length === 0) return;
     const minutes = planMinutes(combo);
-    if (opts.budget !== null && minutes > opts.budget) return;
-    // Ce que la séance paie aujourd'hui : c'est ce que le joueur lit, et
-    // donc ce que son objectif doit mesurer.
+    if (budget !== null && minutes > budget) return;
+    // Ce que la séance paie aujourd'hui : c'est ce que le joueur lit.
     const points = combo.reduce((s, b) => s + b.todayPoints, 0);
-    if (opts.goal !== null && points < opts.goal) return;
     if (mineCount + combo.length > capDay) return;
     // Les plafonds, eux, comptent les points bruts du catalogue — même
     // arithmétique que la feuille de déclaration, sinon un jour de
@@ -234,15 +207,6 @@ export function composePlan(
     const best = found.best;
     if (!best) {
       found.best = cand;
-      return;
-    }
-    if (shortest) {
-      if (
-        cand.minutes < best.minutes ||
-        (cand.minutes === best.minutes && cand.zones > best.zones)
-      ) {
-        found.best = cand;
-      }
       return;
     }
     if (
@@ -268,7 +232,7 @@ export function composePlan(
         continue;
       }
       combo.push(items[i]);
-      if (opts.budget === null || planMinutes(combo) <= opts.budget) {
+      if (budget === null || planMinutes(combo) <= budget) {
         walk(i + 1);
       }
       combo.pop();
@@ -304,38 +268,4 @@ function cadence(blocks: PlanBlock[]): PlanBlock[] {
     last = pick[0];
   }
   return out;
-}
-
-/** Le temps qu'il faudrait pour tenir cet objectif, budget ignoré. null
-    si aucune combinaison ne l'atteint, quelles que soient les minutes. */
-export function shortestTimeFor(
-  state: BonusState,
-  playerId: string,
-  goal: number,
-  zones: Set<BonusFamily>,
-): number | null {
-  const p = composePlan(state, playerId, {
-    budget: null,
-    goal,
-    zones,
-    shortest: true,
-  });
-  return p ? p.minutes : null;
-}
-
-/** Le joueur juste devant et l'écart qui l'en sépare, ou null si on mène
-    (ou si le classement n'est pas encore chargé). Un raccourci pour se
-    fixer un objectif, rien de plus : le classement n'est pas le moteur
-    ici — c'est préparer sa séance qui l'est. */
-export function gapToNext(
-  rows: { player_id: string; points: number }[] | null | undefined,
-  playerId: string,
-): { playerId: string; gap: number } | null {
-  if (!rows) return null;
-  const me = rows.find((r) => r.player_id === playerId);
-  if (!me) return null;
-  const ahead = rows.filter((r) => r.points > me.points);
-  if (ahead.length === 0) return null;
-  const next = ahead.reduce((a, b) => (a.points <= b.points ? a : b));
-  return { playerId: next.player_id, gap: next.points - me.points };
 }

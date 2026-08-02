@@ -1,8 +1,16 @@
 "use client";
 
-// « Des bonus » : préparer une séance à partir du catalogue, et la
-// cadencer. Trois réglages — j'ai tant de temps, je veux tant de points,
-// je veux travailler ça — et l'app propose une suite de blocs alternés.
+// « Enchaîner des bonus » : l'app compose une séance cadencée dans le
+// temps qu'on lui donne, et la déroule bloc par bloc. Un seul réglage,
+// la durée. L'objectif de points et les filtres par zone sont partis le
+// 02/08 avec les onglets « Le contrat / Des bonus » : trois rangées de
+// réglages posées en égal du contrat, c'était le vocabulaire du dashboard
+// que PRODUCT.md interdit. La variété n'est pas un réglage — le composeur
+// alterne les zones de lui-même, c'est sa raison d'être.
+//
+// Écran secondaire : on n'y arrive que par la feuille de déclaration ou
+// par « Enchaîner des bonus » (journée bouclée, fin de séance). Son sort
+// se juge aux données de S4 — critère de sortie écrit dans la PR.
 //
 // Ce n'est PAS un deuxième portier : cet écran n'ouvre aucune séance
 // serveur et ne coche jamais les trois exos du contrat. Il ne touche que
@@ -10,150 +18,24 @@
 // terminé se déclare, un bloc sauté ne se déclare pas.
 
 import { useMemo, useState } from "react";
-import {
-  BonusCatalogItem,
-  BonusFamily,
-  BonusState,
-  claimables,
-} from "@/lib/bonus";
-import { fmtPoints, LeaderboardRow } from "@/lib/gamification";
+import { BonusCatalogItem, BonusState } from "@/lib/bonus";
+import { fmtPoints } from "@/lib/gamification";
 import { Player } from "@/lib/types";
 import BonusRun from "./BonusRunScreen";
 import {
   composePlan,
-  gapToNext,
   Plan,
   PlanBlock,
-  PLAN_ZONES,
   planLabel,
   REST_MINUTES,
-  shortestTimeFor,
   zoneLabel,
 } from "@/lib/bonusPlan";
-
-export type SeanceTab = "contrat" | "bonus";
-
-/** Les deux onglets de « Ma séance ». Le contrat d'un côté, le catalogue
-    de l'autre : c'est le même geste, on prépare ce qu'on va faire. */
-export function SeanceTabs({
-  tab,
-  onTab,
-  player,
-}: {
-  tab: SeanceTab;
-  onTab: (t: SeanceTab) => void;
-  player: Player;
-}) {
-  const tabs: { key: SeanceTab; label: string }[] = [
-    { key: "contrat", label: "Le contrat" },
-    { key: "bonus", label: "Des bonus" },
-  ];
-  // `role="tab"` hors d'un `tablist` est de l'ARIA invalide : VoiceOver
-  // annonce « onglet » sans jamais dire lequel sur combien. Le conteneur
-  // porte le rôle, chaque onglet nomme le panneau qu'il commande.
-  return (
-    <div role="tablist" aria-label="Ce que je prépare" className="mt-4 flex gap-2">
-      {tabs.map((t) => {
-        const on = tab === t.key;
-        return (
-          <button
-            key={t.key}
-            role="tab"
-            id={`seance-tab-${t.key}`}
-            aria-selected={on}
-            aria-controls={`seance-panneau-${t.key}`}
-            onClick={() => {
-              navigator.vibrate?.(8);
-              onTab(t.key);
-            }}
-            className="min-h-11 flex-1 rounded-2xl text-sm font-bold transition-transform active:scale-[0.98]"
-            style={
-              on
-                ? {
-                    background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                    boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
-                    color: player.color,
-                  }
-                : { background: "var(--color-surface)", color: "var(--color-muted)" }
-            }
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Une puce de réglage. Même grammaire que les puces de la feuille de
-    bonus : allumée = couleur du joueur. */
-function Opt({
-  label,
-  on,
-  onClick,
-  player,
-}: {
-  label: string;
-  on: boolean;
-  onClick: () => void;
-  player: Player;
-}) {
-  return (
-    <button
-      aria-pressed={on}
-      onClick={() => {
-        navigator.vibrate?.(8);
-        onClick();
-      }}
-      className="min-h-11 rounded-full px-3.5 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97]"
-      style={
-        on
-          ? {
-              background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-              boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
-              color: player.color,
-            }
-          : {
-              background: "var(--color-surface)",
-              boxShadow: "inset 0 0 0 1px var(--color-line)",
-              color: "var(--color-ink)",
-            }
-      }
-    >
-      {label}
-    </button>
-  );
-}
-
-function Knob({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mt-4">
-      <div className="mb-2 flex items-baseline gap-2">
-        <span className="text-[13px] font-bold">{label}</span>
-        {hint && <span className="text-[11px] text-quiet">{hint}</span>}
-      </div>
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">{children}</div>
-    </div>
-  );
-}
 
 const DURATIONS: (number | null)[] = [10, 15, 20, 30, null];
 
 type Props = {
   player: Player;
-  players: Player[];
   bonus: BonusState;
-  leaderboard: LeaderboardRow[] | null;
-  tab: SeanceTab;
-  onTab: (t: SeanceTab) => void;
   /** Déclare un bonus, par le chemin existant (optimiste + toast). Appelé
       une seule fois par bloc, à la validation — jamais pendant la séance. */
   onClaim: (item: BonusCatalogItem) => void;
@@ -163,18 +45,12 @@ type Props = {
 
 export default function BonusPlanner({
   player,
-  players,
   bonus,
-  leaderboard,
-  tab,
-  onTab,
   onClaim,
   onClose,
   showToast,
 }: Props) {
   const [budget, setBudget] = useState<number | null>(15);
-  const [goal, setGoal] = useState<number | "rival" | null>(null);
-  const [zones, setZones] = useState<Set<BonusFamily>>(new Set());
   const [run, setRun] = useState<PlanBlock[] | null>(null);
 
   const claimedKeys = useMemo(
@@ -187,24 +63,9 @@ export default function BonusPlanner({
     [bonus.todayClaims, player.id],
   );
 
-  // Le raccourci classement : l'écart avec celui de devant, s'il y en a un.
-  const next = gapToNext(leaderboard, player.id);
-  const rivalName = players.find((p) => p.id === next?.playerId)?.name ?? null;
-  // Passer, pas égaler.
-  const rivalGoal = next ? next.gap + 0.5 : null;
-
-  const goalPoints = goal === "rival" ? rivalGoal : goal;
-
-  // Tant que la migration 31 n'a pas peuplé `family`, aucune zone n'est
-  // connue : on retire le réglage plutôt que d'afficher quatre puces qui
-  // ne filtrent rien et vident la séance.
-  const zonesKnown = claimables(bonus).some((c) => c.family !== null);
-
-  const zonesKey = [...zones].sort().join(",");
   const plan: Plan | null = useMemo(
-    () => composePlan(bonus, player.id, { budget, goal: goalPoints, zones }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bonus, player.id, budget, goalPoints, zonesKey],
+    () => composePlan(bonus, player.id, budget),
+    [bonus, player.id, budget],
   );
 
   if (run) {
@@ -221,20 +82,10 @@ export default function BonusPlanner({
     );
   }
 
-  const needed =
-    goalPoints !== null
-      ? shortestTimeFor(bonus, player.id, goalPoints, zones)
-      : null;
-
   return (
-    <div
-      className="flex min-h-full flex-col"
-      role="tabpanel"
-      id="seance-panneau-bonus"
-      aria-labelledby="seance-tab-bonus"
-    >
+    <div className="flex min-h-full flex-col">
       <header className="mt-2 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Ma séance</h1>
+        <h1 className="text-2xl font-bold">Enchaîner des bonus</h1>
         <button
           aria-label="Fermer"
           onClick={onClose}
@@ -244,69 +95,45 @@ export default function BonusPlanner({
         </button>
       </header>
 
-      <SeanceTabs tab={tab} onTab={onTab} player={player} />
-
-      <Knob label="⏱ J'ai" hint="repos compris">
-        {DURATIONS.map((d) => (
-          <Opt
-            key={String(d)}
-            label={d === null ? "peu importe" : `${d} min`}
-            on={budget === d}
-            onClick={() => setBudget(d)}
-            player={player}
-          />
-        ))}
-      </Knob>
-
-      <Knob label="🎯 Objectif" hint="facultatif">
-        <Opt
-          label="aucun"
-          on={goal === null}
-          onClick={() => setGoal(null)}
-          player={player}
-        />
-        <Opt
-          label="+5 pts"
-          on={goal === 5}
-          onClick={() => setGoal(5)}
-          player={player}
-        />
-        <Opt
-          label="+10 pts"
-          on={goal === 10}
-          onClick={() => setGoal(10)}
-          player={player}
-        />
-        {rivalName && rivalGoal !== null && (
-          <Opt
-            label={`passer ${rivalName} (+${fmtPoints(rivalGoal)})`}
-            on={goal === "rival"}
-            onClick={() => setGoal("rival")}
-            player={player}
-          />
-        )}
-      </Knob>
-
-      {zonesKnown && (
-        <Knob label="🧍 Zones" hint={zones.size === 0 ? "toutes" : undefined}>
-          {PLAN_ZONES.map((z) => (
-            <Opt
-              key={z.key}
-              label={z.short}
-              on={zones.has(z.key)}
-              onClick={() =>
-                setZones((prev) => {
-                  const s = new Set(prev);
-                  if (s.has(z.key)) s.delete(z.key);
-                  else s.add(z.key);
-                  return s;
-                })
-              }
-              player={player}
-            />
-          ))}
-        </Knob>
-      )}
+      {/* Le seul réglage : le temps qu'on a. Même grammaire que les puces
+          de la feuille — allumée = couleur du joueur. */}
+      <div className="mt-4">
+        <div className="mb-2 flex items-baseline gap-2">
+          <span className="text-[13px] font-bold">⏱ J&apos;ai</span>
+          <span className="text-[11px] text-quiet">repos compris</span>
+        </div>
+        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+          {DURATIONS.map((d) => {
+            const on = budget === d;
+            return (
+              <button
+                key={String(d)}
+                aria-pressed={on}
+                onClick={() => {
+                  navigator.vibrate?.(8);
+                  setBudget(d);
+                }}
+                className="min-h-11 rounded-full px-3.5 text-sm font-bold whitespace-nowrap transition-transform active:scale-[0.97]"
+                style={
+                  on
+                    ? {
+                        background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                        boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
+                        color: player.color,
+                      }
+                    : {
+                        background: "var(--color-surface)",
+                        boxShadow: "inset 0 0 0 1px var(--color-line)",
+                        color: "var(--color-ink)",
+                      }
+                }
+              >
+                {d === null ? "peu importe" : `${d} min`}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mt-5 flex-1">
         {plan ? (
@@ -341,11 +168,9 @@ export default function BonusPlanner({
           </div>
         ) : (
           <p className="text-sm font-medium text-muted">
-            {goalPoints === null
-              ? `Rien ne rentre en ${budget} min avec ces zones. Élargis la sélection, ou donne-toi un peu plus de temps.`
-              : needed === null
-                ? "Pas atteignable avec ces zones — et ce qui est déjà déclaré aujourd'hui ne compte plus. Élargis la sélection ou baisse l'objectif."
-                : `${fmtPoints(goalPoints)} pts ne rentrent pas en ${budget} min. Il te faudrait ${needed} min — ou moins de points.`}
+            {budget === null
+              ? "Plus rien à enchaîner : tout ce qui se déclare aujourd'hui l'est déjà."
+              : `Rien ne rentre en ${budget} min avec ce qui te reste à déclarer. Donne-toi un peu plus de temps.`}
           </p>
         )}
       </div>

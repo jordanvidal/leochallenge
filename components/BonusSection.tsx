@@ -35,6 +35,10 @@ type Props = {
   bonus: BonusState | null;
   onClaim: (item: BonusCatalogItem) => void;
   onUnclaim: (item: BonusCatalogItem) => void;
+  /** Ouvre le planificateur (« Enchaîner des bonus »). Depuis le 02/08,
+      c'est ici qu'il vit : une option au bas de la feuille, plus un onglet
+      en face du contrat. Absent = catalogue pas chargé. */
+  onPlanBonus?: () => void;
   showToast: (msg: string) => void;
 };
 
@@ -43,6 +47,7 @@ export default function BonusSection({
   bonus,
   onClaim,
   onUnclaim,
+  onPlanBonus,
   showToast,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -139,6 +144,7 @@ export default function BonusSection({
           bonus={bonus}
           onClaim={onClaim}
           onUnclaim={onUnclaim}
+          onPlanBonus={onPlanBonus}
           showToast={showToast}
           onClose={() => setOpen(false)}
         />
@@ -227,6 +233,7 @@ function BonusSheet({
   bonus,
   onClaim,
   onUnclaim,
+  onPlanBonus,
   showToast,
   onClose,
 }: Props & { bonus: BonusState; onClose: () => void }) {
@@ -612,6 +619,22 @@ function BonusSheet({
               <span className="num-display ml-1.5">+{fmtPoints(gainNet)}</span>
             )}
           </button>
+
+          {/* Le planificateur vit ici depuis le 02/08 : une option au bas
+            de la feuille, plus un onglet en face du contrat. Sortir par
+            là jette le brouillon, comme toute sortie sans Valider — et
+            c'est dit par le même toast. */}
+          {onPlanBonus && (
+            <button
+              onClick={() => {
+                abandonner();
+                onPlanBonus();
+              }}
+              className="mb-2 min-h-11 w-full text-sm font-medium text-quiet"
+            >
+              Enchaîner des bonus en séance guidée
+            </button>
+          )}
         </div>
       </div>
     </div>

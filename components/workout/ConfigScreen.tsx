@@ -16,15 +16,11 @@ import {
   WorkoutPreset,
   formatRest,
 } from "@/lib/workout";
-import { SeanceTabs, SeanceTab } from "./BonusPlanner";
 
 type Props = {
   player: Player;
   presets: WorkoutPreset[];
   initial: WorkoutConfig;
-  /** Onglet courant. Absent = catalogue de bonus pas chargé, pas d'onglets. */
-  tab?: SeanceTab;
-  onTab?: (t: SeanceTab) => void;
   onLaunch: (c: WorkoutConfig) => void;
   onClose: () => void;
 };
@@ -85,8 +81,6 @@ export default function ConfigScreen({
   player,
   presets,
   initial,
-  tab,
-  onTab,
   onLaunch,
   onClose,
 }: Props) {
@@ -104,12 +98,7 @@ export default function ConfigScreen({
     }));
 
   return (
-    <div
-      className="flex min-h-full flex-col"
-      role={tab ? "tabpanel" : undefined}
-      id={tab ? "seance-panneau-contrat" : undefined}
-      aria-labelledby={tab ? "seance-tab-contrat" : undefined}
-    >
+    <div className="flex min-h-full flex-col">
       <header className="mt-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Ma séance</h1>
         <button
@@ -120,8 +109,6 @@ export default function ConfigScreen({
           ✕
         </button>
       </header>
-
-      {tab && onTab && <SeanceTabs tab={tab} onTab={onTab} player={player} />}
 
       {/* Formats favoris : le plus récent d'abord, relançable en un tap */}
       {presets.length > 0 && (
