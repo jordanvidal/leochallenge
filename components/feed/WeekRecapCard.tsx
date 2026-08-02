@@ -105,8 +105,9 @@ function WeekRecapCard({
     ? (weeks.find((w) => mondayOf(w.from) === openedMonday) ?? null)
     : null;
 
-  // Classement de la semaine close, chargé une fois. null = échec, on se
-  // tait plutôt que d'afficher un faux podium.
+  // Classement de la semaine close, chargé une fois. undefined = en cours,
+  // null = échec. L'échec se DIT (une ligne sobre plus bas) : muette, la
+  // carte en panne était indistinguable d'une semaine sans podium.
   const [rows, setRows] = useState<LeaderboardRow[] | null | undefined>(undefined);
   useEffect(() => {
     if (!closedWeek) return;
@@ -205,6 +206,16 @@ function WeekRecapCard({
           {myRow && myRow.player_id !== winner.player_id && (
             <> Tu finis {frenchRank(myRow.rank)}.</>
           )}
+        </p>
+      )}
+      {/* L'échec, lui, se dit : sans cette ligne, un réseau qui tousse
+          fabriquait une semaine « sans vainqueur » — la même carte que si
+          personne n'avait joué. Pas de bouton ici : le vrai classement
+          est à un tap, en bas de carte. */}
+      {rows === null && (
+        <p className="mt-2 text-xs text-quiet">
+          Le podium de la semaine n&apos;a pas pu se charger — il t&apos;attend
+          au Classement.
         </p>
       )}
 

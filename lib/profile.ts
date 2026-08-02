@@ -51,10 +51,12 @@ function parisHour(iso: string): number | null {
  * minuscules (8 joueurs × 50 jours au pire), on agrège côté client plutôt
  * que d'ajouter une vue à maintenir.
  *
- * Erreur réseau : on rend une map vide. La page se dégrade en cachant le
- * créneau et le chrono, elle ne casse pas.
+ * Erreur réseau : on rend `null`, pas une map vide. La map vide veut dire
+ * « personne n'a de créneau » — un fait — alors que l'échec veut dire « on
+ * ne sait pas ». Longtemps confondus ici, l'écran Stats affichait « pas
+ * encore de séance » à des gens qui avaient coché le matin même.
  */
-export async function fetchProfiles(): Promise<Map<string, Profile>> {
+export async function fetchProfiles(): Promise<Map<string, Profile> | null> {
   const [entries, sessions] = await Promise.all([
     supabase
       .from("entries")
@@ -65,6 +67,9 @@ export async function fetchProfiles(): Promise<Map<string, Profile>> {
       .select("player_id, duration_seconds")
       .not("finished_at", "is", null),
   ]);
+  // Le client Supabase ne rejette pas : une coupure réseau arrive ici en
+  // `error`, avec `data` à null. C'est le seul endroit où on la voit.
+  if (entries.error || sessions.error) return null;
 
   const out = new Map<string, Profile>();
   const get = (id: string): Profile => {

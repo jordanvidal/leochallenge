@@ -21,6 +21,11 @@ type Props = {
   players: Player[];
   entries: Map<string, Entry>;
   gamification: Gamification | null;
+  /** Les reprises automatiques ont abandonné : on le dit et on tend un
+      bouton, au lieu de laisser respirer un squelette pour toujours —
+      même contrat que le Classement. */
+  enPanne: boolean;
+  onRetry: () => void;
   onShareFinal: () => void;
   onRematch: () => void;
   /** Emmène à la grille jour par jour, qui vit dans Stats depuis le 28/07. */
@@ -227,6 +232,8 @@ export default function BilanScreen({
   players,
   entries,
   gamification,
+  enPanne,
+  onRetry,
   onShareFinal,
   onRematch,
   onGoHistory,
@@ -249,16 +256,37 @@ export default function BilanScreen({
     return (
       <div className="flex flex-1 flex-col px-5">
         {header}
-        <div
-          className="mt-8 flex flex-col gap-3"
-          role="status"
-          aria-label="Bilan en cours de calcul"
-        >
-          <Skeleton h={120} radius={24} />
-          <Skeleton h={60} radius={16} />
-          <Skeleton h={60} radius={16} />
-          <Skeleton h={60} radius={16} />
-        </div>
+        {enPanne ? (
+          // L'échec dit ce qu'il sait et propose la suite — le squelette
+          // qui respire sans fin promettait un calcul qui ne viendra pas.
+          <>
+            <p className="mt-8 text-muted">
+              Impossible de charger le bilan. Tes coches sont bien
+              enregistrées — c&apos;est l&apos;affichage qui coince.
+            </p>
+            <button
+              onClick={onRetry}
+              className="mt-4 min-h-11 self-start rounded-xl px-6 font-bold"
+              style={{
+                background: "var(--color-raised)",
+                color: "var(--color-ink)",
+              }}
+            >
+              Réessayer
+            </button>
+          </>
+        ) : (
+          <div
+            className="mt-8 flex flex-col gap-3"
+            role="status"
+            aria-label="Bilan en cours de calcul"
+          >
+            <Skeleton h={120} radius={24} />
+            <Skeleton h={60} radius={16} />
+            <Skeleton h={60} radius={16} />
+            <Skeleton h={60} radius={16} />
+          </div>
+        )}
       </div>
     );
   }
