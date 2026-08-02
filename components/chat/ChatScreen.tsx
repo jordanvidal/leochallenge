@@ -69,6 +69,14 @@ export default function ChatScreen({
   const { messages, send, remove, toggleReaction, messageById } = chat;
   const premierRendu = useRef(true);
   const dernierVu = useRef<string | null>(null);
+  const racine = useRef<HTMLDivElement>(null);
+  // Tant que vrai, on tient le bas du fil. L'ancrage d'ouverture n'est
+  // pas un geste unique : la page grandit encore après lui — citations
+  // et parents chargés à part des messages, bouton « plus anciens » qui
+  // apparaît, polices qui arrivent — et chaque poussée laissait le
+  // dernier message hors champ. Relâché dès que l'utilisateur défile
+  // lui-même, repris à chaque retour volontaire en bas.
+  const tenirLeBas = useRef(true);
 
   const enBas = useCallback(
     () =>
@@ -78,11 +86,52 @@ export default function ChatScreen({
   );
 
   const allerEnBas = useCallback((doux: boolean) => {
+    // Aller en bas, c'est vouloir y rester : l'ancrage se réarme.
+    tenirLeBas.current = true;
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: doux ? "smooth" : "auto",
     });
   }, []);
+
+  // Le navigateur restaure le défilement à sa guise au rechargement
+  // (relance de la PWA, tap sur une notification) — APRÈS notre ancrage,
+  // vers une position d'une autre session. Ici, c'est nous qui décidons
+  // où la page s'ouvre : on coupe pendant que le tchat est monté.
+  useEffect(() => {
+    const avant = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = avant;
+    };
+  }, []);
+
+  // L'ancrage, tenu dans la durée : tant que l'utilisateur n'a pas
+  // défilé lui-même, toute variation de hauteur ré-ancre en bas — sans
+  // animation, on rattrape une page qui bouge, on ne la fait pas
+  // voyager. C'est aussi lui qui efface, dès le montage, le défilement
+  // hérité de l'écran précédent (la fenêtre est partagée entre onglets).
+  useEffect(() => {
+    const el = racine.current;
+    if (!el) return;
+    const lacher = () => {
+      tenirLeBas.current = false;
+    };
+    // Le doigt ou la molette : les seuls défilements qui appartiennent à
+    // l'utilisateur. Nos scrollTo ne passent pas par là, la restauration
+    // du navigateur non plus.
+    window.addEventListener("touchmove", lacher, { passive: true });
+    window.addEventListener("wheel", lacher, { passive: true });
+    const ro = new ResizeObserver(() => {
+      if (tenirLeBas.current) allerEnBas(false);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("touchmove", lacher);
+      window.removeEventListener("wheel", lacher);
+    };
+  }, [allerEnBas]);
 
   // À l'ouverture : ancré en bas, sans animation. On arrive sur le
   // dernier message, pas sur un défilement qu'on regarde passer.
@@ -124,6 +173,9 @@ export default function ChatScreen({
   function rejoindre(id: string) {
     const el = document.getElementById(`msg-${id}`);
     if (!el) return;
+    // On part vers le milieu du fil : l'ancrage du bas doit lâcher, sinon
+    // la première hauteur qui bouge ramènerait de force au dernier message.
+    tenirLeBas.current = false;
     el.scrollIntoView({ block: "center", behavior: "smooth" });
     setFlash(id);
     setTimeout(() => setFlash((f) => (f === id ? null : f)), 1000);
@@ -154,7 +206,7 @@ export default function ChatScreen({
       : null;
 
   return (
-    <div className="flex flex-1 flex-col px-5 pt-safe">
+    <div ref={racine} className="flex flex-1 flex-col px-5 pt-safe">
       <div className="mt-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tchat</h1>
         <button
