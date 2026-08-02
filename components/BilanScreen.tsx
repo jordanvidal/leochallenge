@@ -36,7 +36,8 @@ function Banner({ onGoHistory }: { onGoHistory: () => void }) {
   const f = useFenetre();
   if (!bilanProvisoire(f)) {
     return (
-      <p className="mt-4 text-sm font-medium text-faint">🔒 Scores définitifs.</p>
+      // `quiet` : cette phrase est le seul statut du bilan, elle se lit.
+      <p className="mt-4 text-sm font-medium text-quiet">🔒 Scores définitifs.</p>
     );
   }
   const h = hoursUntilFinalLock(f);
@@ -82,7 +83,9 @@ function Podium({ rows, byId }: { rows: LeaderboardRow[]; byId: Map<string, Play
             >
               {fmtPoints(r.points)}
             </span>
-            <span className="text-[11px] font-medium text-faint">
+            {/* `quiet` : les jours parfaits n'existent nulle part ailleurs
+                sur le podium — une information seule, pas de la texture. */}
+            <span className="text-[11px] font-medium text-quiet">
               {frenchRank(r.rank)} · {r.perfect_days} j. parfaits
             </span>
           </div>

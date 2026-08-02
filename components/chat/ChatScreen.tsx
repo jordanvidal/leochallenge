@@ -221,7 +221,9 @@ export default function ChatScreen({
               row.kind === "day" ? (
                 <li
                   key={row.key}
-                  className="my-3 text-center text-[11px] font-bold text-faint"
+                  // `quiet` : le séparateur de jour est la seule date de la
+                  // conversation, une information seule — pas de la texture.
+                  className="my-3 text-center text-[11px] font-bold text-quiet"
                 >
                   {row.label}
                 </li>

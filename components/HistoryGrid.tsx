@@ -115,7 +115,9 @@ export default function HistoryGrid({
                         😴
                       </span>
                     )}
-                    <span className={joursOff?.has(day) ? "text-faint" : ""}>
+                    {/* La date d'un jour off recule d'un cran mais reste une
+                        date à lire : `quiet`, pas `faint`. */}
+                    <span className={joursOff?.has(day) ? "text-quiet" : ""}>
                       {dayFmt.format(new Date(`${day}T12:00:00Z`))}
                     </span>
                   </td>
