@@ -247,7 +247,7 @@ export default function App() {
   const onBonusScored = useCallback(() => {
     if (playerId) rescore(playerId);
   }, [playerId, rescore]);
-  const { bonus, claim, unclaim } = useBonus(
+  const { bonus, claim, unclaim, enAttente: bonusEnAttente } = useBonus(
     !!player,
     data.showToast,
     onBonusScored,
@@ -573,6 +573,7 @@ export default function App() {
             }}
             onClaimBonus={(item) => claim(player.id, item)}
             onUnclaimBonus={(item) => unclaim(player.id, item)}
+            bonusEnAttente={bonusEnAttente}
             onInvite={invite}
             onGoLeaderboard={() => setTab("leaderboard")}
             showToast={data.showToast}

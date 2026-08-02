@@ -27,6 +27,8 @@ type Props = {
   bonus: BonusState | null;
   onClaim: (item: BonusCatalogItem) => void;
   onUnclaim: (item: BonusCatalogItem) => void;
+  /** Déclarations notées hors ligne, en file d'attente (lib/outbox.ts). */
+  enAttente?: number;
   showToast: (msg: string) => void;
 };
 
@@ -35,6 +37,7 @@ export default function BonusSection({
   bonus,
   onClaim,
   onUnclaim,
+  enAttente = 0,
   showToast,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -124,6 +127,18 @@ export default function BonusSection({
           </span>
         )}
       </button>
+
+      {/* La file d'attente, dite sobrement : une déclaration sans réseau
+          n'est plus un échec, mais elle ne doit pas non plus passer pour
+          envoyée. Une ligne en `quiet` (information à lire, pas de la
+          texture), sans toast ni alarme — la ligne disparaît toute seule
+          quand tout est parti, et le refus définitif, lui, garde son
+          rollback + toast. */}
+      {enAttente > 0 && (
+        <p role="status" className="mt-1.5 text-[11px] font-bold text-quiet">
+          Noté hors ligne — ça partira au retour du réseau
+        </p>
+      )}
 
       {open && (
         <BonusSheet
