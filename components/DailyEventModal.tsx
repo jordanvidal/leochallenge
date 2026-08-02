@@ -55,9 +55,24 @@ const COPY: Record<string, { howto: string }> = {
     howto:
       "Le dernier du classement général reçoit un coup de pouce pour se relancer. Le bas de tableau a sa chance.",
   },
+  // « 200 au total » se lisait comme 200 EN PLUS des 100 du contrat, et
+  // rien ne disait que la puce « +100 pompes » restait cochable à côté.
+  // Les deux se disent en une phrase : le compte, puis le cumul.
   boss_dimanche: {
     howto:
-      "200 pompes au total dans la journée. À déclarer dans le bandeau de l'écran Aujourd'hui.",
+      "200 pompes au total sur la journée, les 100 du challenge comprises : 100 de plus, et c'est plié. À déclarer dans le bandeau de l'écran Aujourd'hui — la puce « +100 pompes » se coche en plus.",
+  },
+  // S4 (03/08). Le premier tirage qui ne vise aucun exo en particulier :
+  // il paie la feuille entière. Dire « déclarées » est essentiel — il ne
+  // double ni la coche ni le boss du dimanche, seulement les puces.
+  bonus_doubles: {
+    howto:
+      "Toutes les puces que tu déclares aujourd'hui comptent double. C'est le jour où charger rapporte vraiment.",
+  },
+  // Le seul événement qui ne demande rien de plus que le contrat : aucune
+  // puce à cocher, aucune heure à viser.
+  jour_de_fete: {
+    howto: "Boucle ton 3/3 et c'est tout : +5 en plus, sans rien déclarer.",
   },
 };
 
@@ -92,11 +107,17 @@ export default function DailyEventModal({
   const glow = {
     filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
   };
-  // Multiplicateurs : les doublements d'exo (pompes / abdos / squats)
-  // et « quitte ou double » multiplient par deux. Toutes ces clés
-  // finissent par « _double » — le badge dit ×2 plutôt qu'un montant.
+  // Multiplicateurs : les doublements d'exo (pompes / abdos / squats),
+  // « quitte ou double » et, depuis la S4, « bonus doublés ». Le badge dit
+  // ×2 plutôt qu'un montant.
+  //
+  // Le « s? » final n'est pas une coquetterie : la clé de la S4 est
+  // `bonus_doubles`, au pluriel, parce qu'elle parle de plusieurs puces.
+  // Un endsWith("_double") la manquait — et comme elle porte 0 point au
+  // catalogue (son montant est la somme des puces du jour, pas un
+  // forfait), elle retombait sur `points > 0` et n'affichait AUCUN badge.
   const badge =
-    event.key.endsWith("_double")
+    /_doubles?$/.test(event.key)
       ? "×2"
       : event.points > 0
         ? `+${fmtPoints(event.points)}`

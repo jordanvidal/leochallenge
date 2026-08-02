@@ -3,7 +3,7 @@
 // déclarations. Aucun montant en dur ici — tout vient du catalogue.
 
 import { addDays, parisToday, saison3Started } from "./challenge";
-import { supabase } from "./supabase";
+import { supabase, SUPABASE_SCHEMA } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
 
@@ -47,6 +47,15 @@ export type BonusState = {
   event: BonusCatalogItem | null; // événement du jour, null si "rien"
   todayClaims: BonusClaim[]; // tous joueurs, aujourd'hui (visibilité = anti-triche)
   weekClaims: BonusClaim[]; // 7 jours glissants, pour afficher le plafond
+  // 😴 Les jours off tirés jusqu'ici, 'YYYY-MM-DD'. Un fait de calendrier :
+  // la même liste pour tout le monde, pas une par joueur. Toujours vide
+  // hors du challenge d'origine (les ligues sont restées au barème S3).
+  //
+  // Optionnelle dans le type, comme `double_event` plus haut et pour la
+  // même raison : tant que la migration 46 n'est pas appliquée, la table
+  // n'existe pas. Un écran qui la lit doit donc supporter son absence,
+  // pas supposer un ensemble vide fourni par quelqu'un d'autre.
+  joursOff?: Set<string>;
 };
 
 /** Traduit une erreur des triggers bonus en phrase humaine. */
@@ -63,10 +72,28 @@ export function humanBonusError(message: string): string {
   return "Écriture échouée, re-tape pour réessayer";
 }
 
-/** Charge catalogue + événement du jour + déclarations récentes. */
+/** Les jours off tirés jusqu'ici. Séparé du reste et volontairement
+    indulgent : cette lecture ne doit JAMAIS faire échouer fetchBonus.
+    Le schéma des ligues n'a pas la table — la requête y part en erreur, et
+    si elle comptait dans le Promise.all ci-dessous, elle emporterait le
+    catalogue, l'événement du jour et la feuille de déclaration avec elle.
+    Un bandeau de repos manquant est un désagrément ; une feuille de bonus
+    morte sur `/l/<slug>`, c'est l'app cassée pour une autre bande. */
+async function fetchJoursOff(): Promise<Set<string>> {
+  if (SUPABASE_SCHEMA !== "public") return new Set();
+  try {
+    const { data, error } = await supabase.from("jours_off").select("day");
+    if (error || !data) return new Set();
+    return new Set((data as { day: string }[]).map((r) => r.day));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Charge catalogue + événement du jour + déclarations récentes + jours off. */
 export async function fetchBonus(): Promise<BonusState | null> {
   const today = parisToday();
-  const [cat, ev, claims] = await Promise.all([
+  const [cat, ev, claims, joursOff] = await Promise.all([
     supabase.from("bonus_catalog").select("*").order("sort"),
     supabase.rpc("get_daily_event"),
     supabase
@@ -74,6 +101,7 @@ export async function fetchBonus(): Promise<BonusState | null> {
       .select("player_id, day, bonus_key, points")
       .gte("day", addDays(today, -6))
       .lte("day", today),
+    fetchJoursOff(),
   ]);
   if (cat.error || ev.error || claims.error) return null;
 
@@ -94,7 +122,18 @@ export async function fetchBonus(): Promise<BonusState | null> {
         : null,
     todayClaims: weekClaims.filter((c) => c.day === today),
     weekClaims,
+    joursOff,
   };
+}
+
+/** Aujourd'hui est-il le jour off ? La question que posent les écrans. */
+export function estJourOffAujourdhui(state: BonusState | null): boolean {
+  return !!state?.joursOff?.has(parisToday());
+}
+
+/** Ce jour-là était-il un jour off ? Pour l'historique, qui relit le passé. */
+export function estJourOff(state: BonusState | null, day: string): boolean {
+  return !!state?.joursOff?.has(day);
 }
 
 /** Bonus d'exercice déclarables (le boss se déclare dans son bandeau). */

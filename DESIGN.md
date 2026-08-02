@@ -66,20 +66,20 @@ spacing:
   lg: "1.25rem"
   xl: "1.5rem"
 components:
-  exo-card:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.xl}"
-    padding: "0 1.5rem"
-    height: "6rem"
-  exo-card-done:
+  button-launch:
     backgroundColor: "{colors.player-vert}"
-    textColor: "{colors.player-vert}"
+    textColor: "{colors.bg}"
+    typography: "{typography.title}"
+    rounded: "{rounded.lg}"
+    padding: "0 1.25rem"
+    height: "3.75rem"
+  button-block:
+    backgroundColor: "{colors.player-vert}"
+    textColor: "{colors.bg}"
+    typography: "{typography.headline}"
     rounded: "{rounded.xl}"
-  exo-card-locked:
-    backgroundColor: "color-mix(in oklch, {colors.surface} 55%, {colors.bg})"
-    textColor: "{colors.muted}"
-    rounded: "{rounded.xl}"
+    padding: "0 1.25rem"
+    height: "5rem"
   button-primary:
     backgroundColor: "{colors.player-vert}"
     textColor: "{colors.bg}"
@@ -94,16 +94,54 @@ components:
     rounded: "{rounded.lg}"
     padding: "0 1.25rem"
     height: "3.5rem"
-  toggle-exo:
+  chip-bonus:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    padding: "0 1rem"
+    height: "2.75rem"
+  chip-bonus-done:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 22%, {colors.surface})"
+    textColor: "{colors.player-vert}"
+    rounded: "{rounded.full}"
+  chip-bonus-x2:
+    backgroundColor: "color-mix(in oklch, {colors.x2} 14%, {colors.surface})"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.full}"
+  button-accent-quiet:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 12%, {colors.surface})"
+    textColor: "{colors.player-vert}"
+    typography: "{typography.title}"
+    rounded: "{rounded.lg}"
+    padding: "0 1.25rem"
+    height: "3.75rem"
+  segment-tab:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.muted}"
     typography: "{typography.label}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.lg}"
     height: "2.75rem"
-  toggle-exo-done:
-    backgroundColor: "{colors.player-vert}"
+  segment-tab-active:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 22%, {colors.surface})"
     textColor: "{colors.player-vert}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.lg}"
+  sheet-confirm:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.xl}"
+    padding: "1.25rem"
+  rank-line:
+    backgroundColor: "color-mix(in oklch, {colors.player-vert} 10%, {colors.surface})"
+    textColor: "{colors.player-vert}"
+    typography: "{typography.label}"
+    rounded: "{rounded.lg}"
+    padding: "0.625rem 1rem"
+  pote-row:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    height: "3rem"
   input-text:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -128,7 +166,7 @@ components:
     backgroundColor: "{colors.x2}"
     textColor: "{colors.bg}"
     rounded: "{rounded.full}"
-    padding: "0.125rem 0.5rem"
+    padding: "0.125rem 0.375rem"
 ---
 
 # Design System: 100 · 100 · 100
@@ -139,7 +177,9 @@ components:
 
 Un interrupteur, on le trouve au doigt sans le chercher des yeux, et il répond avant qu'on ait fini de le pousser. C'est le contrat de cette app : à 23h, lumière éteinte, le pouce arrive sur la cible, la cible claque, l'écran se ferme. Rien n'y est là pour être regardé — tout y est pour être atteint. Chaque écran se juge au temps entre l'ouverture et la coche.
 
-Le système est donc noir profond, sans dégradé de fond, sans photo décorative, sans ombre portée. La profondeur se fabrique en empilant trois noirs (`bg` → `surface` → `raised`) et en posant des anneaux **intérieurs** (`inset box-shadow`) : rien ne flotte, tout est encastré, et le contraste reste lisible dans le noir sans halo qui bave. La densité est basse et assumée : trois cartes hautes de 96 px occupent tout l'écran d'accueil, parce qu'à moitié endormi on ne vise pas un chip de 28 px.
+Le système est donc noir profond, sans dégradé de fond, sans photo décorative, sans ombre portée. La profondeur se fabrique en empilant trois noirs (`bg` → `surface` → `raised`) et en posant des anneaux **intérieurs** (`inset box-shadow`) : rien ne flotte, tout est encastré, et le contraste reste lisible dans le noir sans halo qui bave.
+
+La densité est basse et assumée — à moitié endormi on ne vise pas un chip de 28 px — mais elle se paie en **contenu**, jamais en vide. La distinction a coûté deux itérations sur l'accueil : trois cartes de 96 px y ont occupé les deux tiers de l'écran alors qu'elles n'écrivaient plus rien depuis le 21/07, puis un lanceur de 176 px a pris leur place et laissé 330 px de noir sous lui. Un objet seul sur son écran n'a personne à battre : l'agrandir n'achète aucune vitesse de tap, ça achète du vide ailleurs. La place va à ce qui fait revenir les gens — la colonne des potes — et l'action se pose en bas, à 60 px, dans la zone du pouce.
 
 La couleur n'appartient pas au système, elle appartient aux joueurs. Huit accents fixes, un par personne, tous à la même clarté (L 0.70–0.86) pour que personne n'ait une couleur « plus faible » que les autres. Partout où l'interface veut dire « toi », elle prend `--pc`, l'accent du joueur courant, injecté à la racine. Le seul accent non-joueur de l'app est le doublement du jour (`x2`, hue 88) : il ne pouvait emprunter la couleur de personne sans mentir.
 
@@ -150,6 +190,7 @@ La couleur n'appartient pas au système, elle appartient aux joueurs. Huit accen
 - Mobile only, une seule colonne, zéro breakpoint responsive dans tout le code.
 - Cibles ≥ 44 px, `active:scale`, `navigator.vibrate` : le tap est un événement physique.
 - Anton pour les chiffres qui comptent, Space Grotesk pour tout le reste.
+- L'action principale d'un écran vit en bas et ne dépasse pas 60 px — 80 px dans la séance, où l'écran ne porte qu'elle.
 
 ## Colors
 
@@ -196,11 +237,11 @@ Une palette de neutres purs (chroma 0, du noir presque total au blanc cassé) su
 
 ### Hierarchy
 
-- **Display** (Anton 400, 2.25–5.5rem, line-height 0.9, `tabular-nums`) : le compte à rebours, la série en cours, le « 100 » d'un exo, le compteur du bilan. Uniquement des chiffres.
-- **Headline** (Space Grotesk 700, 1.5rem) : le nom d'un exercice sur sa carte, les titres d'écran.
-- **Title** (Space Grotesk 700, 1.125rem) : en-têtes de section, noms de joueurs dans le classement.
-- **Body** (Space Grotesk 400, 1rem / 1.375) : messages du tchat, textes du fil, contenu des champs.
-- **Label** (Space Grotesk 700, 0.875rem) : boutons secondaires, toggles d'exos, toasts.
+- **Display** (Anton 400, 2.25–7.5rem, line-height 0.9, `tabular-nums`) : le compte à rebours, la série en cours, le compteur du bilan, et son plus grand emploi — les répétitions d'un bloc de séance (`text-[7.5rem]`), seul objet de son écran. Uniquement des chiffres.
+- **Headline** (Space Grotesk 700, 1.5rem) : les titres d'écran, et le libellé du bouton d'un bloc de séance.
+- **Title** (Space Grotesk 700, 1.125rem) : en-têtes de section, noms de joueurs dans le classement, libellé du lanceur de séance.
+- **Body** (Space Grotesk 400, 1rem / 1.375) : messages du tchat, textes du fil, contenu des champs, prénoms de la colonne des potes.
+- **Label** (Space Grotesk 700, 0.875rem) : boutons secondaires, puces de bonus, ligne de statut, toasts.
 - **Caption** (Space Grotesk 700, 0.6875rem) : libellés d'onglets, compteurs, badges de non-lus.
 
 ### Named Rules
@@ -217,11 +258,13 @@ Une palette de neutres purs (chroma 0, du noir presque total au blanc cassé) su
 
 ## Layout
 
-Une colonne, pleine largeur, `max-w-sm` uniquement sur les écrans d'entrée (mot de passe, choix du joueur, install). Le reste occupe la largeur du téléphone.
+Une colonne, pleine largeur, `max-w-sm` uniquement sur les écrans d'entrée : le mot de passe du groupe et les trois écrans de ligue (création, accueil, code d'invitation). Le reste occupe la largeur du téléphone.
 
 **Aucun breakpoint responsive n'existe dans le code** : pas un seul `sm:` / `md:` / `lg:` dans `components/` ni `app/`. C'est une décision, pas un oubli — l'app est installée sur un écran de téléphone et nulle part ailleurs.
 
-Rythme vertical : `gap-3` (0.75rem) entre les cartes d'exos, `gap-2` dans une rangée de toggles, `mt-5` (1.25rem) entre blocs d'un écran. Padding horizontal : `px-5` par défaut sur les écrans, `px-6` à l'intérieur des grandes cartes, `px-4` dans les champs.
+Rythme vertical : `mt-5` (1.25rem) entre deux blocs d'un écran, `gap-3` (0.75rem) entre éléments d'une même pile, `gap-2` (0.5rem) dans une rangée de puces. Padding horizontal : `px-5` par défaut sur les écrans, `px-4` dans les champs et les puces.
+
+Un écran d'onglet se lit du haut vers le bas dans l'ordre : identité du jour (date, compte à rebours), enjeu (la ligne de statut), contenu (ce qu'on vient voir), puis action. Le ressort (`flex-1`) se pose **entre le contenu et l'action**, jamais au milieu du contenu : c'est ce qui colle l'action au pouce quand la liste est courte, et qui vaut zéro quand elle est pleine.
 
 Structure d'écran : contenu défilant + `TabBar` collée en bas (`sticky bottom-0`, `min-h-14`). Deux variables CSS tiennent les zones fragiles — `--tabbar-h` (hauteur exacte de la barre, à garder synchronisée avec `min-h-14` + `pb-safe`) et `--kb` (hauteur mangée par le clavier, écrite par `hooks/useKeyboardInset.ts` pendant que le tchat est ouvert).
 
@@ -233,6 +276,8 @@ Zones sûres : `.pt-safe` / `.pb-safe` (`env(safe-area-inset-*)` avec un planche
 
 **The Thumb-Zone Rule.** L'action principale d'un écran est en bas. Rien d'important ne vit dans le tiers supérieur : c'est la zone que le pouce n'atteint pas d'une main.
 
+**The Size-Isn't-Emphasis Rule.** Un élément seul sur son écran n'a personne à battre : l'agrandir n'achète aucune vitesse de tap. Le lanceur de l'accueil a fait 176 px pendant une journée, sans rien gagner d'autre que 330 px de vide sous lui. Ce qui hiérarchise ici, c'est la **couleur** (un seul aplat d'accent par écran) et la **place** (en bas), pas la surface. Si un objet doit grossir pour qu'on le remarque, c'est qu'il est mal placé ou qu'il n'est pas seul.
+
 ## Elevation & Depth
 
 Ce système n'a pas d'ombres portées. La profondeur vient de deux mécanismes, et de deux seulement : l'**empilement tonal** (`bg` 0.115 → `surface` 0.17 → `raised` 0.22, jamais un quatrième étage) et les **anneaux intérieurs** (`inset 0 0 0 Npx`), qui délimitent sans agrandir la boîte ni décoller l'élément du fond.
@@ -241,9 +286,10 @@ L'unique exception est le toast (`shadow-lg shadow-black/40`), qui flotte réell
 
 ### Shadow Vocabulary
 
-- **Anneau au repos** (`box-shadow: inset 0 0 0 1px var(--color-line)`) : contour d'une carte ou d'un toggle non coché.
-- **Anneau actif** (`box-shadow: inset 0 0 0 2px color-mix(in oklch, <accent> 65%, transparent)`) : carte cochée. L'épaisseur passe de 1 à 2 px, c'est le seul saut d'élévation du système.
+- **Anneau au repos** (`box-shadow: inset 0 0 0 1px var(--color-line)`) : contour d'un bloc, d'un champ ou d'une puce non déclarée.
+- **Anneau actif** (`box-shadow: inset 0 0 0 1.5–2px color-mix(in oklch, <accent> 65%, transparent)`) : l'état déclaré / fait. L'épaisseur passe de 1 à 2 px, c'est le seul saut d'élévation du système.
 - **Anneau discret** (`box-shadow: inset 0 0 0 1.5px color-mix(in oklch, <accent> 55%, transparent)`) : anneau d'avatar, pastille d'exo vide.
+- **Anneau du doublement** (`box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--color-x2) 70%, transparent)`) : une puce doublée par le tirage du jour. La seule bague non-joueur du système.
 - **Détourage** (`box-shadow: 0 0 0 2px var(--color-surface)`) : un badge posé à cheval sur un autre élément (icône photo sur l'avatar). Ce n'est pas une ombre, c'est un trou dans le fond.
 - **Toast** (`box-shadow` Tailwind `shadow-lg` teintée `black/40`) : l'unique élément flottant.
 
@@ -255,7 +301,7 @@ L'unique exception est le toast (`shadow-lg shadow-black/40`), qui flotte réell
 
 ## Shapes
 
-Le rayon dit la taille de la cible. Plus la surface est grande, plus le coin est rond : `rounded-3xl` (1.5rem) pour les cartes d'exos pleine largeur, `rounded-2xl` (1rem) pour la majorité des blocs et des champs, `rounded-xl` (0.75rem) pour les toggles compacts, `rounded-full` pour tout ce qui est rond par nature (avatars, pastilles, boutons d'icône, toasts, badges).
+Le rayon dit la taille de la cible. Plus la surface est grande, plus le coin est rond : `rounded-3xl` (1.5rem) pour le bouton d'un bloc de séance et les feuilles montantes, `rounded-2xl` (1rem) pour la majorité des blocs, boutons et champs, `rounded-xl` (0.75rem) pour les éléments compacts, `rounded-full` pour tout ce qui est rond par nature (avatars, pastilles, puces de bonus, boutons d'icône, toasts, badges).
 
 Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparation autre que `border-t border-line` sous la barre d'onglets. Les icônes sont des SVG 24×24 à trait `currentColor`, épaisseur 1.7–2.2, extrémités arrondies : le même geste que les coins.
 
@@ -270,26 +316,68 @@ Aucun angle vif nulle part. Aucune bordure extérieure. Aucun trait de séparati
 - **Shape:** coins très arrondis (`rounded-2xl`, 1rem), pleine largeur, hauteur minimum 3.5rem (`min-h-14`).
 - **Primary (`BigButton tone="accent"`):** aplat `var(--pc)`, texte `oklch(0.15 0 0)`. Du texte sombre sur l'accent, toujours — c'est ce qui garde le contraste quel que soit le joueur.
 - **Neutral (`BigButton tone="neutral"`):** aplat `raised`, texte `ink`. Pour l'action secondaire d'un écran.
+- **Lanceur de séance:** 3.75rem (`min-h-15`), `rounded-2xl`, libellé en `title` (1.125rem/700) précédé d'un ▶. Un demi-cran au-dessus du bouton principal parce que c'est *le* geste du produit, et pas un de plus. Dernier élément de l'accueil, `mb-3` au-dessus de la barre d'onglets — sans cette marge, un tap un peu bas part au Tchat.
+- **Bouton de bloc (séance):** 5rem (`min-h-20`), `rounded-3xl`, libellé en `headline`. Le seul bouton du système qui dépasse 60 px, et il le peut : son écran ne contient qu'un chiffre et lui. `navigator.vibrate(18)` au tap, contre 8 ailleurs.
+- **Accent en retrait:** fond `color-mix(in oklch, <accent> 12%, var(--color-surface))`, anneau `45%` 1.5px, texte à l'accent. C'est la forme d'une action qui appartient au joueur sans être l'action principale de l'écran — « Enchaîner des bonus » sur l'accueil bouclé et sur l'écran de fin. Elle se distingue de l'aplat plein sans changer de famille : même couleur, même hauteur, dix fois moins de surface colorée.
 - **Active:** `active:scale-[0.98]` (0.95 sur les boutons ronds), `transition-transform`. Pas d'état `:hover` : il n'y a pas de souris.
 - **Disabled:** `opacity-40`, aucun changement de couleur.
 - **Icon button:** `size-11` (44 px) minimum, `rounded-full`, SVG 16–18 px au centre.
 
 ### Cards / Containers
 
-- **Corner Style:** `rounded-3xl` (1.5rem) pour la carte d'exo, `rounded-2xl` (1rem) partout ailleurs.
-- **Background:** `surface` au repos ; `color-mix(in oklch, <accent joueur> 22%, var(--color-surface))` une fois cochée.
+- **Corner Style:** `rounded-3xl` (1.5rem) au-dessus de 80 px de haut, `rounded-2xl` (1rem) partout ailleurs.
+- **Background:** `surface` au repos ; `color-mix(in oklch, <accent joueur> N%, var(--color-surface))` pour un état porté par quelqu'un — 10 % pour la ligne de statut, 22 % pour un état déclaré.
 - **Shadow Strategy:** anneau intérieur uniquement (voir Elevation).
-- **Internal Padding:** `px-6` sur les grandes cartes, `px-5` sur les blocs standards.
-- **Carte verrouillée:** fond en retrait (`color-mix(in oklch, surface 55%, bg)`) + cadenas à droite, libellé en `muted` à pleine opacité. Elle reste tappable et ouvre le lanceur de séance — elle ne refuse jamais, elle redirige. Le retrait vit dans le fond et **jamais** dans une opacité posée sur toute la carte : composer l'ensemble à 50 % éteignait le libellé (2,4:1) et l'anneau intérieur (1,03:1) en même temps que le fond, si bien que les trois cartes ne se percevaient plus comme des surfaces et que l'objet qui criait le plus fort « indisponible » était en réalité le raccourci principal de l'écran.
+- **Internal Padding:** `px-5` sur les blocs standards, `px-4` dans les champs et les puces.
+- **Pas de carte par défaut.** Une liste de personnes est une liste, pas huit cartes empilées : la colonne des potes n'a ni fond, ni anneau, ni rayon. On ne met une surface que quand elle sépare vraiment deux registres.
 
-### Toggles (signature)
+### Le bloc de séance (signature)
 
-`ExoToggles` est la pièce centrale du produit : trois boutons `flex-1`, `min-h-11`, `rounded-xl`, poids 700.
-- **Non coché:** fond `surface`, texte `muted`, anneau `line` 1px.
-- **Coché:** fond mixé 24 % accent, texte à l'accent, anneau 60 % accent 1.5px, préfixe `✓ `.
-- **Feedback:** `navigator.vibrate(10)` au tap, `.check-pop` (220 ms) sur la coche.
-- **`aria-pressed`:** sur ce qui bascule vraiment, et seulement là. Une carte d'exercice verrouillée est un bouton qui *ouvre le lanceur* — rien à basculer, donc pas d'`aria-pressed`, et un `aria-label` qui dit ce que le tap va faire. Séance lancée, la carte n'est plus une commande : elle se rend en `div`, pas en `<button disabled>`, qui s'annoncerait « coché, bouton, non disponible » — la description d'un contrôle cassé, pas d'un exercice fait. Le ✓ étant `aria-hidden`, l'état passe par un `sr-only`.
-- **Feedback:** `navigator.vibrate(10)` au tap, `.check-pop` (220 ms) sur la coche, `aria-pressed` toujours posé.
+L'écran où passent les douze blocs d'une séance, et de loin celui où l'on reste le plus longtemps. Un chiffre en Anton `text-[7.5rem]` à la couleur du joueur, son libellé en dessous (`text-3xl`, minuscules), et un bouton de 80 px collé en bas. Rien d'autre — pas de compteur secondaire, pas de conseil, pas d'illustration.
+
+- **Progression:** une barre de 6 px (`h-1.5`, `rounded-full`, fond `surface`) remplie à l'accent du joueur, `transition-[width] 300ms`. C'est la seule jauge de l'app.
+- **Repos:** un cercle SVG de 260 px qui se vide (`-rotate-90`, `stroke-dasharray` piloté par la fraction restante) avec les secondes en display au centre. Un anneau de progression est ici une horloge, pas une décoration : il dit combien de temps il reste avant le tour suivant.
+- **Sortie:** « abandonner » vit en haut à droite, en `faint` 13 px — atteignable, jamais sur le chemin du pouce.
+
+### Puces de bonus
+
+La puce déclarative de la feuille de bonus : `min-h-11`, `rounded-full`, `px-4`, poids 700.
+- **Au repos:** fond `surface`, texte `ink`, anneau `line` 1px, montant en `faint`.
+- **Déclarée:** fond mixé 22 % accent, texte et montant à l'accent, anneau 65 % accent 1.5px, suffixe `✓`.
+- **Doublée (`x2`):** fond mixé 14 % `x2`, anneau 70 % `x2`, montant en `x2`, et un badge `×2` posé sur le **contour** en haut à droite — jamais dans la ligne de texte, où il se lirait comme une seconde valeur à côté des points. Le badge ne déborde que par le haut : la liste est en `overflow-y-auto`, donc un débordement à droite se ferait rogner.
+- **Éteinte:** `opacity-35`, `disabled`.
+- **Feedback:** `navigator.vibrate(18)` à la coche, 8 à la décoche.
+
+### Onglets segmentés
+
+Deux choix côte à côte, `flex-1`, `min-h-11`, `rounded-2xl`, libellé en `label`. Ils servent quand un même écran prépare deux choses différentes — « Le contrat » et « Des bonus » dans « Ma séance ». Ce ne sont pas les onglets de navigation : ceux-là vivent en bas dans la `TabBar`, en `caption` et sans fond.
+
+- **Actif:** fond mixé 22 % accent, anneau 65 % 1.5px, texte à l'accent — exactement la grammaire d'une puce déclarée.
+- **Inactif:** fond `surface`, texte `muted`, pas d'anneau.
+- **ARIA:** le conteneur porte `role="tablist"` et un `aria-label`, chaque bouton `role="tab"` + `aria-selected` + `aria-controls` vers le panneau, et le panneau `role="tabpanel"` + `aria-labelledby`. Un `role="tab"` seul, hors `tablist`, est de l'ARIA invalide : le lecteur d'écran annonce « onglet » sans jamais dire lequel sur combien.
+
+### Feuille de confirmation
+
+Un choix qu'on ne peut pas deviner, posé en bas de l'écran : `fixed inset-0`, voile `bg-black/60`, feuille `rounded-3xl` sur `raised`, `p-5`, entrée `.rise-in`. Elle sert à la sortie d'un plein écran quand du travail serait perdu — abandonner une séance du contrat, quitter une séance bonus sans avoir déclaré.
+
+- **Contenu:** un titre qui nomme l'enjeu, puis la liste de ce qui est en jeu avec son montant. Jamais une question abstraite : on montre ce qu'on s'apprête à perdre.
+- **Issues:** deux boutons `flex-1` `min-h-12` côte à côte — celle qui garde le travail en aplat d'accent, celle qui le jette en `surface`/`muted` — et un troisième lien en `quiet` pour revenir en arrière. L'issue la moins coûteuse est toujours la plus visible.
+- **Retour arrière:** `useCoucheRetour` referme la feuille au lieu de la traverser.
+
+### Ligne de pote
+
+Une personne par ligne : avatar 36 px, prénom en `body`, et les trois pastilles du jour alignées à droite (`ExoDots`, 10 px, pleines à l'accent ou en anneau `line` 1.5px). Hauteur 48 px — c'est du **rythme, pas une cible** : ces lignes ne sont pas tappables, le plancher des 44 px ne s'y applique donc pas. Une coche reçue en direct remplace les emojis de bonus par « à l'instant » à la couleur de la personne, pendant 3 minutes, avec une `live-pulse` sur son avatar.
+
+C'est la forme unique de la présence du groupe sur l'accueil, dans tous les états de la journée. La bande horizontale défilante qu'elle remplace poussait deux personnes sur huit hors de l'écran sans le dire.
+
+### Ligne de statut
+
+Une phrase, pleine largeur, `rounded-2xl`, fond mixé 10 % accent, texte à l'accent en `label`. Elle dit le rang et les points, ou la série quand elle est en jeu — c'est cette phrase qui fait faire les pompes. Elle est tappable vers le Classement, où vivent les écarts et les paliers. Quand la série monte, la ligne se remplit à la couleur du joueur le temps que le chiffre bascule (`.streak-beat`).
+
+### États et accessibilité
+
+- **`aria-pressed`:** sur ce qui bascule vraiment, et seulement là. Un bouton qui *ouvre* quelque chose (le lanceur, une feuille) n'a rien à basculer : pas d'`aria-pressed`, et un `aria-label` qui dit ce que le tap va faire.
+- **Un affichage n'est pas un contrôle désactivé.** Ce qui montre un état sans l'écrire se rend en `div`, pas en `<button disabled>` — ce dernier s'annonce « bouton, non disponible », la description d'un contrôle cassé plutôt que d'un exercice fait. Les glyphes d'état (`✓`, pastilles) étant `aria-hidden`, l'état passe par un `sr-only` explicite.
 - **Focus clavier:** un `:focus-visible` global pose `outline: 2px solid var(--pc)` avec 2 px d'offset. Il ne se voit jamais au pouce — `:focus-visible` ne se déclenche pas au tap — et il est la seule façon de savoir où l'on est au clavier ou en navigation VoiceOver. L'anneau par défaut du navigateur (0,55 px) est invisible sur `bg`. Ne jamais le désactiver globalement ; un champ qui pose son propre `focus:ring-2` le remplace, il ne le supprime pas.
 
 ### Inputs / Fields
@@ -325,6 +413,8 @@ Un bloc `surface` à la forme et à la place exactes du contenu qui arrive. Deux
 - **Do** ajouter chaque nouvelle animation au bloc `@media (prefers-reduced-motion: reduce)` de `globals.css`, avec sa fin d'état — une animation coupée ne doit jamais laisser un élément bloqué sur sa valeur de départ.
 - **Do** utiliser `Skeleton` pour toute attente réseau, à la forme du contenu final.
 - **Do** garder les transitions entre 120 et 260 ms sur la courbe `cubic-bezier(0.22, 1, 0.36, 1)`.
+- **Do** prendre `quiet` (`oklch(0.62 0 0)`) dès qu'un mot doit être lu en retrait. `faint` est de la texture : à 2,7:1 il ne porte jamais une information seule.
+- **Do** poser le ressort (`flex-1`) entre le contenu et l'action, pour que l'action reste collée au pouce quand la liste est courte.
 
 ### Don't:
 
@@ -338,3 +428,6 @@ Un bloc `surface` à la forme et à la place exactes du contenu qui arrive. Deux
 - **Don't** mettre un spinner bloquant : l'UI est optimiste, l'échec se rattrape par rollback + toast.
 - **Don't** styler un `:hover` comme porteur d'information. Il n'y a pas de souris.
 - **Don't** faire clignoter, boucler ou traîner une animation. Une seule fois, courte, puis plus rien.
+- **Don't** agrandir un élément pour dire qu'il est important. S'il est seul sur son écran, la taille n'achète aucune vitesse de tap — elle achète du vide ailleurs. La couleur et la place hiérarchisent, pas la surface.
+- **Don't** laisser un `flex-1` combler une zone qu'on n'a pas su remplir. Un vide au milieu d'un écran est un contenu manquant, pas une respiration.
+- **Don't** emballer une liste dans des cartes. Huit cartes empilées, c'est huit fois le même fond pour dire « ce sont des lignes ».

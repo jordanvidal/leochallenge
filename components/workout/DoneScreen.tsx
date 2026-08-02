@@ -1,12 +1,33 @@
 "use client";
 
 // L'écran de fin : la durée totale en très gros, l'état de la journée,
-// les points du jour lus au serveur, et la série.
+// puis un bloc à deux cellules — la série, et les points du jour lus au
+// serveur.
 //
 // Le partage a été retiré d'ici : le bouton appelait le même shareWeek()
 // que l'écran du jour, qui l'affiche déjà dès le 3/3 — deux boutons pour
 // un texte identique, à deux taps d'écart. La série prend sa place et
 // devient la dernière chose qu'on lit avant de fermer.
+//
+// Les points étaient une ligne muette de 14 px sous le 3/3, pendant que
+// la série tenait un bloc coloré à elle seule (01/08). Ils partagent
+// maintenant ce bloc : deux chiffres au même rang, en Anton, séparés
+// d'un filet. Chaque cellule sait disparaître — la lecture des points
+// arrive après l'upsert et peut échouer, la série vaut zéro le premier
+// jour — et celle qui reste occupe alors toute la largeur.
+//
+// La part de bonus (« dont 3 pts bonus ») a été retirée. Elle pendait
+// sous le bloc, orpheline, pour décomposer un total que personne ne
+// cherche à décomposer ici : le détail par bonus a déjà son écran, et
+// la fin de séance dit ce que vaut la journée, pas comment elle se
+// répartit. Un chiffre de moins à lire avant de fermer.
+//
+// La série passe à gauche, les points à droite : le regard part de
+// l'acquis (la série, qui vient de tenir) vers ce que la séance rapporte.
+// Les deux chiffres bougent, et pas en même temps — la roulette des
+// points tombe en 900 ms, la série tient encore 900 ms avant de basculer.
+// Ce décalage n'est pas un réglage : c'est ce qui empêche l'œil d'avoir
+// deux choses à suivre sur la même image.
 //
 // Le bloc série a deux états, parce qu'on peut finir une séance sans
 // avoir bouclé la journée : une config à 25/25/0 se termine normalement
@@ -18,7 +39,7 @@ import { useCallback, useEffect, useState } from "react";
 import { entryCount, EXERCISES, Exercise } from "@/lib/types";
 import type { Player } from "@/lib/types";
 import { DayBreakdown, formatClock } from "@/lib/workout";
-import { fmtPoints } from "@/lib/gamification";
+import PointsCount from "../PointsCount";
 import StreakCount from "../StreakCount";
 
 /** Durée du beat de fond, alignée sur .streak-beat-block dans globals.css.
@@ -37,6 +58,8 @@ type Props = {
   /** Série serveur. Monte d'elle-même quand rescore() a rechargé. */
   streak: number;
   breakdown: DayBreakdown | null;
+  /** Enchaîner sur une séance de bonus. Absent = catalogue pas chargé. */
+  onPlanBonus?: () => void;
   onClose: () => void;
 };
 
@@ -57,6 +80,7 @@ export default function DoneScreen({
   missing,
   streak,
   breakdown,
+  onPlanBonus,
   onClose,
 }: Props) {
   const perfect = exosDone === 3;
@@ -98,56 +122,104 @@ export default function DoneScreen({
             ? "Journée validée 3/3 ✓"
             : `${exosDone}/3 exos validés aujourd'hui`}
         </p>
-        {breakdown !== null && (
-          <p className="mt-1 text-sm font-medium text-muted">
-            {fmtPoints(breakdown.points)} pts aujourd&apos;hui
-            {breakdown.bonusPoints > 0
-              ? ` · dont ${fmtPoints(breakdown.bonusPoints)} pts bonus 🎁`
-              : ""}
-          </p>
-        )}
 
-        {streak > 0 && (
+        {(breakdown !== null || streak > 0) && (
           <div
-            className={`mt-6 w-full rounded-3xl px-4 py-4 ${beating ? "streak-beat-block" : ""}`}
+            className={`mt-6 flex w-full items-start rounded-3xl px-2 py-4 ${beating ? "streak-beat-block" : ""}`}
             style={{
               background: `color-mix(in oklch, ${player.color} 9%, var(--color-surface))`,
             }}
           >
-            <p className="num-display text-6xl" style={{ color: player.color }}>
-              <span aria-hidden>🔥</span>{" "}
-              {perfect ? (
-                <StreakCount
-                  value={streak}
-                  from={streakBefore}
-                  big
-                  onIncrement={onIncrement}
-                />
-              ) : (
-                streak
-              )}
-            </p>
-            <p
-              className="mt-2 text-xs font-bold tracking-wide uppercase"
-              style={{
-                color: perfect ? "var(--color-muted)" : "var(--color-danger)",
-              }}
-            >
-              {perfect
-                ? "jours d'affilée"
-                : `en jeu — il te manque ${missingLabel(missing)}`}
-            </p>
+            {streak > 0 && (
+              <div className="flex-1 px-2">
+                <p
+                  className="num-display text-5xl"
+                  style={{ color: player.color }}
+                >
+                  <span aria-hidden>🔥</span>{" "}
+                  {perfect ? (
+                    <StreakCount
+                      value={streak}
+                      from={streakBefore}
+                      big
+                      onIncrement={onIncrement}
+                    />
+                  ) : (
+                    streak
+                  )}
+                </p>
+                <p
+                  className="mt-2 text-xs font-bold tracking-wide uppercase"
+                  style={{
+                    color: perfect
+                      ? "var(--color-muted)"
+                      : "var(--color-danger)",
+                  }}
+                >
+                  {perfect
+                    ? "jours d'affilée"
+                    : `en jeu — il te manque ${missingLabel(missing)}`}
+                </p>
+              </div>
+            )}
+            {breakdown !== null && streak > 0 && (
+              <div
+                className="w-px self-stretch"
+                style={{
+                  background: `color-mix(in oklch, ${player.color} 18%, transparent)`,
+                }}
+                aria-hidden
+              />
+            )}
+            {breakdown !== null && (
+              <div className="flex-1 px-2">
+                <p
+                  className="num-display text-5xl"
+                  style={{ color: player.color }}
+                >
+                  <PointsCount value={breakdown.points} />
+                </p>
+                <p className="mt-2 text-xs font-bold tracking-wide text-muted uppercase">
+                  points aujourd&apos;hui
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <button
-        onClick={onClose}
-        className="mb-2 min-h-14 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98]"
-        style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
-      >
-        Fermer
-      </button>
+      {/* Les deux sorties forment un groupe, et un groupe se sépare de ce
+          qui le précède plus qu'il ne se sépare de lui-même : mt-10 au-
+          dessus, gap-3 dedans. Sans la marge du haut, un bloc de série
+          haut (le libellé « en jeu » tient sur trois lignes) venait coller
+          au premier bouton, et le pouce n'avait plus de bord franc. */}
+      <div className="mt-10 mb-2 flex flex-col gap-3">
+        {/* Le corps est encore chaud : c'est ici que proposer des bonus a du
+            sens, pas dix minutes plus tard depuis l'écran du jour. Discret —
+            la séance est finie, personne n'est obligé d'en remettre, et le
+            contrat du jour est déjà rempli quoi qu'il arrive ensuite. */}
+        {onPlanBonus && (
+          <button
+            onClick={onPlanBonus}
+            className="min-h-13 w-full rounded-2xl text-[15px] font-bold transition-transform active:scale-[0.98]"
+            style={{
+              background: `color-mix(in oklch, ${player.color} 12%, var(--color-surface))`,
+              boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 45%, transparent)`,
+              color: player.color,
+            }}
+          >
+            ＋ Enchaîner des bonus
+          </button>
+        )}
+
+        <button
+          onClick={onClose}
+          className="min-h-14 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98]"
+          style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+        >
+          Fermer
+        </button>
+      </div>
     </div>
   );
 }

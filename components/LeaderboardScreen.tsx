@@ -22,9 +22,11 @@ import {
   frenchRank,
   Gamification,
   LeaderboardRow,
+  ordonneClassement,
 } from "@/lib/gamification";
 import { Entry, Player } from "@/lib/types";
 import DuelCard from "./DuelCard";
+import { BaremeSheet } from "./MiniBareme";
 import PlayerBreakdown from "./PlayerBreakdown";
 import { Avatar, IconJoker, Skeleton } from "./ui";
 import { useLigueCourante } from "./ligue/LigueContexte";
@@ -106,6 +108,11 @@ export default function LeaderboardScreen({
   );
   // Joueur dont on regarde le détail des points (overlay), null = fermé.
   const [detail, setDetail] = useState<LeaderboardRow | null>(null);
+  // Le barème, ouvert depuis l'en-tête. Il vivait tout en bas du détail
+  // d'un joueur : pour lire les règles il fallait taper sur quelqu'un,
+  // ouvrir son détail et descendre au pied d'un panneau qui parle des
+  // points d'un autre. C'est ici qu'on se pose la question.
+  const [bareme, setBareme] = useState(false);
   // Rangs au dimanche dernier : uniquement les flèches ↑↓ du Général, donc
   // chargés à l'ouverture de cet onglet et pas avant. undefined = pas encore
   // demandé, null = échec (retenté en revenant sur l'onglet).
@@ -191,7 +198,13 @@ export default function LeaderboardScreen({
       : isPastWeek
         ? history.get(selectedWeek.index)
         : gamification.week;
-  const rows = (rawRows ?? []).filter((r) => byId.has(r.player_id));
+  // Trié explicitement : le RPC n'a pas d'`order by`, donc jusqu'ici le
+  // classement s'affichait dans l'ordre où Postgres rendait ses lignes, et
+  // `podium[0]` était supposé premier sans que rien ne l'impose.
+  const rows = ordonneClassement(
+    (rawRows ?? []).filter((r) => byId.has(r.player_id)),
+    new Map(players.map((p) => [p.id, p.name])),
+  );
   const podium = rows.filter((r) => r.rank <= 3).slice(0, 3);
   // ordre visuel du podium : 2e, 1er, 3e
   const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean);
@@ -217,7 +230,15 @@ export default function LeaderboardScreen({
 
   return (
     <div className="flex flex-1 flex-col px-5 pt-safe">
-      <h1 className="mt-4 text-2xl font-bold">Classement</h1>
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold">Classement</h1>
+        <button
+          onClick={() => setBareme(true)}
+          className="-mr-2 min-h-11 px-2 text-sm font-medium text-quiet"
+        >
+          Comment on marque
+        </button>
+      </div>
 
       <DuelCard
         player={player}
@@ -401,6 +422,8 @@ export default function LeaderboardScreen({
           onClose={() => setDetail(null)}
         />
       )}
+
+      {bareme && <BaremeSheet onClose={() => setBareme(false)} />}
     </div>
   );
 }

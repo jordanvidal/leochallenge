@@ -38,6 +38,22 @@ Tu as **un joker, un seul, pour tout le challenge**. Il encaisse une journée ra
 - Le jour sauvé **ne compte pas** dans la série : 5 jours, joker, puis 3/3 → tu es à 6, pas 7. Il préserve, il ne récompense pas. Et il ne rapporte aucun point ce jour-là.
 - Une fois brûlé, il ne revient pas.
 
+**Le jour off** (depuis le 03/08, S4)
+
+Un jour par semaine, **le même pour tout le monde**, où ta série tient sans que tu coches quoi que ce soit.
+
+- Il est tiré **au hasard parmi lundi→vendredi**, jamais le week-end, **un par semaine** — ni zéro, ni deux.
+- Il se découvre **le matin même** : la machine tire vers 6h et tu reçois une notification qui dit ce que c'est, sans énigme. Personne ne peut le connaître à l'avance, pas même en fouillant l'appli : le jour off n'existe pas en base avant son matin.
+- Il **préserve ta série sans l'allonger**, exactement comme le joker : 5 jours, jour off, puis 3/3 → tu es à 6, pas 7.
+- Il ne rapporte **aucun point** et ne compte pas comme un jour parfait — donc pas dans le duel de la semaine. Comme il tombe le même jour pour les deux adversaires, ça ne change rien entre eux.
+- **Une seule exception** : il compte comme rempli pour 📅 la semaine pleine. Six jours parfaits plus le jour off valent les +5. Sans ça, ce bonus punirait le repos.
+- Il **enjambe aussi les badges de série** : 🌱 la première semaine, ⚙️ Machine, 🛡️ Increvable et 💎 Sans faute ne sont pas cassés par un jour off.
+- **Ton joker ne part jamais dessus.** Il n'y a rien à racheter — et il reste disponible pour le lendemain si tu rates un vrai jour.
+- Le soir d'un jour off, l'appli **se tait** : ni « ta série est en jeu », ni « Marc et Léo ont fini, pas toi ».
+- **Tu peux t'entraîner quand même.** Rien n'est verrouillé, la séance se lance normalement, et ta journée compte comme un vrai 3/3 — série comprise. Le jour off est une permission, pas une fermeture.
+
+Il n'y en a pas le 31 août : c'est le dernier jour du challenge, et celui du badge 🏁 le finisseur.
+
 Tu vois son état au Classement, à côté de ta série : 🛟 plein = disponible, estompé = déjà utilisé (la date au survol). Quand il part, le fil l'annonce à tout le monde : « 🛟 Léo a brûlé son joker — sa série de 9 jours tient ».
 
 ---
@@ -103,7 +119,7 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | Bonus | Points | Condition |
 |---|---|---|
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
-| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
+| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08. Depuis le 03/08, **le jour off compte comme rempli** — six jours parfaits plus le jour off font les +5 |
 
 **Ce qui a disparu le 27/07 (S3) :**
 
@@ -130,15 +146,23 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 | 🎲 Exo doublé | Un des trois exos (pompes, abdos ou squats) est tiré au hasard et compte double aujourd'hui : ta coche **et** tous les bonus déclarés qui travaillent cet exo. La coche double à sa vraie valeur du jour, série comprise (+1, +1,5 ou +2) ; les bonus doublent au nominal. En S3 le doublement s'étend aux trois exos ; avant le 27/07, seules les pompes doublaient, seule la coche, et pour un forfait de +1 |
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
-| 👊 Boss du dimanche | +10 si tu fais 200 pompes au total (à déclarer, dimanche uniquement) |
+| 👊 Boss du dimanche | +10 si tu montes à 200 pompes sur la journée, **les 100 du contrat comprises** — 100 de plus, donc, pas 200 de plus. Se déclare à la main, dans son bandeau sur l'écran Aujourd'hui, dimanche uniquement. Il s'ajoute aux puces de volume : la même journée coche aussi « +100 pompes » (+7), soit +17 en tout |
+| 🔁 Bonus doublés | **Nouveau en S4 (03/08).** Toutes les puces que tu **déclares** ce jour-là sont payées une seconde fois. Ni la coche, ni le boss du dimanche : les puces. Sans plafond — c'est le plus gros tirage du jeu |
+| 🎁 Jour de fête | **Nouveau en S4 (03/08).** +5 si tu boucles ton 3/3. Rien à déclarer, aucune heure à viser |
 
 🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 
-**Les probabilités du tirage, depuis le 27/07 :**
+**Les probabilités du tirage, depuis le 03/08 :**
 
-Du lundi au samedi : rien 52 %, pompes doublées 12 %, abdos doublés 12 %, squats doublés 12 %, quitte ou double 12 %.
+Du lundi au samedi : rien 47 %, pompes doublées 9 %, abdos doublés 9 %, squats doublés 9 %, quitte ou double 10 %, bonus doublés 8 %, jour de fête 8 %.
 
-Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 6 %, abdos doublés 6 %, squats doublés 6 %, quitte ou double 12 %.
+Le dimanche : rien 41 %, boss du dimanche 25 %, pompes doublées 4 %, abdos doublés 4 %, squats doublés 4 %, quitte ou double 10 %, bonus doublés 7 %, jour de fête 5 %.
+
+Les deux nouveaux se financent sur « rien » et sur les doublements d'exo (12 % → 9 %) ; quitte ou double ne bouge pas d'un point. Pourquoi 8 % et pas 5 : il ne reste que 29 jours, dont quatre seront des jours off — donc sans tirage. À 5 %, il y avait une chance sur trois qu'un des deux ne sorte **jamais** d'ici le 31 août : une règle annoncée au groupe et jamais vue. À 8 %, chacun a environ 86 % de chances de tomber au moins une fois. C'est le calendrier qui a tranché, pas l'équilibrage.
+
+**Un jour off n'a pas d'événement.** Le repos est la nouvelle du matin ; « repose-toi » à 6h et « charge sur les bonus » à 9h se contrediraient.
+
+(Du 27/07 au 02/08 : rien 52 %, les trois doublements 12 % chacun, quitte ou double 12 % ; le dimanche, rien 45 %, boss 25 %, les trois doublements 6 % chacun, quitte ou double 12 %.)
 
 Deux mouvements en S3 : le jour miroir quitte le tirage (il ne récompensait plus personne d'utile), et quitte ou double redescend de 20 % à 12 % — il était devenu la première source de points du jeu. Le doublement, lui, se répartit à parts égales sur les trois exos. Oui, une moitié des jours il ne se passe rien : un événement quotidien n'est plus un événement.
 
@@ -215,6 +239,7 @@ Toutes les heures sont en heure de Paris.
 | Quand | Quoi | Qui la reçoit |
 |---|---|---|
 | 9h | « Le tirage est tombé » (sans dire quoi) | Tout le monde — seulement si un événement est tombé |
+| 6h | « 😴 Jour off » — et il dit ce que c'est | Tout le monde, les jours off (lundi→vendredi, un par semaine) |
 | 17h | « Ta série est en jeu » | Ceux qui ont une série de 3+ jours et rien coché |
 | 20h | « Marc et Léo ont fini. Pas toi. » | Les actifs encore à 0/3 |
 | 21h30 | « Dernier debout » | Le SEUL actif à 0/3 quand tous les autres ont avancé |
@@ -224,6 +249,7 @@ Toutes les heures sont en heure de Paris.
 
 **Les règles de silence** — l'appli motive, elle ne harcèle pas :
 
+- **Jour off** : les trois rappels du soir (17h, 20h, 22h30) et le « dernier debout » de 21h30 se taisent. L'appli annoncerait le repos à 6h et le reprocherait à 20h. Le récap du lundi, lui, part normalement.
 - **Plancher d'activité** : les rappels du soir ne visent que les actifs (au moins une coche sur les 7 derniers jours). Les fantômes ne sont pas culpabilisés.
 - **Décroissance** : après 3 jours de suite à zéro, le rappel de 22h30 se tait. Il ne reste que celui de 20h.
 - **Win-back** : décroché depuis 7 à 21 jours → un seul message le lundi, ton chaud, barre basse.
@@ -237,6 +263,12 @@ Toutes les heures sont en heure de Paris.
 
 **« Pompes doublées », ça double aussi mes bonus pompes ?**
 Oui, depuis le 27/07. Ta coche pompes vaut 2 au lieu de 1, et tes bonus pompes déclarés doublent aussi : +50 pompes passe à 8, +100 pompes à 14. C'est le seul jour où charger sur les pompes rapporte vraiment. (Jusqu'au 26/07, seule la coche doublait.)
+
+**« Bonus doublés », ça double quoi au juste ?**
+Les puces que tu déclares, toutes, quelle que soit la zone. Pas ta coche — il n'y a pas d'exo tiré ce jour-là — et pas le boss du dimanche, qui est un exploit déclaré, pas une puce. Cinq puces à 30 points en font 60. C'est le seul tirage sans plafond du jeu, et il ne sort qu'une ou deux fois d'ici la fin.
+
+**Le jour de fête, il faut faire quoi ?**
+Rien de plus que d'habitude : tes trois exos. Si ta journée est à 3/3, tu prends +5. Ils ne suivent pas ta série — c'est un bonus, et la série ne touche jamais aux bonus.
 
 **Quels bonus exactement sont doublés ?**
 Tous ceux qui travaillent l'exo tiré, pas seulement ceux qui portent son nom. La feuille de déclaration les marque d'un ×2 le jour venu, tu n'as rien à retenir :
@@ -269,6 +301,18 @@ Tu n'as pas encore lancé ta séance. Tape n'importe où sur une carte, le lance
 
 **Mon joker est parti sans que je demande, c'est normal ?**
 Oui. Il se déclenche tout seul le jour où ta série de 3+ aurait cassé, à condition que tu reviennes le lendemain. Tu ne peux ni le garder pour plus tard, ni le refuser — sinon il faudrait décider à 23h59 si on brûle son joker, et personne n'a envie de ce dilemme dans son lit.
+
+**Le jour off, je dois le demander ?**
+Non, et tu ne peux pas le choisir. Il est tiré par la machine, le matin même, et c'est le même pour les six. C'est ce qui le rend équitable : personne ne pose son repos le jour qui l'arrange.
+
+**Si je m'entraîne le jour off, je perds quelque chose ?**
+Rien du tout. Ta journée compte comme n'importe quelle autre — coches, points, série, multiplicateur. Le jour off ne retire rien, il ajoute juste une permission.
+
+**Deux jours off dans la même semaine, c'est possible ?**
+Non. Exactement un par semaine, garanti. Si rien n'est tombé du lundi au jeudi, c'est vendredi.
+
+**Mon joker peut partir un jour off ?**
+Jamais. Il n'y a rien à racheter ce jour-là. Il reste entier pour un vrai jour raté.
 
 **Je peux avoir un deuxième joker ?**
 Non. Un seul pour les 50 jours. C'est ce qui fait qu'il compte.

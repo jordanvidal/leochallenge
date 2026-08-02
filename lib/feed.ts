@@ -368,6 +368,21 @@ export function eventPhrase(e: FeedEvent): { emoji: string; text: string } {
     }
     case "recit":
       return recitPhrase(p);
+    default:
+      // Un `kind` que cette version du client ne connaît pas. Ça arrive
+      // dans un seul sens, mais il arrive : les jobs SQL partent avant le
+      // déploiement, et une ligne écrite par pg_cron peut donc précéder la
+      // phrase qui la raconte. Sans ce cas, le `switch` rend `undefined`,
+      // `FeedItem` le déstructure et le fil entier tombe sur un écran blanc
+      // — pour tout le monde, jusqu'au prochain déploiement. `recitPhrase`
+      // a son `default` pour exactement cette raison ; celui-ci manquait.
+      //
+      // TypeScript ne voit pas le trou : le `switch` est exhaustif sur
+      // `FeedKind`, mais la valeur vient de Postgres, pas du type.
+      return {
+        emoji: "•",
+        text: "a fait quelque chose que cette version ne sait pas encore raconter",
+      };
   }
 }
 
