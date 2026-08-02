@@ -131,14 +131,22 @@ Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une
 | 🎰 Quitte ou double | Si tu fais 3/3, tes points de BASE du jour sont doublés (exos + journée parfaite, série comprise). Pas de 3/3 = rien ne double, aucune pénalité. (Jusqu'au 19/07 il doublait tout, bonus compris — un tirage a distribué 112 pts en un jour, règle corrigée le 20/07) |
 | 🪞 Jour miroir | Le dernier du classement général touche +8. **Plus tiré depuis le 27/07** : le dernier était un compte inactif qui le raflait à chaque fois. Les +8 déjà distribués en S1/S2 restent acquis |
 | 👊 Boss du dimanche | +10 si tu montes à 200 pompes sur la journée, **les 100 du contrat comprises** — 100 de plus, donc, pas 200 de plus. Se déclare à la main, dans son bandeau sur l'écran Aujourd'hui, dimanche uniquement. Il s'ajoute aux puces de volume : la même journée coche aussi « +100 pompes » (+7), soit +17 en tout |
+| 🔁 Bonus doublés | **Nouveau en S4 (03/08).** Toutes les puces que tu **déclares** ce jour-là sont payées une seconde fois. Ni la coche, ni le boss du dimanche : les puces. Sans plafond — c'est le plus gros tirage du jeu |
+| 🎁 Jour de fête | **Nouveau en S4 (03/08).** +5 si tu boucles ton 3/3. Rien à déclarer, aucune heure à viser |
 
 🍻 **Happy hour** (18h-20h) et 🌄 **Lève-tôt** (avant 7h) ont quitté la roue le 27/07, pour la même raison que les bonus d'horaire : ils payaient une heure, pas un effort.
 
-**Les probabilités du tirage, depuis le 27/07 :**
+**Les probabilités du tirage, depuis le 03/08 :**
 
-Du lundi au samedi : rien 52 %, pompes doublées 12 %, abdos doublés 12 %, squats doublés 12 %, quitte ou double 12 %.
+Du lundi au samedi : rien 47 %, pompes doublées 9 %, abdos doublés 9 %, squats doublés 9 %, quitte ou double 10 %, bonus doublés 8 %, jour de fête 8 %.
 
-Le dimanche : rien 45 %, boss du dimanche 25 %, pompes doublées 6 %, abdos doublés 6 %, squats doublés 6 %, quitte ou double 12 %.
+Le dimanche : rien 41 %, boss du dimanche 25 %, pompes doublées 4 %, abdos doublés 4 %, squats doublés 4 %, quitte ou double 10 %, bonus doublés 7 %, jour de fête 5 %.
+
+Les deux nouveaux se financent sur « rien » et sur les doublements d'exo (12 % → 9 %) ; quitte ou double ne bouge pas d'un point. Pourquoi 8 % et pas 5 : il ne reste que 29 jours, dont quatre seront des jours off — donc sans tirage. À 5 %, il y avait une chance sur trois qu'un des deux ne sorte **jamais** d'ici le 31 août : une règle annoncée au groupe et jamais vue. À 8 %, chacun a environ 86 % de chances de tomber au moins une fois. C'est le calendrier qui a tranché, pas l'équilibrage.
+
+**Un jour off n'a pas d'événement.** Le repos est la nouvelle du matin ; « repose-toi » à 6h et « charge sur les bonus » à 9h se contrediraient.
+
+(Du 27/07 au 02/08 : rien 52 %, les trois doublements 12 % chacun, quitte ou double 12 % ; le dimanche, rien 45 %, boss 25 %, les trois doublements 6 % chacun, quitte ou double 12 %.)
 
 Deux mouvements en S3 : le jour miroir quitte le tirage (il ne récompensait plus personne d'utile), et quitte ou double redescend de 20 % à 12 % — il était devenu la première source de points du jeu. Le doublement, lui, se répartit à parts égales sur les trois exos. Oui, une moitié des jours il ne se passe rien : un événement quotidien n'est plus un événement.
 
@@ -237,6 +245,12 @@ Toutes les heures sont en heure de Paris.
 
 **« Pompes doublées », ça double aussi mes bonus pompes ?**
 Oui, depuis le 27/07. Ta coche pompes vaut 2 au lieu de 1, et tes bonus pompes déclarés doublent aussi : +50 pompes passe à 8, +100 pompes à 14. C'est le seul jour où charger sur les pompes rapporte vraiment. (Jusqu'au 26/07, seule la coche doublait.)
+
+**« Bonus doublés », ça double quoi au juste ?**
+Les puces que tu déclares, toutes, quelle que soit la zone. Pas ta coche — il n'y a pas d'exo tiré ce jour-là — et pas le boss du dimanche, qui est un exploit déclaré, pas une puce. Cinq puces à 30 points en font 60. C'est le seul tirage sans plafond du jeu, et il ne sort qu'une ou deux fois d'ici la fin.
+
+**Le jour de fête, il faut faire quoi ?**
+Rien de plus que d'habitude : tes trois exos. Si ta journée est à 3/3, tu prends +5. Ils ne suivent pas ta série — c'est un bonus, et la série ne touche jamais aux bonus.
 
 **Quels bonus exactement sont doublés ?**
 Tous ceux qui travaillent l'exo tiré, pas seulement ceux qui portent son nom. La feuille de déclaration les marque d'un ×2 le jour venu, tu n'as rien à retenir :

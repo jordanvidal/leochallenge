@@ -7,7 +7,11 @@
 
 import { useEffect, useState } from "react";
 import { useCoucheRetour } from "@/hooks/useRetour";
-import { frenchDateShort, saison3Started } from "@/lib/challenge";
+import {
+  frenchDateShort,
+  saison3Started,
+  saison4Started,
+} from "@/lib/challenge";
 import {
   Breakdown,
   BreakdownRow,
@@ -122,6 +126,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
   // quand on ne comprend pas son score : le faire passer à la S3 avant la
   // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
   const s3 = saison3Started(f);
+  const s4 = saison4Started(f);
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
   const [showDays, setShowDays] = useState(false);
@@ -296,7 +301,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
             </div>
           )}
 
-          <MiniBareme s3={s3} />
+          <MiniBareme s3={s3} s4={s4} />
         </div>
       )}
     </div>
