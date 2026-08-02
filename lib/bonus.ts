@@ -126,6 +126,11 @@ export async function fetchBonus(): Promise<BonusState | null> {
   };
 }
 
+/** Le jour où l'événement a été vu (bandeau écarté ou roue ouverte).
+    Une seule clé pour App (qui l'écrit) et TodayScreen (qui la lit pour
+    réserver — ou non — la place du bandeau avant le retour du fetch). */
+export const CLE_EVENEMENT_VU = "lc100.eventSeenDay";
+
 /** Aujourd'hui est-il le jour off ? La question que posent les écrans. */
 export function estJourOffAujourdhui(state: BonusState | null): boolean {
   return !!state?.joursOff?.has(parisToday());
