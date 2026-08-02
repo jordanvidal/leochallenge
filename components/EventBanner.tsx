@@ -21,8 +21,10 @@ export default function EventBanner({
 }) {
   // Même titre que la modale (avant le « : » de description).
   const title = event.label.split(" : ")[0];
-  // Même badge que la modale : ×2 pour les doublements, sinon le gain.
-  const badge = event.key.endsWith("_double")
+  // Même badge que la modale, MÊME EXPRESSION : le « s? » couvre
+  // `bonus_doubles`, au pluriel, qui porte 0 point au catalogue et
+  // n'affichait donc aucun badge avec un simple endsWith("_double").
+  const badge = /_doubles?$/.test(event.key)
     ? "×2"
     : event.points > 0
       ? `+${fmtPoints(event.points)}`
