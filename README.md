@@ -47,6 +47,8 @@ cp .env.example .env.local
 
 Remplis au minimum les 3 valeurs obligatoires : URL Supabase, clé anon, mot de passe du groupe. Les clés VAPID et le `CRON_SECRET` ne servent qu'à la Phase 2 (voir plus bas). Les dates du challenge ont un défaut (13/07 → 31/08/2026) dans `lib/challenge.ts` ; elles ne se surchargent que via `NEXT_PUBLIC_CHALLENGE_START` / `NEXT_PUBLIC_CHALLENGE_END`, à réserver à une nouvelle instance.
 
+**`DUELS_EXCLUS`** (facultative, serveur uniquement) : prénoms séparés par des virgules, tenus hors de l'appariement des duels du lundi. Pour ceux qui ont décroché — inutile de leur chercher un adversaire, et inutile d'en priver un autre. Ils restent joueurs à part entière : classement, points, badges et notifications ne bougent pas, et un duel déjà commencé va jusqu'à son terme. Casse et accents pardonnés. Vider la variable les remet dans le vivier dès le lundi suivant. Le lundi matin, la ligne `[duels] exclus=…` des logs Vercel dit qui a réellement été écarté : c'est le seul moyen de repérer un prénom mal orthographié, qui sinon serait ignoré en silence.
+
 ### 3. Lancer en local
 
 ```bash
