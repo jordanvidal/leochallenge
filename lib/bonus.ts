@@ -3,6 +3,7 @@
 // déclarations. Aucun montant en dur ici — tout vient du catalogue.
 
 import { addDays, parisToday, saison3Started } from "./challenge";
+import { outbox, OutboxEntry, SendOutcome } from "./outbox";
 import { supabase, SUPABASE_SCHEMA } from "./supabase";
 
 export type BonusKind = "exercise" | "execution" | "event" | "cap";
@@ -327,28 +328,146 @@ export function weekBonusPoints(state: BonusState, playerId: string): number {
     .reduce((sum, c) => sum + c.points, 0);
 }
 
-/** Déclare un bonus pour aujourd'hui. Les points sont figés par la base. */
+/** Déclare un bonus. Les points sont figés par la base. Le jour est celui
+    du GESTE : un envoi rejoué par la file d'attente défend le jour où le
+    pouce a tapé, jamais celui de la synchro — au serveur de trancher. */
 export async function insertClaim(
   playerId: string,
-  item: BonusCatalogItem,
+  item: Pick<BonusCatalogItem, "key" | "points">,
+  day: string = parisToday(),
 ): Promise<string | null> {
   const { error } = await supabase.from("bonus_claims").insert({
     player_id: playerId,
-    day: parisToday(),
+    day,
     bonus_key: item.key,
     points: item.points, // écrasé par le trigger : le client ne décide pas
   });
   return error ? error.message : null;
 }
 
-/** Annule une déclaration du jour (erreur de pouce). */
+/** Annule une déclaration (erreur de pouce). Même contrat de jour. */
 export async function deleteClaim(
   playerId: string,
   bonusKey: string,
+  day: string = parisToday(),
 ): Promise<string | null> {
   const { error } = await supabase
     .from("bonus_claims")
     .delete()
-    .match({ player_id: playerId, day: parisToday(), bonus_key: bonusKey });
+    .match({ player_id: playerId, day, bonus_key: bonusKey });
   return error ? error.message : null;
+}
+
+// --- La file d'attente (lib/outbox.ts) ------------------------------
+// Les déclarations sont la première écriture branchée sur l'outbox : à
+// 23h sur une 4G qui ment, « noté, ça partira » vaut mieux qu'un toast
+// d'échec. L'idempotence est garantie par la base — `unique (player_id,
+// day, bonus_key)` (migration 3) côté insert, delete ciblé sur le même
+// triplet côté retrait — donc un rejeu ne crée jamais de doublon, et un
+// doublon au rejeu est un succès (l'écriture était déjà passée).
+
+export const OUTBOX_BONUS_CLAIM = "bonus.claim";
+export const OUTBOX_BONUS_UNCLAIM = "bonus.unclaim";
+
+export type BonusOutboxPayload = {
+  playerId: string;
+  bonusKey: string;
+  points: number;
+};
+
+/** La clé d'idempotence : le triplet de la contrainte d'unicité en base.
+    Déclarer puis annuler la même puce partagent la clé — hors ligne, le
+    dernier geste remplace l'autre dans la file. */
+export function cleEcritureBonus(
+  playerId: string,
+  day: string,
+  bonusKey: string,
+): string {
+  return `bonus:${playerId}:${day}:${bonusKey}`;
+}
+
+export function estEcritureBonus(e: OutboxEntry): boolean {
+  return e.kind === OUTBOX_BONUS_CLAIM || e.kind === OUTBOX_BONUS_UNCLAIM;
+}
+
+/** Classe la réponse de la base pour la file : parti, à retenter, ou
+    refusé pour de bon. Les messages des triggers sont des refus — le
+    serveur a répondu, réessayer donnerait la même chose. Tout le reste
+    (fetch qui casse, timeout) est un problème de réseau. */
+export function issueEcritureBonus(
+  err: string | null,
+  sens: "insert" | "delete",
+): SendOutcome {
+  if (!err) return "ok";
+  // Rejeu après un succès dont la réponse s'est perdue, ou deuxième
+  // appareil passé devant : la ligne est en base, c'est tout ce qu'on
+  // voulait. Un doublon d'unicité n'est un refus que pour un geste neuf —
+  // et un geste neuf sur une puce déjà déclarée n'existe pas dans l'UI.
+  if (sens === "insert" && err.includes("duplicate")) return "ok";
+  const DEFINITIFS = [
+    "CAP_JOUR",
+    "CAP_SEMAINE",
+    "JOUR_VERROUILLE",
+    "JOUR_FUTUR",
+    "BOSS_INACTIF",
+    "BONUS_INCONNU",
+    "BONUS_NON_DECLARABLE",
+    "duplicate",
+    "violates", // contraintes check/FK : le serveur a dit non, pas le réseau
+  ];
+  return DEFINITIFS.some((t) => err.includes(t)) ? { refus: err } : "retry";
+}
+
+/** Rejoue la file sur l'état lu en base : les déclarations en attente
+    restent visibles après un re-fetch. Sans ça, revenir au premier plan
+    hors ligne ferait DISPARAÎTRE un bonus pourtant « noté » — le mensonge
+    exact que la file existe pour éviter. */
+export function appliquerFileBonus(
+  state: BonusState,
+  entries: OutboxEntry[],
+): BonusState {
+  const attente = entries.filter(estEcritureBonus);
+  if (attente.length === 0) return state;
+  const today = parisToday();
+  let todayClaims = [...state.todayClaims];
+  let weekClaims = [...state.weekClaims];
+  const meme = (c: BonusClaim, p: BonusOutboxPayload, day: string) =>
+    c.player_id === p.playerId && c.day === day && c.bonus_key === p.bonusKey;
+  for (const e of attente) {
+    const p = e.payload as BonusOutboxPayload;
+    if (e.kind === OUTBOX_BONUS_UNCLAIM) {
+      todayClaims = todayClaims.filter((c) => !meme(c, p, e.day));
+      weekClaims = weekClaims.filter((c) => !meme(c, p, e.day));
+    } else {
+      const claim: BonusClaim = {
+        player_id: p.playerId,
+        day: e.day,
+        bonus_key: p.bonusKey,
+        points: p.points,
+      };
+      if (!weekClaims.some((c) => meme(c, p, e.day))) weekClaims.push(claim);
+      if (e.day === today && !todayClaims.some((c) => meme(c, p, e.day)))
+        todayClaims.push(claim);
+    }
+  }
+  return { ...state, todayClaims, weekClaims };
+}
+
+/** Apprend à la file à envoyer les bonus. Appelé au chargement du hook
+    qui écrit (useBonus) : dès que déclarer est possible, rejouer l'est. */
+export function enregistrerExpediteursBonus(): void {
+  outbox.register(OUTBOX_BONUS_CLAIM, async (payload, entry) => {
+    const p = payload as BonusOutboxPayload;
+    const err = await insertClaim(
+      p.playerId,
+      { key: p.bonusKey, points: p.points },
+      entry.day,
+    );
+    return issueEcritureBonus(err, "insert");
+  });
+  outbox.register(OUTBOX_BONUS_UNCLAIM, async (payload, entry) => {
+    const p = payload as BonusOutboxPayload;
+    const err = await deleteClaim(p.playerId, p.bonusKey, entry.day);
+    return issueEcritureBonus(err, "delete");
+  });
 }

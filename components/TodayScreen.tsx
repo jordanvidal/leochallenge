@@ -63,6 +63,8 @@ type Props = {
   onPlanBonus?: () => void;
   onClaimBonus: (item: BonusCatalogItem) => void;
   onUnclaimBonus: (item: BonusCatalogItem) => void;
+  /** Déclarations notées hors ligne, pas encore parties (file d'attente). */
+  bonusEnAttente: number;
   onInvite: () => void;
   onGoLeaderboard: () => void;
   showToast: (msg: string) => void;
@@ -84,6 +86,7 @@ export default function TodayScreen({
   onPlanBonus,
   onClaimBonus,
   onUnclaimBonus,
+  bonusEnAttente,
   onInvite,
   onGoLeaderboard,
   showToast,
@@ -421,6 +424,7 @@ export default function TodayScreen({
             bonus={bonus}
             onClaim={onClaimBonus}
             onUnclaim={onUnclaimBonus}
+            enAttente={bonusEnAttente}
             showToast={showToast}
           />
         ) : (
