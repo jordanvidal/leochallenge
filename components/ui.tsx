@@ -239,14 +239,23 @@ export function Skeleton({
   );
 }
 
-/** Toast en bas d'écran : erreurs d'écriture, confirmations de copie. */
+/** Toast en bas d'écran : erreurs d'écriture, confirmations de copie.
+    C'est le seul canal qui dit qu'un rollback a eu lieu : sans zone live,
+    un lecteur d'écran voyait ses coches revenir en arrière sans un mot.
+    `role="status"` = aria-live polite — et la région reste montée en
+    permanence, car une zone live créée en même temps que son contenu
+    n'est pas annoncée par tous les lecteurs. */
 export function Toast({ message }: { message: string | null }) {
-  if (!message) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-6">
-      <div className="toast-in rounded-full bg-raised px-5 py-3 text-sm font-medium text-ink shadow-lg shadow-black/40">
-        {message}
-      </div>
+    <div
+      role="status"
+      className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-6"
+    >
+      {message && (
+        <div className="toast-in rounded-full bg-raised px-5 py-3 text-sm font-medium text-ink shadow-lg shadow-black/40">
+          {message}
+        </div>
+      )}
     </div>
   );
 }

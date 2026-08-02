@@ -327,15 +327,27 @@ export default function ChatScreen({
         citation={citation}
         mentionnables={autres}
         showToast={showToast}
-        onSend={(body, photo, vocal) => {
-          send(body, {
-            replyTo: reply?.id ?? null,
-            feedEventId: reply ? null : (seed?.id ?? null),
+        onSend={async (body, photo, vocal) => {
+          const enReponse = reply;
+          // La réponse se retire tout de suite, comme le champ se vide :
+          // la bulle optimiste la porte déjà. Si l'envoi échoue, on la
+          // remet — sauf si une autre réponse a pris la place entre-temps.
+          setReply(null);
+          const ok = await send(body, {
+            replyTo: enReponse?.id ?? null,
+            feedEventId: enReponse ? null : (seed?.id ?? null),
             photo,
             vocal,
           });
-          setReply(null);
-          onSeedUsed();
+          if (ok) {
+            // Le moment cité depuis le fil n'est consommé qu'à l'envoi
+            // réussi : lui ne peut pas être restauré (il vit dans App),
+            // donc on ne le jette pas tant que rien n'est parti.
+            onSeedUsed();
+          } else if (enReponse) {
+            setReply((cur) => cur ?? enReponse);
+          }
+          return ok;
         }}
       />
 

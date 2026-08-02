@@ -47,11 +47,13 @@ type Props = {
       soi-même ne prévient personne et n'informe personne. */
   mentionnables: Player[];
   showToast: (msg: string) => void;
+  /** Rend `true` si le message est bien parti. C'est ce retour qui décide
+      du sort du brouillon : parti, on l'oublie ; échoué, on le remet. */
   onSend: (
     body: string,
     photo: PhotoPrete | null,
     vocal: VocalPret | null,
-  ) => void;
+  ) => Promise<boolean>;
 };
 
 export default function ChatComposer({
@@ -106,6 +108,10 @@ export default function ChatComposer({
   // qu'au démontage et ne doit donc dépendre d'aucune valeur qui change.
   const apercuRef = useRef<string | null>(null);
   apercuRef.current = apercu;
+  // Même miroir pour la photo : `envoyer` en a besoin APRÈS son await,
+  // quand la valeur figée dans sa fermeture peut avoir vieilli.
+  const photoRef = useRef<PhotoPrete | null>(null);
+  photoRef.current = photo;
 
   // Quitter le tchat avec une photo en attente ne doit pas laisser ses
   // octets accrochés au document.
@@ -115,16 +121,42 @@ export default function ChatComposer({
     };
   }, []);
 
-  function envoyer() {
+  async function envoyer() {
     const texte = draft.trim();
     // Une photo part sans légende ; un message sans photo ne part pas vide.
     if (!texte && !photo) return;
-    onSend(texte, photo, null);
+    const photoEnvoyee = photo;
+    const apercuEnvoye = apercu;
+    // Vidage optimiste : le champ se rend tout de suite, comme la bulle
+    // s'affiche tout de suite. L'aperçu, lui, n'est pas encore révoqué —
+    // c'est lui qui permet de remettre la photo en place si l'envoi rate.
     setDraft("");
     setCaret(0);
-    // Révoquer notre aperçu ne casse pas la bulle qui part : le hook
-    // fabrique sa PROPRE URL à partir du même blob, qu'il tient encore.
-    oublierPhoto();
+    setApercu(null);
+    setPhoto(null);
+    if (fichier.current) fichier.current.value = "";
+
+    const ok = await onSend(texte, photoEnvoyee, null);
+    if (ok) {
+      // Révoquer notre aperçu ne casse pas la bulle qui est partie : le
+      // hook fabrique sa PROPRE URL à partir du même blob, qu'il tient.
+      if (apercuEnvoye) URL.revokeObjectURL(apercuEnvoye);
+      return;
+    }
+    // Échec. Le toast dit « réessaie » : il faut donc qu'il reste quelque
+    // chose à réessayer. On remet le brouillon — sauf si l'utilisateur a
+    // déjà retapé entre-temps : son texte gagne, on ne l'écrase pas.
+    setDraft((cur) => (cur ? cur : texte));
+    if (photoEnvoyee && apercuEnvoye) {
+      // Les miroirs (refs) disent l'état d'APRÈS l'attente : si aucune
+      // autre photo n'a pris la place, l'ancienne revient telle quelle.
+      if (photoRef.current === null && apercuRef.current === null) {
+        setPhoto(photoEnvoyee);
+        setApercu(apercuEnvoye);
+      } else {
+        URL.revokeObjectURL(apercuEnvoye);
+      }
+    }
   }
 
   // ---- La note vocale ----
@@ -193,9 +225,14 @@ export default function ChatComposer({
       return;
     }
     navigator.vibrate?.(10);
-    onSend(draft.trim(), null, pret);
+    const texteEnvoye = draft.trim();
     setDraft("");
     setCaret(0);
+    const ok = await onSend(texteEnvoye, null, pret);
+    // Le vocal, lui, est perdu si l'envoi rate : ses octets ont été
+    // abandonnés par le hook et le toast dit de réenregistrer. On ne
+    // remet que la légende — et seulement si le champ est resté vide.
+    if (!ok) setDraft((cur) => (cur ? cur : texteEnvoye));
   }
 
   // Le minuteur de lib/audio appelle ce qu'il a reçu au démarrage : sans
