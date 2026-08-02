@@ -29,6 +29,8 @@ type Props = {
   enPanne: boolean;
   perfect: boolean; // le 3/3 du jour est-il déjà fait ?
   onGoLeaderboard: () => void;
+  /** 😴 Aujourd'hui est le jour off du groupe. */
+  jourOff: boolean;
 };
 
 /** Durée du beat de fond, alignée sur .streak-beat dans globals.css. */
@@ -52,6 +54,7 @@ export default function RankLine({
   gamification,
   enPanne,
   perfect,
+  jourOff,
   onGoLeaderboard,
 }: Props) {
   const f = useFenetre();
@@ -89,8 +92,15 @@ export default function RankLine({
 
   // La série que le joker peut encore rattraper. Nulle sauf le lendemain
   // d'un trou unique, joker intact — voir streakEnSursis.
+  // 😴 Un jour off, rien n'est en jeu et rien n'est en sursis : c'est
+  // toute la promesse du jour. Sans ces deux gardes, cette ligne dirait
+  // « Série : 12 j en jeu » trois centimètres sous le bandeau qui vient
+  // d'annoncer que la série tient sans rien cocher — et c'est la ligne
+  // du soir, celle qu'on lit dans son lit. On retombe alors sur
+  // l'affichage neutre (🏆 rang · points · 🔥 série), qui dit la série
+  // sans la menacer.
   const sursis =
-    !perfect && streak === 0
+    !perfect && streak === 0 && !jourOff
       ? streakEnSursis(player.id, entries, mine.joker_day, parisToday())
       : 0;
 
@@ -111,7 +121,7 @@ export default function RankLine({
     // et la série tombe, ce qu'elle faisait déjà en silence.
     emoji = <IconJoker size={15} className="inline-block align-[-2px]" />;
     body = `Série de ${sursis} j en sursis — ton joker la sauve si tu fais ton 3/3`;
-  } else if (!perfect && streak > 0) {
+  } else if (!perfect && streak > 0 && !jourOff) {
     // La série est en jeu : la phrase du soir, celle qui fait cocher.
     // Rien n'a encore bougé, donc pas de compteur animé ici.
     emoji = "🔥";

@@ -53,6 +53,11 @@ export function useFeed(
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [seenAt, setSeenAt] = useState("");
+  // Le fil n'a pas pu se charger. Sans ce drapeau, `events` restait `null`
+  // et l'écran gardait son squelette indéfiniment : quatre blocs gris qui
+  // respirent, aucun message, aucune reprise. C'est le pire des deux mondes
+  // — un spinner bloquant ET un faux succès.
+  const [enPanne, setEnPanne] = useState(false);
   const inflight = useRef(false);
 
   useEffect(() => {
@@ -65,12 +70,19 @@ export function useFeed(
     inflight.current = true;
     try {
       const page = await fetchFeedPage(0, ligueId);
-      if (!page) return;
+      if (!page) {
+        setEnPanne(true);
+        return;
+      }
       const extra = await fetchFeedAnnex(page.events.map((e) => e.id));
-      if (!extra) return;
+      if (!extra) {
+        setEnPanne(true);
+        return;
+      }
       setEvents(page.events);
       setHasMore(page.hasMore);
       setAnnex(groupAnnex(extra.reactions, extra.comments));
+      setEnPanne(false);
     } finally {
       inflight.current = false;
     }
@@ -130,11 +142,19 @@ export function useFeed(
     });
   }, []);
 
+  // L'état courant des réactions, lu au moment du tap et pas capturé dans
+  // la closure. `toggleReaction` descend jusqu'à chaque pastille de chaque
+  // carte : s'il dépend de `annex.reactions`, son identité change à chaque
+  // réaction posée n'importe où, et tout le fil se re-rend derrière lui.
+  // Le ref garde la valeur fraîche et la fonction stable.
+  const annexRef = useRef(annex);
+  annexRef.current = annex;
+
   /** Un tap ajoute, un retap enlève. Optimiste. */
   const toggleReaction = useCallback(
     async (event: FeedEvent, emoji: string) => {
       if (!myId) return;
-      const list = annex.reactions.get(event.id) ?? [];
+      const list = annexRef.current.reactions.get(event.id) ?? [];
       const mine = list.some((r) => r.player_id === myId && r.emoji === emoji);
       const rx: FeedReaction = { event_id: event.id, player_id: myId, emoji };
       patchReaction(rx, !mine);
@@ -151,7 +171,7 @@ export function useFeed(
         notifyFeedActivity(event.id, myId);
       }
     },
-    [annex.reactions, myId, patchReaction, showToast],
+    [myId, patchReaction, showToast],
   );
 
   /**
@@ -228,6 +248,7 @@ export function useFeed(
     comments: annex.comments,
     hasMore,
     loadingMore,
+    enPanne,
     unread,
     reload,
     loadMore,

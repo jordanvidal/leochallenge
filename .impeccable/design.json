@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-31T06:58:00Z",
+  "generatedAt": "2026-08-01T08:05:00Z",
   "title": "Design System: 100 · 100 · 100",
   "extensions": {
     "colorMeta": {
@@ -8,234 +8,567 @@
         "role": "neutral",
         "displayName": "Nuit",
         "canonical": "oklch(0.115 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "surface": {
         "role": "neutral",
         "displayName": "Nuit levée",
         "canonical": "oklch(0.17 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "raised": {
         "role": "neutral",
         "displayName": "Nuit claire",
         "canonical": "oklch(0.22 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "line": {
         "role": "neutral",
         "displayName": "Trait",
         "canonical": "oklch(0.27 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "faint": {
         "role": "neutral",
         "displayName": "Fumée",
         "canonical": "oklch(0.45 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "quiet": {
+        "role": "neutral",
+        "displayName": "Voix basse",
+        "canonical": "oklch(0.62 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ],
+        "note": "Ajouté le 31/07 (PR #107) : le cran manquant entre `faint` (2,7:1 sur bg — de la texture, hors-la-loi pour un mot) et `muted`. 5,6:1, donc AA à 11 px. Il porte les libellés d'onglets inactifs, les libellés d'axe des stats et les sorties discrètes. Sept fichiers l'utilisent."
       },
       "muted": {
         "role": "neutral",
         "displayName": "Brume",
         "canonical": "oklch(0.68 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Néon",
         "canonical": "oklch(0.965 0 0)",
-        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.26 0 0)", "oklch(0.37 0 0)", "oklch(0.48 0 0)", "oklch(0.60 0 0)", "oklch(0.71 0 0)", "oklch(0.83 0 0)", "oklch(0.95 0 0)"]
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.37 0 0)",
+          "oklch(0.48 0 0)",
+          "oklch(0.60 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.83 0 0)",
+          "oklch(0.95 0 0)"
+        ]
       },
       "danger": {
         "role": "tertiary",
-        "displayName": "Danger",
+        "displayName": "Rouge d'échec",
         "canonical": "oklch(0.68 0.19 25)",
-        "tonalRamp": ["oklch(0.20 0.19 25)", "oklch(0.31 0.19 25)", "oklch(0.42 0.19 25)", "oklch(0.53 0.19 25)", "oklch(0.64 0.19 25)", "oklch(0.75 0.19 25)", "oklch(0.86 0.19 25)", "oklch(0.95 0.19 25)"]
+        "tonalRamp": [
+          "oklch(0.20 0.19 25)",
+          "oklch(0.31 0.19 25)",
+          "oklch(0.42 0.19 25)",
+          "oklch(0.53 0.19 25)",
+          "oklch(0.63 0.19 25)",
+          "oklch(0.74 0.19 25)",
+          "oklch(0.85 0.19 25)",
+          "oklch(0.95 0.19 25)"
+        ]
       },
       "x2": {
         "role": "tertiary",
-        "displayName": "Doublement",
+        "displayName": "Or du doublement",
         "canonical": "oklch(0.85 0.17 88)",
-        "tonalRamp": ["oklch(0.20 0.17 88)", "oklch(0.31 0.17 88)", "oklch(0.42 0.17 88)", "oklch(0.53 0.17 88)", "oklch(0.64 0.17 88)", "oklch(0.75 0.17 88)", "oklch(0.86 0.17 88)", "oklch(0.95 0.17 88)"]
+        "tonalRamp": [
+          "oklch(0.20 0.17 88)",
+          "oklch(0.31 0.17 88)",
+          "oklch(0.42 0.17 88)",
+          "oklch(0.53 0.17 88)",
+          "oklch(0.63 0.17 88)",
+          "oklch(0.74 0.17 88)",
+          "oklch(0.85 0.17 88)",
+          "oklch(0.95 0.17 88)"
+        ]
       },
       "player-corail": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Corail",
         "canonical": "oklch(0.72 0.19 25)",
-        "tonalRamp": ["oklch(0.20 0.19 25)", "oklch(0.31 0.19 25)", "oklch(0.42 0.19 25)", "oklch(0.53 0.19 25)", "oklch(0.64 0.19 25)", "oklch(0.75 0.19 25)", "oklch(0.86 0.19 25)", "oklch(0.95 0.19 25)"]
+        "tonalRamp": [
+          "oklch(0.20 0.19 25)",
+          "oklch(0.31 0.19 25)",
+          "oklch(0.42 0.19 25)",
+          "oklch(0.53 0.19 25)",
+          "oklch(0.63 0.19 25)",
+          "oklch(0.74 0.19 25)",
+          "oklch(0.85 0.19 25)",
+          "oklch(0.95 0.19 25)"
+        ]
       },
       "player-ambre": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Ambre",
         "canonical": "oklch(0.78 0.16 65)",
-        "tonalRamp": ["oklch(0.20 0.16 65)", "oklch(0.31 0.16 65)", "oklch(0.42 0.16 65)", "oklch(0.53 0.16 65)", "oklch(0.64 0.16 65)", "oklch(0.75 0.16 65)", "oklch(0.86 0.16 65)", "oklch(0.95 0.16 65)"]
+        "tonalRamp": [
+          "oklch(0.20 0.16 65)",
+          "oklch(0.31 0.16 65)",
+          "oklch(0.42 0.16 65)",
+          "oklch(0.53 0.16 65)",
+          "oklch(0.63 0.16 65)",
+          "oklch(0.74 0.16 65)",
+          "oklch(0.85 0.16 65)",
+          "oklch(0.95 0.16 65)"
+        ]
       },
       "player-jaune": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Jaune",
         "canonical": "oklch(0.86 0.16 100)",
-        "tonalRamp": ["oklch(0.20 0.16 100)", "oklch(0.31 0.16 100)", "oklch(0.42 0.16 100)", "oklch(0.53 0.16 100)", "oklch(0.64 0.16 100)", "oklch(0.75 0.16 100)", "oklch(0.86 0.16 100)", "oklch(0.95 0.16 100)"]
+        "tonalRamp": [
+          "oklch(0.20 0.16 100)",
+          "oklch(0.31 0.16 100)",
+          "oklch(0.42 0.16 100)",
+          "oklch(0.53 0.16 100)",
+          "oklch(0.63 0.16 100)",
+          "oklch(0.74 0.16 100)",
+          "oklch(0.85 0.16 100)",
+          "oklch(0.95 0.16 100)"
+        ]
       },
       "player-vert": {
         "role": "primary",
         "displayName": "Vert",
         "canonical": "oklch(0.74 0.17 150)",
-        "tonalRamp": ["oklch(0.20 0.17 150)", "oklch(0.31 0.17 150)", "oklch(0.42 0.17 150)", "oklch(0.53 0.17 150)", "oklch(0.64 0.17 150)", "oklch(0.75 0.17 150)", "oklch(0.86 0.17 150)", "oklch(0.95 0.17 150)"]
+        "tonalRamp": [
+          "oklch(0.20 0.17 150)",
+          "oklch(0.31 0.17 150)",
+          "oklch(0.42 0.17 150)",
+          "oklch(0.53 0.17 150)",
+          "oklch(0.63 0.17 150)",
+          "oklch(0.74 0.17 150)",
+          "oklch(0.85 0.17 150)",
+          "oklch(0.95 0.17 150)"
+        ]
       },
       "player-cyan": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Cyan",
         "canonical": "oklch(0.80 0.13 195)",
-        "tonalRamp": ["oklch(0.20 0.13 195)", "oklch(0.31 0.13 195)", "oklch(0.42 0.13 195)", "oklch(0.53 0.13 195)", "oklch(0.64 0.13 195)", "oklch(0.75 0.13 195)", "oklch(0.86 0.13 195)", "oklch(0.95 0.13 195)"]
+        "tonalRamp": [
+          "oklch(0.20 0.13 195)",
+          "oklch(0.31 0.13 195)",
+          "oklch(0.42 0.13 195)",
+          "oklch(0.53 0.13 195)",
+          "oklch(0.63 0.13 195)",
+          "oklch(0.74 0.13 195)",
+          "oklch(0.85 0.13 195)",
+          "oklch(0.95 0.13 195)"
+        ]
       },
       "player-bleu": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Bleu",
         "canonical": "oklch(0.70 0.15 255)",
-        "tonalRamp": ["oklch(0.20 0.15 255)", "oklch(0.31 0.15 255)", "oklch(0.42 0.15 255)", "oklch(0.53 0.15 255)", "oklch(0.64 0.15 255)", "oklch(0.75 0.15 255)", "oklch(0.86 0.15 255)", "oklch(0.95 0.15 255)"]
+        "tonalRamp": [
+          "oklch(0.20 0.15 255)",
+          "oklch(0.31 0.15 255)",
+          "oklch(0.42 0.15 255)",
+          "oklch(0.53 0.15 255)",
+          "oklch(0.63 0.15 255)",
+          "oklch(0.74 0.15 255)",
+          "oklch(0.85 0.15 255)",
+          "oklch(0.95 0.15 255)"
+        ]
       },
       "player-violet": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Violet",
         "canonical": "oklch(0.70 0.17 305)",
-        "tonalRamp": ["oklch(0.20 0.17 305)", "oklch(0.31 0.17 305)", "oklch(0.42 0.17 305)", "oklch(0.53 0.17 305)", "oklch(0.64 0.17 305)", "oklch(0.75 0.17 305)", "oklch(0.86 0.17 305)", "oklch(0.95 0.17 305)"]
+        "tonalRamp": [
+          "oklch(0.20 0.17 305)",
+          "oklch(0.31 0.17 305)",
+          "oklch(0.42 0.17 305)",
+          "oklch(0.53 0.17 305)",
+          "oklch(0.63 0.17 305)",
+          "oklch(0.74 0.17 305)",
+          "oklch(0.85 0.17 305)",
+          "oklch(0.95 0.17 305)"
+        ]
       },
       "player-rose": {
-        "role": "secondary",
+        "role": "primary",
         "displayName": "Rose",
         "canonical": "oklch(0.73 0.17 350)",
-        "tonalRamp": ["oklch(0.20 0.17 350)", "oklch(0.31 0.17 350)", "oklch(0.42 0.17 350)", "oklch(0.53 0.17 350)", "oklch(0.64 0.17 350)", "oklch(0.75 0.17 350)", "oklch(0.86 0.17 350)", "oklch(0.95 0.17 350)"]
+        "tonalRamp": [
+          "oklch(0.20 0.17 350)",
+          "oklch(0.31 0.17 350)",
+          "oklch(0.42 0.17 350)",
+          "oklch(0.53 0.17 350)",
+          "oklch(0.63 0.17 350)",
+          "oklch(0.74 0.17 350)",
+          "oklch(0.85 0.17 350)",
+          "oklch(0.95 0.17 350)"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display (Anton)", "purpose": "Chiffres uniquement : chrono, série, score, « 100 ». Jamais un mot." },
-      "headline": { "displayName": "Headline", "purpose": "Nom d'exercice sur sa carte, titre d'écran." },
-      "title": { "displayName": "Title", "purpose": "En-tête de section, nom de joueur au classement." },
-      "body": { "displayName": "Body", "purpose": "Messages du tchat, textes du fil, contenu des champs." },
-      "label": { "displayName": "Label", "purpose": "Boutons secondaires, toggles d'exos, toasts." },
-      "caption": { "displayName": "Caption", "purpose": "Libellés d'onglets, compteurs, badges de non-lus." }
+      "display": {
+        "displayName": "Display — Anton",
+        "purpose": "Uniquement des chiffres : le compte à rebours, la série, le compteur du bilan. Anton ne porte jamais un mot, et toujours en tabular-nums pour que l'odomètre ne tremble pas."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres d'écran et nom d'un exercice quand il en porte un."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "En-têtes de section, noms de joueurs au classement, et le libellé du lanceur de séance depuis le 01/08."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Messages du tchat, textes du fil, contenu des champs, noms dans la colonne des potes."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Boutons secondaires, puces de bonus, toasts, ligne de statut."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Libellés d'onglets, en-têtes de section en capitales, compteurs, badges de non-lus."
+      }
     },
     "shadows": [
-      { "name": "ring-rest", "value": "inset 0 0 0 1px oklch(0.27 0 0)", "purpose": "Contour d'une carte ou d'un toggle au repos." },
-      { "name": "ring-active", "value": "inset 0 0 0 2px color-mix(in oklch, var(--pc) 65%, transparent)", "purpose": "Carte cochée. Le seul saut d'élévation du système." },
-      { "name": "ring-soft", "value": "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)", "purpose": "Anneau d'avatar, pastille d'exo vide." },
-      { "name": "knockout", "value": "0 0 0 2px oklch(0.17 0 0)", "purpose": "Détourage d'un badge posé à cheval sur un autre élément." },
-      { "name": "toast-float", "value": "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4)", "purpose": "L'unique ombre portée de l'app : le toast, seul élément qui flotte." }
+      {
+        "name": "ring-rest",
+        "value": "inset 0 0 0 1px oklch(0.27 0 0)",
+        "purpose": "Contour d'une carte, d'un champ ou d'une puce au repos."
+      },
+      {
+        "name": "ring-active",
+        "value": "inset 0 0 0 2px color-mix(in oklch, var(--pc) 65%, transparent)",
+        "purpose": "État coché / déclaré. Le seul saut d'élévation du système : 1 px → 2 px, sans que la boîte change de taille."
+      },
+      {
+        "name": "ring-soft",
+        "value": "inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent)",
+        "purpose": "Anneau d'avatar et pastille d'exo vide."
+      },
+      {
+        "name": "ring-x2",
+        "value": "inset 0 0 0 1.5px color-mix(in oklch, var(--color-x2) 70%, transparent)",
+        "purpose": "Puce de bonus doublée par le tirage du jour. La seule bague non-joueur du système."
+      },
+      {
+        "name": "knockout",
+        "value": "0 0 0 2px oklch(0.17 0 0)",
+        "purpose": "Détourage d'un badge posé à cheval sur un autre élément (icône photo sur l'avatar). Ce n'est pas une ombre, c'est un trou dans le fond."
+      },
+      {
+        "name": "toast-float",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4)",
+        "purpose": "L'unique ombre portée de l'app : le toast, seul élément qui n'appartient pas à l'écran en dessous."
+      }
     ],
     "motion": [
-      { "name": "ease-standard", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Courbe par défaut de toutes les transitions et animations d'état." },
-      { "name": "dur-press", "value": "120ms", "purpose": "Enfoncement au tap (transform)." },
-      { "name": "dur-state", "value": "160ms", "purpose": "Bascule de couleur / bordure d'une carte." },
-      { "name": "dur-enter", "value": "200-260ms", "purpose": "Entrée d'un toast, d'un bloc, rebond d'une coche." },
-      { "name": "skeleton-delay", "value": "250ms", "purpose": "Retard avant l'apparition du loader. En dessous, on voit clignoter du gris." }
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Courbe par défaut de toutes les transitions et animations d'état."
+      },
+      {
+        "name": "dur-press",
+        "value": "120ms",
+        "purpose": "Enfoncement au tap : scale(0.98) sur une barre pleine largeur, 0.95 sur un bouton rond."
+      },
+      {
+        "name": "dur-state",
+        "value": "160ms",
+        "purpose": "Bascule de couleur ou d'anneau d'un élément d'état."
+      },
+      {
+        "name": "dur-enter",
+        "value": "200-260ms",
+        "purpose": "Entrée d'un toast (200 ms), d'un bloc ou d'une feuille (rise-in, 260 ms), rebond d'une coche (check-pop, 220 ms)."
+      },
+      {
+        "name": "skeleton-delay",
+        "value": "250ms",
+        "purpose": "Retard avant l'apparition du loader. En dessous, on voit clignoter du gris et l'app paraît plus lente qu'un écran vide."
+      },
+      {
+        "name": "skeleton-respire",
+        "value": "1.8s ease-in-out infinite",
+        "purpose": "Respiration du skeleton en opacité 1 → 0.6, jamais en couleur."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce)",
+        "purpose": "Chaque animation y est déclarée avec sa fin d'état — une animation coupée ne doit jamais laisser un élément bloqué sur sa valeur de départ."
+      }
     ],
     "breakpoints": []
   },
   "components": [
     {
-      "name": "Carte d'exercice (cochée)",
-      "kind": "card",
-      "refersTo": "exo-card-done",
-      "description": "La pièce centrale de l'écran d'accueil : un exercice validé pendant la séance.",
-      "html": "<button class=\"ds-exo-card ds-exo-card-done\"><span class=\"ds-exo-label\">Pompes</span><span class=\"ds-exo-check\">✓</span></button>",
-      "css": ".ds-exo-card { --pc: oklch(0.74 0.17 150); display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 6rem; padding: 0 1.5rem; border: none; border-radius: 1.5rem; background: var(--color-surface, oklch(0.17 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; text-align: left; transition: background-color 160ms cubic-bezier(0.22,1,0.36,1), transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-exo-card:active { transform: scale(0.97); } .ds-exo-card-done { background: color-mix(in oklch, var(--pc) 22%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--pc) 65%, transparent); } .ds-exo-label { font-size: 1.5rem; font-weight: 700; color: var(--pc); } .ds-exo-check { display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 9999px; background: var(--pc); color: oklch(0.15 0 0); font-size: 1.5rem; font-weight: 700; }"
-    },
-    {
-      "name": "Carte d'exercice (verrouillée)",
-      "kind": "card",
-      "refersTo": "exo-card-locked",
-      "description": "Séance non lancée : la carte s'affiche à 50 %, cadenas à droite, et ouvre le lanceur au tap. Elle ne râle jamais.",
-      "html": "<button class=\"ds-exo-card ds-exo-card-locked\"><span class=\"ds-exo-label-locked\">Abdos</span><span class=\"ds-exo-lock\">🔒</span></button>",
-      "css": ".ds-exo-card-locked { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 6rem; padding: 0 1.5rem; border: none; border-radius: 1.5rem; background: var(--color-surface, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1px var(--color-line, oklch(0.27 0 0)); opacity: 0.5; font-family: 'Space Grotesk', system-ui, sans-serif; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-exo-card-locked:active { transform: scale(0.97); } .ds-exo-label-locked { font-size: 1.5rem; font-weight: 700; color: var(--color-muted, oklch(0.68 0 0)); } .ds-exo-lock { font-size: 1.5rem; }"
+      "name": "Lanceur de séance",
+      "kind": "button",
+      "refersTo": "button-launch",
+      "description": "L'action unique de l'accueil, dernière de la page et collée au pouce. 60 px : un demi-cran au-dessus du bouton principal parce que c'est LE geste du produit, et pas un de plus — il a fait 176 px pendant une journée et n'était qu'une dalle.",
+      "html": "<button class=\"ds-btn-launch\"><span aria-hidden=\"true\">▶</span>Lancer ma séance</button>",
+      "css": ".ds-btn-launch { display: flex; align-items: center; justify-content: center; gap: 0.625rem; width: 100%; min-height: 3.75rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1.125rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-launch:active { transform: scale(0.98); } .ds-btn-launch:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
     },
     {
       "name": "Bouton principal",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "L'action principale d'un écran, pleine largeur, à la couleur du joueur connecté.",
-      "html": "<button class=\"ds-btn-primary\">Lancer ma séance</button>",
-      "css": ".ds-btn-primary { --pc: oklch(0.74 0.17 150); width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--pc); color: oklch(0.15 0 0); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--pc); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; }"
+      "description": "L'action principale d'un écran (composant BigButton, tone=\"accent\"). Aplat à la couleur du joueur, texte sombre — c'est ce qui garde le contraste quel que soit l'accent tiré.",
+      "html": "<button class=\"ds-btn-primary\">Valider</button>",
+      "css": ".ds-btn-primary { width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { opacity: 0.4; } .ds-btn-primary:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
     },
     {
       "name": "Bouton neutre",
       "kind": "button",
       "refersTo": "button-neutral",
-      "description": "L'action secondaire d'un écran. Même forme, aucune couleur.",
+      "description": "L'action secondaire (BigButton, tone=\"neutral\"). Deuxième étage tonal, aucune couleur : il ne dispute jamais le regard au bouton d'accent.",
       "html": "<button class=\"ds-btn-neutral\">Plus tard</button>",
-      "css": ".ds-btn-neutral { width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-neutral:active { transform: scale(0.98); } .ds-btn-neutral:disabled { opacity: 0.4; }"
+      "css": ".ds-btn-neutral { width: 100%; min-height: 3.5rem; padding: 0 1.25rem; border: none; border-radius: 1rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-neutral:active { transform: scale(0.98); } .ds-btn-neutral:disabled { opacity: 0.4; } .ds-btn-neutral:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
     },
     {
-      "name": "Rangée de toggles d'exos",
+      "name": "Bouton accent en retrait",
+      "kind": "button",
+      "refersTo": "button-accent-quiet",
+      "description": "Une action qui appartient au joueur sans être l'action principale de l'écran : même couleur et même hauteur que le lanceur, dix fois moins de surface colorée. Fond mixé à 12 %, anneau à 45 %.",
+      "html": "<button class=\"ds-btn-quiet\"><span aria-hidden=\"true\">＋</span> Enchaîner des bonus</button>",
+      "css": ".ds-btn-quiet { display: flex; align-items: center; justify-content: center; gap: 0.625rem; width: 100%; min-height: 3.75rem; padding: 0 1.25rem; border: none; border-radius: 1rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1.125rem; font-weight: 700; background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 12%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 45%, transparent); color: var(--pc, oklch(0.74 0.17 150)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn-quiet:active { transform: scale(0.98); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Bloc de séance",
+      "kind": "custom",
+      "refersTo": "button-block",
+      "description": "L'écran des douze blocs d'une séance, celui où l'on reste le plus longtemps. Un chiffre en Anton 7.5rem à la couleur du joueur, son libellé en minuscules, un bouton de 80 px collé en bas, et une barre de progression de 6 px. Rien d'autre : c'est le seul écran de l'app qui n'a qu'une chose à dire.",
+      "html": "<div class=\"ds-bloc\"><div class=\"ds-bloc-prog\"><i></i></div><div class=\"ds-bloc-num\"><p class=\"ds-bloc-reps\">25</p><p class=\"ds-bloc-lab\">pompes</p></div><button class=\"ds-bloc-btn\">Terminé ✓</button></div>",
+      "css": ".ds-bloc { display: flex; flex-direction: column; gap: 1.25rem; padding: 1rem 1.25rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-bloc-prog { height: 0.375rem; border-radius: 9999px; background: var(--color-surface, oklch(0.17 0 0)); overflow: hidden; } .ds-bloc-prog i { display: block; height: 100%; width: 42%; border-radius: 9999px; background: var(--pc, oklch(0.74 0.17 150)); transition: width 300ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-bloc-num { display: flex; flex-direction: column; align-items: center; } .ds-bloc-reps { margin: 0; font-family: var(--font-display, Anton, 'Space Grotesk', sans-serif); font-size: 7.5rem; font-weight: 400; line-height: 0.9; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; color: var(--pc, oklch(0.74 0.17 150)); } .ds-bloc-lab { margin: 0.5rem 0 0; font-size: 1.875rem; font-weight: 700; color: var(--color-ink, oklch(0.965 0 0)); } .ds-bloc-btn { width: 100%; min-height: 5rem; border: none; border-radius: 1.5rem; background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); font-size: 1.5rem; font-weight: 700; transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-bloc-btn:active { transform: scale(0.98); } .ds-bloc-btn:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ligne de pote",
+      "kind": "custom",
+      "description": "La pression sociale, une ligne par personne : avatar 36 px, prénom, et les trois pastilles du jour alignées à droite. Depuis le 01/08 c'est la forme unique dans tous les états de l'accueil — à huit, on lit tout le monde d'un regard là où la bande horizontale en poussait deux hors de l'écran. Ce n'est pas une cible : les 48 px sont du rythme, pas un plancher de tap.",
+      "html": "<ul class=\"ds-potes\"><li class=\"ds-pote\"><span class=\"ds-pote-av\">L</span><span class=\"ds-pote-nom\">Léo</span><span class=\"ds-pote-dots\"><i class=\"on\"></i><i class=\"on\"></i><i></i></span></li><li class=\"ds-pote\"><span class=\"ds-pote-av ds-pote-av-2\">N</span><span class=\"ds-pote-nom\">Nathan</span><span class=\"ds-pote-live\">à l'instant</span><span class=\"ds-pote-dots\"><i class=\"on2\"></i><i></i><i></i></span></li></ul>",
+      "css": ".ds-potes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-pote { display: flex; align-items: center; gap: 0.75rem; min-height: 3rem; } .ds-pote-av { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 9999px; font-size: 15px; font-weight: 700; color: oklch(0.78 0.16 65); background: color-mix(in oklch, oklch(0.78 0.16 65) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.78 0.16 65) 55%, transparent); } .ds-pote-av-2 { color: oklch(0.70 0.17 305); background: color-mix(in oklch, oklch(0.70 0.17 305) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.70 0.17 305) 55%, transparent); } .ds-pote-nom { flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: 500; color: var(--color-ink, oklch(0.965 0 0)); } .ds-pote-live { font-size: 11px; font-weight: 700; color: oklch(0.70 0.17 305); } .ds-pote-dots { display: inline-flex; align-items: center; gap: 0.25rem; } .ds-pote-dots i { width: 10px; height: 10px; border-radius: 9999px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--color-line, oklch(0.27 0 0)); } .ds-pote-dots i.on { background: oklch(0.78 0.16 65); box-shadow: none; } .ds-pote-dots i.on2 { background: oklch(0.70 0.17 305); box-shadow: none; }",
+      "refersTo": "pote-row"
+    },
+    {
+      "name": "Ligne de statut",
+      "kind": "custom",
+      "description": "Une seule phrase sous le titre, tappable vers le classement : rang et points, ou la série quand elle est en jeu. C'est la phrase qui fait faire les pompes, donc elle est teintée à 10 % de l'accent du joueur — assez pour se détacher du fond, pas assez pour concurrencer le lanceur.",
+      "html": "<button class=\"ds-rankline\"><span aria-hidden=\"true\">🔥</span> Série : 17 j en jeu — ton 3/3 vaut ×2</button>",
+      "css": ".ds-rankline { display: block; width: 100%; padding: 0.625rem 1rem; border: none; border-radius: 1rem; text-align: left; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 0.875rem; font-weight: 700; background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 10%, var(--color-surface, oklch(0.17 0 0))); color: var(--pc, oklch(0.74 0.17 150)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-rankline:active { transform: scale(0.99); } .ds-rankline:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; }",
+      "refersTo": "rank-line"
+    },
+    {
+      "name": "Puce de bonus",
       "kind": "chip",
-      "refersTo": "toggle-exo",
-      "description": "Les trois exercices en version compacte (historique, rattrapage). Coché à gauche, non coché à droite.",
-      "html": "<div class=\"ds-toggles\"><button class=\"ds-toggle ds-toggle-done\">✓ Pompes</button><button class=\"ds-toggle\">Abdos</button><button class=\"ds-toggle\">Squats</button></div>",
-      "css": ".ds-toggles { --pc: oklch(0.74 0.17 150); display: flex; gap: 0.5rem; } .ds-toggle { flex: 1; min-height: 2.75rem; border: none; border-radius: 0.75rem; background: var(--color-surface, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1px var(--color-line, oklch(0.27 0 0)); color: var(--color-muted, oklch(0.68 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 0.875rem; font-weight: 700; transition: background-color 160ms cubic-bezier(0.22,1,0.36,1); } .ds-toggle:active { transform: scale(0.97); } .ds-toggle-done { background: color-mix(in oklch, var(--pc) 24%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 60%, transparent); color: var(--pc); } .ds-toggle:disabled { opacity: 0.4; }"
+      "description": "La puce déclarative de la feuille de bonus, en trois états : au repos, déclarée (mixée à 22 % de l'accent), et doublée par le tirage du jour — celle-là passe à l'or et porte son badge ×2 sur le contour, jamais dans sa ligne de texte où il se lirait comme une seconde valeur.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\"><span aria-hidden=\"true\">🚶</span>10 000 pas<span class=\"ds-chip-pts\">+1</span></button><button class=\"ds-chip ds-chip-on\" aria-pressed=\"true\"><span aria-hidden=\"true\">🏊</span>Natation<span class=\"ds-chip-pts\">+2</span><span aria-hidden=\"true\">✓</span></button><button class=\"ds-chip ds-chip-x2\"><span aria-hidden=\"true\">🚴</span>Vélo<span class=\"ds-chip-pts\">+4</span><span class=\"ds-chip-badge\">×2</span></button></div>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.375rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-chip { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 1rem; border: none; border-radius: 9999px; white-space: nowrap; font-size: 0.875rem; font-weight: 700; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-ink, oklch(0.965 0 0)); box-shadow: inset 0 0 0 1px var(--color-line, oklch(0.27 0 0)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-chip:active { transform: scale(0.97); } .ds-chip:disabled { opacity: 0.35; } .ds-chip:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; } .ds-chip-pts { font-weight: 500; color: var(--color-faint, oklch(0.45 0 0)); } .ds-chip-on { background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 22%, var(--color-surface, oklch(0.17 0 0))); color: var(--pc, oklch(0.74 0.17 150)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 65%, transparent); } .ds-chip-on .ds-chip-pts { color: var(--pc, oklch(0.74 0.17 150)); } .ds-chip-x2 { background: color-mix(in oklch, var(--color-x2, oklch(0.85 0.17 88)) 14%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--color-x2, oklch(0.85 0.17 88)) 70%, transparent); } .ds-chip-x2 .ds-chip-pts { color: var(--color-x2, oklch(0.85 0.17 88)); } .ds-chip-badge { position: absolute; top: -0.5rem; right: 0.25rem; padding: 0.125rem 0.375rem; border-radius: 9999px; background: var(--color-x2, oklch(0.85 0.17 88)); color: var(--color-bg, oklch(0.115 0 0)); font-family: var(--font-display, Anton, 'Space Grotesk', sans-serif); font-size: 11px; font-weight: 700; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }",
+      "refersTo": "chip-bonus"
     },
     {
       "name": "Champ de saisie",
       "kind": "input",
       "refersTo": "input-text",
-      "description": "Saisie du tchat et de tous les formulaires. 16 px obligatoire, sinon iOS zoome au focus.",
-      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Écrire un message\" aria-label=\"Écrire un message\" />",
-      "css": ".ds-input { --pc: oklch(0.74 0.17 150); width: 100%; min-height: 2.75rem; padding: 0.625rem 1rem; border: none; border-radius: 1rem; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1rem; line-height: 1.375; } .ds-input::placeholder { color: var(--color-muted, oklch(0.68 0 0)); } .ds-input:focus { outline: none; box-shadow: 0 0 0 2px var(--pc); }"
+      "description": "Fond au premier étage, 16 px obligatoires (en dessous, iOS zoome au focus et casse la mise en page pour le reste de la session). L'anneau de focus est à la couleur du joueur, comme tout ce qui dit « toi ».",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Écris un message…\" />",
+      "css": ".ds-input { width: 100%; min-height: 2.75rem; padding: 0.625rem 1rem; border: none; border-radius: 1rem; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 1rem; font-weight: 400; } .ds-input::placeholder { color: var(--color-muted, oklch(0.68 0 0)); } .ds-input:focus { outline: none; box-shadow: 0 0 0 2px var(--pc, oklch(0.74 0.17 150)); }"
     },
     {
       "name": "Barre d'onglets",
       "kind": "nav",
       "refersTo": "tab-item",
-      "description": "Cinq onglets maximum, collés en bas, pouce-friendly. Actif à la couleur du joueur, badge de non-lus sur les autres.",
-      "html": "<nav class=\"ds-tabbar\" aria-label=\"Navigation\"><button class=\"ds-tab ds-tab-active\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"16\" rx=\"4\" stroke=\"currentColor\" stroke-width=\"1.8\"/><path d=\"m8.5 12.5 2.5 2.5 4.5-5\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span class=\"ds-tab-label\">Aujourd'hui</span></button><button class=\"ds-tab\"><span class=\"ds-tab-icon\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.5 12.2c0 4-3.8 7.2-8.5 7.2a9.9 9.9 0 0 1-2.6-.34L4.5 20.5l1.2-3.3A6.9 6.9 0 0 1 3.5 12.2C3.5 8.2 7.3 5 12 5s8.5 3.2 8.5 7.2Z\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span class=\"ds-tab-badge\">3</span></span><span class=\"ds-tab-label\">Tchat</span></button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 20V13M12 20V5M19 20v-9\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg><span class=\"ds-tab-label\">Stats</span></button></nav>",
-      "css": ".ds-tabbar { --pc: oklch(0.74 0.17 150); display: flex; border-top: 1px solid var(--color-line, oklch(0.27 0 0)); background: color-mix(in oklch, var(--color-bg, oklch(0.115 0 0)) 95%, transparent); backdrop-filter: blur(8px); } .ds-tab { display: flex; flex: 1; min-height: 3.5rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; border: none; background: none; color: var(--color-faint, oklch(0.45 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; } .ds-tab-active { color: var(--pc); } .ds-tab-label { font-size: 0.6875rem; font-weight: 700; } .ds-tab-icon { position: relative; display: inline-flex; } .ds-tab-badge { position: absolute; top: -0.375rem; right: -0.625rem; display: flex; align-items: center; justify-content: center; height: 1rem; min-width: 1rem; padding: 0 0.25rem; border-radius: 9999px; background: var(--pc); color: oklch(0.15 0 0); font-size: 0.625rem; font-weight: 700; }"
+      "description": "Collée en bas, cinq onglets maximum, fond translucide flouté. L'inactif est passé de `faint` à `quiet` le 31/07 : les icônes sont aria-hidden, donc le mot est la seule chose qui rend la barre apprenable — il devait être lisible.",
+      "html": "<nav class=\"ds-tabbar\"><a class=\"ds-tab ds-tab-on\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"4\"/><path d=\"m8 12 3 3 5-6\"/></svg><span>Aujourd'hui</span></a><a class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12h4l2-6 3 13 3-9 2 2h4\"/></svg><span>Feed</span></a><a class=\"ds-tab\"><span class=\"ds-tab-ico\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z\"/></svg><span class=\"ds-tab-badge\">3</span></span><span>Tchat</span></a></nav>",
+      "css": ".ds-tabbar { display: flex; border-top: 1px solid var(--color-line, oklch(0.27 0 0)); background: color-mix(in oklch, var(--color-bg, oklch(0.115 0 0)) 95%, transparent); backdrop-filter: blur(8px); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-tab { display: flex; flex: 1 1 0%; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-height: 3.5rem; color: var(--color-quiet, oklch(0.62 0 0)); text-decoration: none; } .ds-tab span { font-size: 11px; font-weight: 700; } .ds-tab-on { color: var(--pc, oklch(0.74 0.17 150)); } .ds-tab-ico { position: relative; display: inline-flex; } .ds-tab-badge { position: absolute; top: -0.375rem; right: -0.625rem; display: flex; align-items: center; justify-content: center; height: 1rem; min-width: 1rem; padding: 0 0.25rem; border-radius: 9999px; background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); font-size: 10px; font-weight: 700; }"
+    },
+    {
+      "name": "Onglets segmentés",
+      "kind": "nav",
+      "refersTo": "segment-tab",
+      "description": "Deux choix côte à côte quand un même écran prépare deux choses — « Le contrat » et « Des bonus ». Ce ne sont pas les onglets de navigation : ceux-là vivent en bas, en caption et sans fond. L'actif reprend la grammaire d'une puce déclarée, mixée à 22 %.",
+      "html": "<div role=\"tablist\" aria-label=\"Ce que je prépare\" class=\"ds-segs\"><button role=\"tab\" aria-selected=\"true\" class=\"ds-seg ds-seg-on\">Le contrat</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-seg\">Des bonus</button></div>",
+      "css": ".ds-segs { display: flex; gap: 0.5rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-seg { flex: 1 1 0%; min-height: 2.75rem; border: none; border-radius: 1rem; font-size: 0.875rem; font-weight: 700; background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-muted, oklch(0.68 0 0)); transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-seg:active { transform: scale(0.98); } .ds-seg:focus-visible { outline: 2px solid var(--pc, oklch(0.74 0.17 150)); outline-offset: 2px; } .ds-seg-on { background: color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 22%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc, oklch(0.74 0.17 150)) 65%, transparent); color: var(--pc, oklch(0.74 0.17 150)); }"
     },
     {
       "name": "Toast",
       "kind": "custom",
       "refersTo": "toast",
-      "description": "Le seul élément flottant de l'app. Échec d'écriture, confirmation de copie. Jamais un succès ordinaire.",
-      "html": "<div class=\"ds-toast\">Impossible d'enregistrer, réessaie</div>",
-      "css": ".ds-toast { display: inline-block; padding: 0.75rem 1.25rem; border-radius: 9999px; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4); }"
-    },
-    {
-      "name": "Skeleton",
-      "kind": "custom",
-      "refersTo": "skeleton",
-      "description": "Un bloc à la forme et à la place exactes du contenu qui arrive. Invisible les 250 premières ms, puis respire en opacité.",
-      "html": "<div class=\"ds-skeleton-stack\"><span class=\"ds-skeleton\" style=\"height:16px;width:60%\"></span><span class=\"ds-skeleton\" style=\"height:16px;width:85%\"></span><span class=\"ds-skeleton\" style=\"height:16px;width:40%\"></span></div>",
-      "css": ".ds-skeleton-stack { display: flex; flex-direction: column; gap: 0.5rem; } .ds-skeleton { display: block; border-radius: 12px; background-color: var(--color-surface, oklch(0.17 0 0)); animation: ds-skeleton-in 220ms 250ms both, ds-skeleton-respire 1.8s 470ms ease-in-out infinite; } @keyframes ds-skeleton-in { from { opacity: 0 } to { opacity: 1 } } @keyframes ds-skeleton-respire { 0%, 100% { opacity: 1 } 50% { opacity: 0.6 } } @media (prefers-reduced-motion: reduce) { .ds-skeleton { animation: ds-skeleton-in 220ms 250ms both; } }"
+      "description": "Le seul élément de l'app qui flotte réellement — donc la seule ombre portée du système. Il sert aux échecs d'écriture et aux confirmations de copie, jamais aux succès ordinaires : l'UI est optimiste, elle ne se félicite pas.",
+      "html": "<div class=\"ds-toast\">Bonus non validés</div>",
+      "css": ".ds-toast { display: inline-block; padding: 0.75rem 1.25rem; border-radius: 9999px; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); font-size: 0.875rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4); animation: ds-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both; } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } } @media (prefers-reduced-motion: reduce) { .ds-toast { animation: none; } }"
     },
     {
       "name": "Avatar joueur",
       "kind": "custom",
-      "refersTo": "avatar",
-      "description": "Initiale ou photo, toujours dans un anneau à la couleur du joueur. La couleur, c'est l'identité.",
-      "html": "<span class=\"ds-avatar\">J</span>",
-      "css": ".ds-avatar { --pc: oklch(0.74 0.17 150); display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 9999px; background: color-mix(in oklch, var(--pc) 18%, oklch(0.17 0 0)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--pc) 55%, transparent); color: var(--pc); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 18px; font-weight: 700; }"
+      "description": "L'identité, en deux variantes : photo recadrée, ou initiale sur un fond mixé à 18 % de l'accent. L'anneau intérieur à 55 % passe par-dessus l'image — sinon object-cover le recouvrirait. C'est le seul endroit où les huit accents cohabitent sur un même écran.",
+      "html": "<span class=\"ds-avatars\"><span class=\"ds-avatar ds-av-vert\">H</span><span class=\"ds-avatar ds-av-cyan\">D</span><span class=\"ds-avatar ds-av-rose\">J</span></span>",
+      "css": ".ds-avatars { display: inline-flex; gap: 0.75rem; font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 9999px; font-size: 18px; font-weight: 700; } .ds-av-vert { color: oklch(0.74 0.17 150); background: color-mix(in oklch, oklch(0.74 0.17 150) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.74 0.17 150) 55%, transparent); } .ds-av-cyan { color: oklch(0.80 0.13 195); background: color-mix(in oklch, oklch(0.80 0.13 195) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.80 0.13 195) 55%, transparent); } .ds-av-rose { color: oklch(0.73 0.17 350); background: color-mix(in oklch, oklch(0.73 0.17 350) 18%, var(--color-surface, oklch(0.17 0 0))); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, oklch(0.73 0.17 350) 55%, transparent); } "
+    },
+    {
+      "name": "Feuille de confirmation",
+      "kind": "custom",
+      "refersTo": "sheet-confirm",
+      "description": "La sortie d'un plein écran quand du travail serait perdu. Elle ne pose pas une question abstraite : elle liste ce qu'on s'apprête à perdre, avec les montants. L'issue qui garde le travail est en aplat d'accent, celle qui le jette en surface — la moins coûteuse est la plus visible.",
+      "html": "<div class=\"ds-sheet\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Quitter la séance bonus\"><div class=\"ds-sheet-box\"><p class=\"ds-sheet-t\">1 bloc fait, rien de déclaré</p><ul class=\"ds-sheet-l\"><li><span>🤸 100 jumping jacks</span><b>+3</b></li></ul><div class=\"ds-sheet-a\"><button class=\"ds-sheet-go\">Valider +3</button><button class=\"ds-sheet-no\">Sortir sans rien</button></div><button class=\"ds-sheet-back\">Continuer la séance</button></div></div>",
+      "css": ".ds-sheet { display: flex; align-items: flex-end; padding: 0 1.25rem; background: rgb(0 0 0 / 0.6); font-family: var(--font-body, 'Space Grotesk', system-ui, sans-serif); } .ds-sheet-box { width: 100%; margin-bottom: 1rem; padding: 1.25rem; border-radius: 1.5rem; background: var(--color-raised, oklch(0.22 0 0)); color: var(--color-ink, oklch(0.965 0 0)); animation: ds-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both; } @keyframes ds-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } } @media (prefers-reduced-motion: reduce) { .ds-sheet-box { animation: none; } } .ds-sheet-t { margin: 0; font-size: 1.125rem; font-weight: 700; } .ds-sheet-l { list-style: none; margin: 0.75rem 0 0; padding: 0; } .ds-sheet-l li { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.875rem; color: var(--color-muted, oklch(0.68 0 0)); } .ds-sheet-l b { color: var(--pc, oklch(0.74 0.17 150)); } .ds-sheet-a { display: flex; gap: 0.5rem; margin-top: 1rem; } .ds-sheet-a button { flex: 1 1 0%; min-height: 3rem; border: none; border-radius: 1rem; font-size: 1rem; font-weight: 700; } .ds-sheet-go { background: var(--pc, oklch(0.74 0.17 150)); color: oklch(0.15 0 0); } .ds-sheet-no { background: var(--color-surface, oklch(0.17 0 0)); color: var(--color-muted, oklch(0.68 0 0)); } .ds-sheet-back { width: 100%; min-height: 2.75rem; margin-top: 0.5rem; border: none; background: none; font-size: 0.875rem; font-weight: 500; color: var(--color-quiet, oklch(0.62 0 0)); }"
     }
   ],
   "narrative": {
     "northStar": "L'interrupteur dans le noir",
-    "overview": "Un interrupteur, on le trouve au doigt sans le chercher des yeux, et il répond avant qu'on ait fini de le pousser. C'est le contrat de cette app : à 23h, lumière éteinte, le pouce arrive sur la cible, la cible claque, l'écran se ferme. Rien n'y est là pour être regardé — tout y est pour être atteint. Chaque écran se juge au temps entre l'ouverture et la coche.\n\nLe système est donc noir profond, sans dégradé de fond, sans photo décorative, sans ombre portée. La profondeur se fabrique en empilant trois noirs (bg → surface → raised) et en posant des anneaux intérieurs : rien ne flotte, tout est encastré, et le contraste reste lisible dans le noir sans halo qui bave. La densité est basse et assumée : trois cartes hautes de 96 px occupent tout l'écran d'accueil, parce qu'à moitié endormi on ne vise pas un chip de 28 px.\n\nLa couleur n'appartient pas au système, elle appartient aux joueurs. Huit accents fixes, un par personne, tous à la même clarté (L 0.70–0.86) pour que personne n'ait une couleur « plus faible » que les autres. Partout où l'interface veut dire « toi », elle prend --pc, l'accent du joueur courant, injecté à la racine. Le seul accent non-joueur de l'app est le doublement du jour (x2, hue 88) : il ne pouvait emprunter la couleur de personne sans mentir.",
+    "overview": "Un interrupteur, on le trouve au doigt sans le chercher des yeux, et il répond avant qu'on ait fini de le pousser. C'est le contrat de cette app : à 23h, lumière éteinte, le pouce arrive sur la cible, la cible claque, l'écran se ferme. Rien n'y est là pour être regardé — tout y est pour être atteint. Chaque écran se juge au temps entre l'ouverture et la coche.\n\nLe système est donc noir profond, sans dégradé de fond, sans photo décorative, sans ombre portée. La profondeur se fabrique en empilant trois noirs (bg → surface → raised) et en posant des anneaux intérieurs (inset box-shadow) : rien ne flotte, tout est encastré, et le contraste reste lisible dans le noir sans halo qui bave.\n\nLa densité est basse et assumée — à moitié endormi on ne vise pas un chip de 28 px — mais elle se paie en contenu, jamais en vide. La distinction a coûté deux itérations sur l'accueil : trois cartes de 96 px y ont occupé les deux tiers de l'écran alors qu'elles n'écrivaient plus rien depuis le 21/07, puis un lanceur de 176 px a pris leur place et laissé 330 px de noir sous lui. Un objet seul sur son écran n'a personne à battre : l'agrandir n'achète aucune vitesse de tap, ça achète du vide ailleurs. La place va à ce qui fait revenir les gens — la colonne des potes — et l'action se pose en bas, à 60 px, dans la zone du pouce.\n\nLa couleur n'appartient pas au système, elle appartient aux joueurs. Huit accents fixes, un par personne, tous à la même clarté (L 0.70–0.86) pour que personne n'ait une couleur « plus faible » que les autres. Partout où l'interface veut dire « toi », elle prend --pc, l'accent du joueur courant, injecté à la racine. Le seul accent non-joueur de l'app est le doublement du jour (x2, hue 88) : il ne pouvait emprunter la couleur de personne sans mentir.",
     "keyCharacteristics": [
       "Sombre par défaut, neutres à chroma 0 : color-scheme: dark, aucun thème clair, aucun toggle.",
       "La couleur = l'identité du joueur ; l'UI elle-même n'a pas de couleur de marque.",
       "Zéro ombre portée hors toast : profondeur par empilement tonal + anneaux intérieurs.",
       "Mobile only, une seule colonne, zéro breakpoint responsive dans tout le code.",
       "Cibles ≥ 44 px, active:scale, navigator.vibrate : le tap est un événement physique.",
-      "Anton pour les chiffres qui comptent, Space Grotesk pour tout le reste."
+      "Anton pour les chiffres qui comptent, Space Grotesk pour tout le reste.",
+      "L'action principale d'un écran vit en bas et ne dépasse pas 60 px — 80 px dans la séance, où l'écran ne porte qu'elle."
     ],
     "rules": [
-      { "name": "The Player-Owns-Color Rule", "body": "Aucun élément d'interface n'a de couleur propre. Si quelque chose est coloré, c'est qu'il appartient à quelqu'un (--pc ou player.color), ou que c'est le doublement (x2), ou que c'est une erreur (danger). Un accent inventé pour « faire joli » n'existe pas dans ce système.", "section": "colors" },
-      { "name": "The Zero-Chroma Rule", "body": "Tous les neutres sont à chroma 0, exactement. Pas de neutre tiédi vers l'ambre, pas de gris bleuté : la moindre teinte dans le fond entre en conflit avec les huit accents joueurs, dont trois sont chauds.", "section": "colors" },
-      { "name": "The Mix-Don't-Pick Rule", "body": "Les états colorés se fabriquent par color-mix(in oklch, <accent> N%, var(--color-surface)) — 18 % pour un avatar, 22–24 % pour une carte cochée, 55–65 % pour son anneau. Aucune variante d'accent n'est écrite en dur.", "section": "colors" },
-      { "name": "The 16px Floor Rule", "body": "Tout champ de saisie est à text-base (16 px) minimum. En dessous, iOS zoome au focus et casse la mise en page pour le reste de la session.", "section": "typography" },
-      { "name": "The Anton-Is-Numbers-Only Rule", "body": "Anton ne porte jamais un mot. Un titre en display, c'est une décoration ; un score en display, c'est l'information principale de l'écran.", "section": "typography" },
-      { "name": "The Tabular Rule", "body": "Tout chiffre qui change en place (série, chrono, compteur) est en font-variant-numeric: tabular-nums. Sans ça, l'odomètre de la série tremble à chaque bascule.", "section": "typography" },
-      { "name": "The Five-Tabs-Max Rule", "body": "Cinq onglets, c'est le maximum absolu. Au sixième, on fusionne (le tchat a coûté sa place à « Historique », descendu dans Stats).", "section": "layout" },
-      { "name": "The Thumb-Zone Rule", "body": "L'action principale d'un écran est en bas. Rien d'important ne vit dans le tiers supérieur : c'est la zone que le pouce n'atteint pas d'une main.", "section": "layout" },
-      { "name": "The Inset-Only Rule", "body": "Une bordure se fait avec inset box-shadow, jamais avec border. La boîte ne change pas de taille entre l'état coché et non coché, donc rien ne saute sous le pouce.", "section": "elevation" },
-      { "name": "The Two-Floors Rule", "body": "bg → surface → raised, et c'est fini. S'il faut un troisième étage, c'est que la hiérarchie de l'écran est fausse.", "section": "elevation" },
-      { "name": "The Round-By-Size Rule", "body": "1.5rem au-dessus de 80 px de haut, 1rem entre 40 et 80, 0.75rem en dessous, plein rond si c'est un cercle. Un rayon choisi au hasard se voit.", "section": "shapes" }
+      {
+        "name": "The Player-Owns-Color Rule",
+        "body": "Aucun élément d'interface n'a de couleur propre. Si quelque chose est coloré, c'est qu'il appartient à quelqu'un (--pc ou player.color), ou que c'est le doublement (x2), ou que c'est une erreur (danger). Un accent inventé pour « faire joli » n'existe pas dans ce système.",
+        "section": "colors"
+      },
+      {
+        "name": "The Zero-Chroma Rule",
+        "body": "Tous les neutres sont à chroma 0, exactement. Pas de neutre tiédi vers l'ambre, pas de gris bleuté : la moindre teinte dans le fond entre en conflit avec les huit accents joueurs, dont trois sont chauds.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mix-Don't-Pick Rule",
+        "body": "Les états colorés se fabriquent par color-mix(in oklch, <accent> N%, var(--color-surface)) — 18 % pour un avatar, 22–24 % pour une carte cochée, 55–65 % pour son anneau. Aucune variante d'accent n'est écrite en dur.",
+        "section": "colors"
+      },
+      {
+        "name": "The 16px Floor Rule",
+        "body": "Tout champ de saisie est à text-base (16 px) minimum. En dessous, iOS zoome au focus et casse la mise en page pour le reste de la session.",
+        "section": "typography"
+      },
+      {
+        "name": "The 11px Floor Rule",
+        "body": "Aucun texte sous 11 px, soit caption, le plus petit cran de l'échelle. Il n'y a pas de text-[10px] ni de text-[9px] : s'ils apparaissent, c'est qu'on a essayé de faire tenir une information dans une place qu'on ne lui a pas donnée, et la réponse est de revoir la place. Cette app se lit à bout de bras, dans le noir, par des gens fatigués — 10 px n'y est pas un détail typographique, c'est du texte perdu. Seule exception tolérée : le chiffre d'une pastille de non-lus, qui est un glyphe dans un disque de 16 px et pas une phrase.",
+        "section": "typography"
+      },
+      {
+        "name": "The Emoji-Must-Glow Rule",
+        "body": "Un emoji ne porte un sens que s'il est clair sur fond noir. 🔥 🏆 🏁 ✓ passent : ils sont orange, dorés, blancs. La bouée 🛟 ne passait pas — c'est un anneau sombre, et à 12 px dans une ligne du Classement elle se lisait comme une tache noire à côté d'un 🔥 parfaitement net. Avant de poser un emoji comme indicateur, on le regarde à sa taille réelle sur bg ; s'il disparaît, on le dessine (IconJoker dans components/ui.tsx) en currentColor, au vocabulaire des icônes d'onglets — trait 1,8, bouts ronds, grille de 24. Un emoji dans une *phrase* reste un emoji ; c'est l'emoji seul, porteur d'un état qui doit se voir.",
+        "section": "typography"
+      },
+      {
+        "name": "The Anton-Is-Numbers-Only Rule",
+        "body": "Anton ne porte jamais un mot. Un titre en display, c'est une décoration ; un score en display, c'est l'information principale de l'écran.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Tout chiffre qui change en place (série, chrono, compteur) est en font-variant-numeric: tabular-nums. Sans ça, l'odomètre de la série tremble à chaque bascule.",
+        "section": "typography"
+      },
+      {
+        "name": "The Five-Tabs-Max Rule",
+        "body": "Cinq onglets, c'est le maximum absolu. Au sixième, on fusionne (le tchat a coûté sa place à « Historique », descendu dans Stats).",
+        "section": "layout"
+      },
+      {
+        "name": "The Thumb-Zone Rule",
+        "body": "L'action principale d'un écran est en bas. Rien d'important ne vit dans le tiers supérieur : c'est la zone que le pouce n'atteint pas d'une main.",
+        "section": "layout"
+      },
+      {
+        "name": "The Size-Isn't-Emphasis Rule",
+        "body": "Un élément seul sur son écran n'a personne à battre : l'agrandir n'achète aucune vitesse de tap. Le lanceur de l'accueil a fait 176 px pendant une journée, sans rien gagner d'autre que 330 px de vide sous lui. Ce qui hiérarchise ici, c'est la couleur (un seul aplat d'accent par écran) et la place (en bas), pas la surface. Si un objet doit grossir pour qu'on le remarque, c'est qu'il est mal placé ou qu'il n'est pas seul.",
+        "section": "layout"
+      },
+      {
+        "name": "The Inset-Only Rule",
+        "body": "Une bordure se fait avec inset box-shadow, jamais avec border. La boîte ne change pas de taille entre l'état coché et non coché, donc rien ne saute sous le pouce.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two-Floors Rule",
+        "body": "bg → surface → raised, et c'est fini. S'il faut un troisième étage, c'est que la hiérarchie de l'écran est fausse.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Round-By-Size Rule",
+        "body": "1.5rem au-dessus de 80 px de haut, 1rem entre 40 et 80, 0.75rem en dessous, plein rond si c'est un cercle. Un rayon choisi au hasard se voit.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do prendre la couleur dans lib/palette.ts ou dans var(--pc). Une couleur écrite en dur dans un composant est un bug.",
@@ -243,9 +576,11 @@
       "Do poser du texte oklch(0.15 0 0) sur tout aplat d'accent joueur.",
       "Do délimiter avec inset box-shadow, pour que la boîte ne change pas de taille entre deux états.",
       "Do viser ≥ 44 px de cible et accompagner le tap d'un active:scale + navigator.vibrate.",
-      "Do ajouter chaque nouvelle animation au bloc @media (prefers-reduced-motion: reduce) de globals.css, avec sa fin d'état.",
+      "Do ajouter chaque nouvelle animation au bloc @media (prefers-reduced-motion: reduce) de globals.css, avec sa fin d'état — une animation coupée ne doit jamais laisser un élément bloqué sur sa valeur de départ.",
       "Do utiliser Skeleton pour toute attente réseau, à la forme du contenu final.",
-      "Do garder les transitions entre 120 et 260 ms sur la courbe cubic-bezier(0.22, 1, 0.36, 1)."
+      "Do garder les transitions entre 120 et 260 ms sur la courbe cubic-bezier(0.22, 1, 0.36, 1).",
+      "Do prendre quiet (oklch(0.62 0 0)) dès qu'un mot doit être lu en retrait. faint est de la texture : à 2,7:1 il ne porte jamais une information seule.",
+      "Do poser le ressort (flex-1) entre le contenu et l'action, pour que l'action reste collée au pouce quand la liste est courte."
     ],
     "donts": [
       "Don't ajouter d'ombre portée. La profondeur se fait en empilant bg / surface / raised.",
@@ -257,7 +592,10 @@
       "Don't empiler un quatrième niveau de fond, ni imbriquer une carte dans une carte.",
       "Don't mettre un spinner bloquant : l'UI est optimiste, l'échec se rattrape par rollback + toast.",
       "Don't styler un :hover comme porteur d'information. Il n'y a pas de souris.",
-      "Don't faire clignoter, boucler ou traîner une animation. Une seule fois, courte, puis plus rien."
+      "Don't faire clignoter, boucler ou traîner une animation. Une seule fois, courte, puis plus rien.",
+      "Don't agrandir un élément pour dire qu'il est important. S'il est seul sur son écran, la taille n'achète aucune vitesse de tap — elle achète du vide ailleurs. La couleur et la place hiérarchisent, pas la surface.",
+      "Don't laisser un flex-1 combler une zone qu'on n'a pas su remplir. Un vide au milieu d'un écran est un contenu manquant, pas une respiration.",
+      "Don't emballer une liste dans des cartes. Huit cartes empilées, c'est huit fois le même fond pour dire « ce sont des lignes »."
     ]
   }
 }

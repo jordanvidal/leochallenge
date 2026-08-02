@@ -3,7 +3,8 @@
 // duel_results a déjà tout résolu à minuit) :
 //   1. raconter les duels de la semaine écoulée (feed + lignes push) ;
 //   2. apparier la nouvelle semaine (rangs voisins parmi les actifs,
-//      exempt tournant si impair) ;
+//      moins ceux que DUELS_EXCLUS met de côté, exempt tournant si
+//      l'effectif restant est impair) ;
 //   3. rendre les lignes push par joueur, que le récap embarque dans
 //      SA notification — un seul push le lundi, pas deux.
 // Rejouable sans dégât : l'appariement saute si la semaine existe déjà,
@@ -12,7 +13,8 @@
 
 import { addDays, weekdayIndex } from "@/lib/challenge";
 import { argLigue } from "@/lib/ligue";
-import { DUEL_POINTS, duelsFrom } from "@/lib/duels";
+import { DUEL_POINTS, duelsFrom, nomsExclus } from "@/lib/duels";
+import { normalizeName } from "@/lib/palette";
 import { TERRAIN_ENV, type Terrain } from "./ligues";
 import { parisToday, serverSupabase } from "./push";
 
@@ -175,7 +177,7 @@ export async function runWeeklyDuels(t: Terrain = TERRAIN_ENV): Promise<{
 
     let weekDuels = existing.data as DuelRow[];
     if (weekDuels.length === 0) {
-      weekDuels = await createPairings(supabase, today, t);
+      weekDuels = await createPairings(supabase, today, t, names);
       created = weekDuels.length;
     }
 
@@ -241,6 +243,7 @@ async function createPairings(
   supabase: ReturnType<typeof serverSupabase>,
   monday: string,
   t: Terrain,
+  names: Map<string, string>,
 ): Promise<DuelRow[]> {
   // Actifs = au moins une coche sur [lundi-6, lundi] (sémantique reminders).
   // Cadrées par ligue : apparier un joueur avec l'inconnu d'une autre ligue
@@ -281,6 +284,29 @@ async function createPairings(
       .filter((e) => e.pushups || e.abs || e.squats)
       .map((e) => e.player_id),
   );
+
+  // Les mis de côté (DUELS_EXCLUS) sortent du vivier avant tout comptage :
+  // c'est ce qui décide de la parité, donc de qui sera exempt. Filtrer plus
+  // tard donnerait un exempt calculé sur un effectif fantôme.
+  const exclus = nomsExclus(process.env.DUELS_EXCLUS);
+  if (exclus.size > 0) {
+    const retires: string[] = [];
+    for (const id of activeIds) {
+      const nom = names.get(id);
+      if (nom && exclus.has(normalizeName(nom))) {
+        activeIds.delete(id);
+        retires.push(nom);
+      }
+    }
+    // Trace dans les logs Vercel du lundi : la variable est invisible depuis
+    // l'appli, c'est le seul endroit où vérifier qu'elle a bien mordu — et
+    // qu'un prénom mal orthographié n'a pas été ignoré en silence.
+    console.log(
+      `[duels] exclus=${retires.join(", ") || "aucun"} ` +
+        `(demandés: ${[...exclus].join(", ")}) — ${activeIds.size} actifs à apparier`,
+    );
+  }
+
   if (activeIds.size < 2) return [];
 
   // Classés du 1er au dernier ; player_id en départage d'ex-æquo pour

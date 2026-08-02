@@ -13,7 +13,7 @@
 // Le classement de la semaine close est recalculé à la demande (RPC
 // leaderboard), comme l'historique du Classement. Jamais stocké.
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useId, useState } from "react";
 import { addDays, challengeWeeks, mondayOf } from "@/lib/challenge";
 import { fetchWeekLeaderboard, fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
 import { eventPhrase, FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
@@ -50,15 +50,24 @@ function label(p: Player, me: Player): string {
   return p.id === me.id ? "Toi" : p.name;
 }
 
-function Name({ p, me }: { p: Player; me: Player }) {
+/** `serre` : le nom vit dans une rangée flex et doit pouvoir rétrécir.
+    Ailleurs il vit dans une phrase, où `truncate` était un non-sens —
+    `overflow` et `text-overflow` ne s'appliquent pas à un span en ligne,
+    donc seul `nowrap` passait et un prénom long débordait au lieu de
+    revenir à la ligne. Sans `min-w-0` en revanche, un élément flex refuse
+    de rétrécir sous son contenu et pousse le second avatar hors de la carte. */
+function Name({ p, me, serre }: { p: Player; me: Player; serre?: boolean }) {
   return (
-    <span className="truncate font-bold" style={{ color: p.color }}>
+    <span
+      className={serre ? "min-w-0 truncate font-bold" : "font-bold"}
+      style={{ color: p.color }}
+    >
       {label(p, me)}
     </span>
   );
 }
 
-export default function WeekRecapCard({
+function WeekRecapCard({
   events,
   me,
   byId,
@@ -69,6 +78,7 @@ export default function WeekRecapCard({
   onGoLeaderboard,
   vise,
 }: Props) {
+  const titreId = useId();
   const f = useFenetre();
   const ligueId = useLigueCourante()?.id ?? null;
   const starts = events.filter((e) => e.kind === "duel_start");
@@ -163,11 +173,18 @@ export default function WeekRecapCard({
       id={vise ? "moment-vise" : undefined}
       className={`flex flex-col rounded-2xl px-4 py-4 ${vise ? "moment-vise" : ""}`}
       style={{ background: "var(--color-raised)" }}
-      aria-label="Bilan de la semaine"
+      // `aria-label` sur un `<li>` nu est ignoré : l'élément n'a pas de rôle
+      // qui accepte un nom. Le titre de la carte existe déjà, on pointe
+      // dessus — et il devient un vrai titre plutôt qu'un paragraphe.
+      aria-labelledby={titreId}
     >
-      <p className="text-xs font-bold uppercase tracking-wide text-faint">
-        📊 {closedWeek ? `Semaine ${closedWeek.index} bouclée` : "Semaine bouclée"}
-      </p>
+      <h3
+        id={titreId}
+        className="text-xs font-bold uppercase tracking-wide text-quiet"
+      >
+        <span aria-hidden>📊</span>{" "}
+        {closedWeek ? `Semaine ${closedWeek.index} bouclée` : "Semaine bouclée"}
+      </h3>
 
       {recitAuthor && recitLine && (
         <p className="mt-2 text-sm leading-snug">
@@ -183,8 +200,8 @@ export default function WeekRecapCard({
           mieux vaut une carte plus courte qu'un chiffre faux. */}
       {winnerPlayer && winner && (
         <p className="mt-2 text-sm leading-snug">
-          🏆 <Name p={winnerPlayer} me={me} /> rafle la semaine avec{" "}
-          {fmtPoints(winner.points)} pts.
+          <span aria-hidden>🏆</span> <Name p={winnerPlayer} me={me} /> rafle la
+          semaine avec {fmtPoints(winner.points)} pts.
           {myRow && myRow.player_id !== winner.player_id && (
             <> Tu finis {frenchRank(myRow.rank)}.</>
           )}
@@ -193,7 +210,9 @@ export default function WeekRecapCard({
 
       {settled.length > 0 && (
         <>
-          <p className="mt-4 text-xs font-bold text-muted">⚔️ Les duels sont réglés</p>
+          <p className="mt-4 text-xs font-bold text-muted">
+            <span aria-hidden>⚔️</span> Les duels sont réglés
+          </p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {settled.map((p) => (
               <li key={`${p.a.id}-${p.b?.id}`} className="text-sm leading-snug">
@@ -217,7 +236,8 @@ export default function WeekRecapCard({
       {fresh.length > 0 && (
         <>
           <p className="mt-4 text-xs font-bold text-muted">
-            ⚔️ Les duels de la semaine{openedWeek ? ` ${openedWeek.index}` : ""}
+            <span aria-hidden>⚔️</span> Les duels de la semaine
+            {openedWeek ? ` ${openedWeek.index}` : ""}
           </p>
           <ul className="mt-2 flex flex-col gap-1.5">
             {fresh.map((p) => {
@@ -235,13 +255,17 @@ export default function WeekRecapCard({
                   }
                 >
                   <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
-                  <Name p={p.a} me={me} />
+                  <Name p={p.a} me={me} serre />
                   {p.b ? (
                     <>
-                      <span className="shrink-0 text-faint" aria-label="contre">
+                      {/* `aria-label` sur un span sans rôle est ignoré : le
+                          lecteur d'écran annonçait l'emoji brut. Le mot est
+                          maintenant dit, et le glyphe se tait. */}
+                      <span className="shrink-0 text-quiet" aria-hidden>
                         ⚔️
                       </span>
-                      <Name p={p.b} me={me} />
+                      <span className="sr-only">contre</span>
+                      <Name p={p.b} me={me} serre />
                       <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
                     </>
                   ) : (
@@ -263,12 +287,12 @@ export default function WeekRecapCard({
       </button>
 
       {/* Le bilan fait parler : on réagit et on commente dessus comme sur
-          n'importe quel moment. Le filet le sépare du contenu figé —
-          au-dessus ce qui s'est passé, en dessous ce qu'on en dit. */}
-      <div
-        className="mt-2 border-t pt-1"
-        style={{ borderColor: "color-mix(in oklch, var(--color-faint) 25%, transparent)" }}
-      >
+          n'importe quel moment. Au-dessus ce qui s'est passé, en dessous ce
+          qu'on en dit — la coupure se fait à l'espace. Un filet ferait le
+          même travail, mais ce système n'a qu'un seul trait de séparation
+          et il est sous la barre d'onglets ; en ajouter un ici pour une
+          respiration, c'est ouvrir la porte à tous les autres. */}
+      <div className="mt-4">
         <Interactions
           events={events}
           me={me}
@@ -283,3 +307,8 @@ export default function WeekRecapCard({
     </li>
   );
 }
+
+// Même raison que `FeedItem` : la carte refait sinon ses filtres, ses tris
+// et son calcul de semaines à chaque re-rendu d'`App`, pour un contenu qui
+// est figé par définition — c'est un bilan, il ne bouge plus.
+export default memo(WeekRecapCard);

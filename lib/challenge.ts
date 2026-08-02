@@ -228,6 +228,26 @@ export function saison3Started(f: Fenetre = FENETRE_ENV): boolean {
   return parisToday() >= f.saison3;
 }
 
+// Bascule de la saison 4 (deux tirages de plus, et le jour off hebdo).
+//
+// Elle ne vit PAS dans `Fenetre`, contrairement à `saison3`, et c'est une
+// décision : la S4 n'appartient qu'au challenge d'origine. Une ligue neuve
+// naît en barème S3 pur et y reste — son schéma n'a ni la table `jours_off`
+// ni les deux nouveaux événements. Lui donner un champ `saison4` laisserait
+// croire qu'on peut le régler ; on ne peut pas, la base ne suivrait pas.
+export const SAISON4_START = readDayFromEnv(
+  process.env.NEXT_PUBLIC_SAISON4_START,
+  "2026-08-03",
+  "NEXT_PUBLIC_SAISON4_START",
+);
+
+/** La saison 4 a-t-elle commencé ? Vraie à partir du 03/08 (Paris) inclus,
+    et UNIQUEMENT sur une fenêtre qui connaît une bascule de barème en cours
+    de route — c'est-à-dire le challenge d'origine, et lui seul. */
+export function saison4Started(f: Fenetre = FENETRE_ENV): boolean {
+  return aUneBasculeDeBareme(f) && parisToday() >= SAISON4_START;
+}
+
 /** Le bilan est-il encore provisoire ? Vrai tant que le dernier jour tombe dans
     la fenêtre d'édition. Avec EDIT_WINDOW_DAYS = 0, uniquement le jour même. */
 export function bilanProvisoire(f: Fenetre = FENETRE_ENV): boolean {

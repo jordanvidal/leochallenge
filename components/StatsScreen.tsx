@@ -33,6 +33,9 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  /** 😴 Les jours off tirés jusqu'ici. Absent tant que le catalogue
+      n'est pas chargé, ou hors du challenge d'origine. */
+  joursOff?: Set<string>;
   gamification: Gamification | null;
   /** Reprises épuisées : la tuile joker se tait plutôt que de faire
       respirer un loader qui n'aboutira pas. */
@@ -110,6 +113,7 @@ export default function StatsScreen({
   player,
   players,
   entries,
+  joursOff,
   gamification,
   gamificationEnPanne,
   onShareWeek,
@@ -362,6 +366,7 @@ export default function StatsScreen({
         player={player}
         players={players}
         entries={entries}
+        joursOff={joursOff}
         gamification={gamification}
         showToast={showToast}
       />

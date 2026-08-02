@@ -11,6 +11,7 @@
 
 import { addDays } from "@/lib/challenge";
 import { argLigue } from "@/lib/ligue";
+import { estJourOff } from "./jour-off";
 import { TERRAIN_ENV, type Terrain } from "./ligues";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
@@ -42,6 +43,19 @@ const WINBACK_LOOKBACK_DAYS = 21;
 /** Hors des dates de SA fenêtre, aucun rappel ne part. */
 function offSeason(today: string, t: Terrain): boolean {
   return today < t.fenetre.start || today > t.fenetre.end;
+}
+
+/** 😴 Un jour off, les trois rappels du soir se taisent.
+ *
+ *  « Marc et Léo ont fini. Pas toi. » le jour où le groupe se repose,
+ *  c'est l'app qui se contredit elle-même — elle a annoncé le repos à 6h
+ *  et le reproche à 20h. Idem pour « Ta série est en jeu » : elle ne
+ *  l'est pas, c'est tout le sujet du jour off.
+ *
+ *  Le récap du lundi et le win-back, eux, partent normalement : ils
+ *  parlent de la semaine, pas de la coche du soir. */
+async function jourDeRepos(t: Terrain): Promise<boolean> {
+  return estJourOff(t);
 }
 
 function doneCount(e: Entry | undefined): number {
@@ -117,6 +131,7 @@ export async function sendReminders(
 }> {
   const { today, players, count, active, zeroStreak } = await loadToday(t);
   if (offSeason(today, t)) return { notified: 0, sent: 0 };
+  if (await jourDeRepos(t)) return { notified: 0, sent: 0 };
 
   // Cibles : rien coché aujourd'hui (0/3) ET encore dans la bande (au moins
   // une coche sur 7 j). Ce plancher d'activité épargne les inscrits fantômes
@@ -169,6 +184,7 @@ export async function sendStreakRisk(t: Terrain = TERRAIN_ENV): Promise<{
 }> {
   const { supabase, today, players, count } = await loadToday(t);
   if (offSeason(today, t)) return { notified: 0, sent: 0 };
+  if (await jourDeRepos(t)) return { notified: 0, sent: 0 };
 
   const lb = await supabase.rpc("leaderboard", argLigue(t.ligue?.id ?? null));
   if (lb.error) throw new Error("lecture leaderboard échouée");
@@ -202,6 +218,7 @@ export async function sendLastStanding(t: Terrain = TERRAIN_ENV): Promise<{
 }> {
   const { today, players, count, active } = await loadToday(t);
   if (offSeason(today, t)) return { notified: 0, sent: 0 };
+  if (await jourDeRepos(t)) return { notified: 0, sent: 0 };
 
   const band = players.filter(active);
   if (band.length < 2) return { notified: 0, sent: 0 };
