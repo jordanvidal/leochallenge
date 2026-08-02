@@ -559,6 +559,9 @@ export function useChat(
       loadingMore,
       unread,
       pref,
+      // Recharger la première page à la demande (double-tap sur l'onglet) :
+      // le même chemin que le retour de veille, rien de nouveau à casser.
+      reload,
       loadMore,
       messageById,
       feedEventById,
@@ -574,6 +577,7 @@ export function useChat(
       loadingMore,
       unread,
       pref,
+      reload,
       loadMore,
       messageById,
       feedEventById,

@@ -8,7 +8,14 @@
 // slot, « Historique » est descendu dans Stats (components/HistoryGrid.tsx).
 // Les deux regardaient le passé, aucun n'était sur le chemin d'une coche.
 
+import { useRef } from "react";
+
 export type Tab = "today" | "bilan" | "feed" | "chat" | "leaderboard" | "stats";
+
+/** La fenêtre du double-tap sur l'onglet actif. Elle ne retarde RIEN :
+    un tap sur un onglet inactif navigue immédiatement, on ne guette un
+    second tap que là où le premier n'avait rien à faire. */
+const RETAP_MS = 300;
 
 function IconTrophy() {
   return (
@@ -116,12 +123,16 @@ const REST_TABS: { key: Tab; label: string; icon: () => React.ReactNode }[] = [
 export default function TabBar({
   tab,
   onChange,
+  onRetap,
   feedUnread = 0,
   chatUnread = 0,
   over = false,
 }: {
   tab: Tab;
   onChange: (tab: Tab) => void;
+  /** Double-tap sur l'onglet DÉJÀ actif : remonter et rafraîchir l'écran.
+      Au clavier, Entrée sur l'onglet actif suffit — pas de double appui. */
+  onRetap?: (tab: Tab) => void;
   /** Pastille de non-lu sur l'onglet Feed. C'est elle qui fait revenir. */
   feedUnread?: number;
   /** Idem pour le tchat. La sienne compte des messages, pas des moments. */
@@ -134,6 +145,26 @@ export default function TabBar({
     feed: feedUnread,
     chat: chatUnread,
   };
+
+  // L'heure du dernier tap sur l'onglet actif. Un tap qui NAVIGUE ne
+  // compte pas : arriver sur un onglet puis le retaper aussitôt reste une
+  // navigation simple, pas une demande de rafraîchissement.
+  const derniereTape = useRef(0);
+  const taper = (key: Tab, detail: number) => {
+    if (key !== tab) {
+      derniereTape.current = 0;
+      onChange(key);
+      return;
+    }
+    const maintenant = Date.now();
+    // `detail === 0` : click synthétique du clavier ou du lecteur
+    // d'écran. Là, un seul appui déclenche — exiger un double appui à
+    // 300 ms au clavier serait une brimade.
+    const double = detail === 0 || maintenant - derniereTape.current < RETAP_MS;
+    derniereTape.current = double ? 0 : maintenant;
+    if (double) onRetap?.(key);
+  };
+
   return (
     <nav
       aria-label="Navigation"
@@ -147,7 +178,7 @@ export default function TabBar({
           return (
             <button
               key={key}
-              onClick={() => onChange(key)}
+              onClick={(e) => taper(key, e.detail)}
               aria-current={active ? "page" : undefined}
               className="flex min-h-14 flex-1 flex-col items-center justify-center gap-1"
               // `quiet` et pas `faint` : les icônes sont aria-hidden, donc le

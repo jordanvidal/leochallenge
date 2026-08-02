@@ -213,6 +213,35 @@ export default function App() {
     [reloadGamification, reloadFeed],
   );
 
+  /** Double-tap sur l'onglet déjà actif : on remonte tout en haut — tout
+      en bas pour le tchat, où le présent vit en bas — puis on re-tire les
+      données de l'écran. Un refetch par les hooks existants, jamais un
+      rechargement complet : relancer la PWA prend des secondes, re-tirer
+      une page de données en prend une fraction. */
+  const { refresh: reloadData } = data;
+  const { reload: reloadChat } = chat;
+  const retaper = useCallback(
+    (cible: Tab) => {
+      const sobre = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      window.scrollTo({
+        top: cible === "chat" ? document.documentElement.scrollHeight : 0,
+        behavior: sobre ? "auto" : "smooth",
+      });
+      if (cible === "feed") reloadFeed();
+      else if (cible === "chat") reloadChat();
+      else if (cible === "leaderboard") reloadGamification();
+      else {
+        // Aujourd'hui, Bilan, Stats : les coches et le classement — les
+        // deux sources que ces écrans affichent côte à côte.
+        reloadData();
+        reloadGamification();
+      }
+    },
+    [reloadData, reloadChat, reloadFeed, reloadGamification],
+  );
+
   // Bonus : catalogue, événement du jour, déclarations. Chaque
   // déclaration recalcule aussi le classement (onScored).
   const onBonusScored = useCallback(() => {
@@ -644,6 +673,7 @@ export default function App() {
       <TabBar
         tab={effTab}
         onChange={setTab}
+        onRetap={retaper}
         feedUnread={feed.unread}
         chatUnread={chat.unread}
         over={over}
