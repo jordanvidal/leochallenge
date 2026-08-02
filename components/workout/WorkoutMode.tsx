@@ -16,6 +16,7 @@ import {
   fetchDayBreakdown,
   fetchPresets,
   presetToConfig,
+  WorkoutConfig,
   WorkoutPreset,
 } from "@/lib/workout";
 import BonusPlanner, { SeanceTab } from "./BonusPlanner";
@@ -102,6 +103,24 @@ export default function WorkoutMode({
     }
   });
 
+  /**
+   * « Je l'ai déjà faite ailleurs » : la journée se valide sans dérouler
+   * le chrono. On ouvre quand même une ligne de séance — le portier du
+   * 21/07 ne bouge pas, il n'y a toujours qu'un seul chemin d'écriture —
+   * mais on ne la clôture pas, donc aucun bonus lié au temps ne tombe.
+   *
+   * Les trois exos sont validés, pas ceux que couvre la config : quelqu'un
+   * qui déclare sa séance faite à la salle a fait ses 100-100-100, et le
+   * format affiché à l'écran ne décrit que la façon dont l'app AURAIT
+   * guidé. Il n'a rien à dire sur ce qui s'est passé dehors.
+   */
+  async function declarerAilleurs(c: WorkoutConfig) {
+    await w.ouvrirSeanceSansChrono(c);
+    await onValidate(EXERCISES.map((e) => e.key));
+    showToast("Journée validée. Sans chrono : pas de bonus vitesse ni d'horaire.");
+    onClose();
+  }
+
   /** Abandon confirmé : les blocs déjà terminés restent comptés. */
   function quit() {
     const done = w.repsDone();
@@ -146,6 +165,7 @@ export default function WorkoutMode({
           tab={onglets ? tab : undefined}
           onTab={onglets ? setTab : undefined}
           onLaunch={w.launch}
+          onDejaFaite={declarerAilleurs}
           onClose={onClose}
         />
       );
