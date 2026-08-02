@@ -200,10 +200,21 @@ export default function ConfigScreen({
         />
       </div>
 
-      {/* Le total, sans détour : couvre ou ne couvre pas la journée */}
-      <div className="mt-3 flex-1">
+      {/* L'espace qui reste. Il pousse le lancement en bas d'écran, là où
+          le pouce l'attend — c'est voulu, et ça ne bouge pas. */}
+      <div className="flex-1" />
+
+      {/* Le total et le bouton, ensemble. Ils étaient séparés par tout le
+          vide ci-dessus : quand le format ne couvre pas la journée, le
+          bouton est désactivé et la phrase qui explique pourquoi se
+          trouvait à quelque 400 px de là, en haut de l'écran. On ne
+          désactive pas une commande loin de son motif. */}
+      <div className="mb-2">
         {gaps.length === 0 ? (
-          <p className="text-sm font-medium" style={{ color: player.color }}>
+          <p
+            className="mb-2 text-sm font-medium"
+            style={{ color: player.color }}
+          >
             ✓ Cette séance valide la journée : 100 pompes, 100 abdos, 100
             squats
           </p>
@@ -212,23 +223,23 @@ export default function ConfigScreen({
           // le SEUL chemin de validation, un format qui ne couvre pas les
           // trois exos rend les manquants impossibles à valider de la
           // journée. On refuse de lancer plutôt que de piéger.
-          <p className="text-sm font-medium text-danger">
+          <p className="mb-2 text-sm font-medium text-danger">
             Complète ton format pour lancer — il manque {gaps.join(", ")}.
           </p>
         )}
-      </div>
 
-      <button
-        onClick={() => {
-          navigator.vibrate?.(18);
-          onLaunch(config);
-        }}
-        disabled={empty || gaps.length > 0}
-        className="mb-2 min-h-16 w-full rounded-2xl text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-40"
-        style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
-      >
-        Lancer ma séance
-      </button>
+        <button
+          onClick={() => {
+            navigator.vibrate?.(18);
+            onLaunch(config);
+          }}
+          disabled={empty || gaps.length > 0}
+          className="min-h-16 w-full rounded-2xl text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: "var(--pc)", color: "oklch(0.15 0 0)" }}
+        >
+          Lancer ma séance
+        </button>
+      </div>
     </div>
   );
 }
