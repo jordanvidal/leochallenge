@@ -9,7 +9,11 @@
 // (flag localStorage), ou rouvert depuis « Revoir les règles ».
 
 import { useState } from "react";
-import { saison3Started, frenchDayMonth } from "@/lib/challenge";
+import {
+  frenchDayMonth,
+  saison3Started,
+  saison4Started,
+} from "@/lib/challenge";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
@@ -50,6 +54,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
   // pendant tout le week-end — celui où la prime hebdo et les duels de la
   // S2 se jouent encore sous l'ancien barème.
   const s3 = saison3Started(f);
+  const s4 = saison4Started(f);
   const cards = [
     // 1 — Le principe
     <div key="principe">
@@ -122,6 +127,16 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
           quitte ou double : ton 3/3 double ta base du jour. Raté, rien ne
           bouge.
         </EventRow>
+        {s4 && (
+          <>
+            <EventRow emoji="🔁">
+              bonus doublés : toutes les puces que tu déclares comptent double
+            </EventRow>
+            <EventRow emoji="🎁">
+              jour de fête : +5 pour ton 3/3, rien à déclarer
+            </EventRow>
+          </>
+        )}
         {!s3 && (
           <EventRow emoji="🪞">jour miroir : le dernier au général prend +8</EventRow>
         )}
@@ -130,6 +145,14 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
           comprises → +10
         </EventRow>
       </div>
+      {s4 && (
+        <p className="mt-5 border-t border-line pt-4 text-sm text-muted">
+          <span aria-hidden>😴</span>{" "}
+          <b className="text-ink">Et un jour off par semaine.</b> Tiré le
+          matin même, le même pour tout le monde : ta série tient sans que
+          tu coches. Si tu y vas quand même, tout compte normalement.
+        </p>
+      )}
     </div>,
   ];
 

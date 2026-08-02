@@ -17,17 +17,22 @@
 // côté au seul moment où quelqu'un pose la question.
 
 import { useCoucheRetour } from "@/hooks/useRetour";
-import { saison3Started } from "@/lib/challenge";
+import { saison3Started, saison4Started } from "@/lib/challenge";
 import { useFenetre } from "./ligue/LigueContexte";
 
 export function MiniBareme({
   s3,
+  s4,
   /** Encastré en pied du détail joueur : il porte son propre titre et se
       détache du bloc au-dessus. En destination, l'en-tête de la feuille
       dit déjà « Comment on marque » — le répéter serait du bruit. */
   avecTitre = true,
 }: {
   s3: boolean;
+  /** La S4 (03/08) : deux tirages de plus dans la roue. Séparé de `s3`
+      parce que les deux bascules ne se recouvrent pas — une ligue neuve
+      est en S3 sans jamais passer en S4. */
+  s4: boolean;
   avecTitre?: boolean;
 }) {
   return (
@@ -50,6 +55,19 @@ export function MiniBareme({
       <dt className="num-display w-14 shrink-0 text-ink">×2</dt>
       <dd>série de 7 jours parfaits</dd>
     </div>
+    {s4 && (
+      <div className="flex items-baseline gap-3">
+        <dt className="w-14 shrink-0 text-center text-ink" aria-hidden>😴</dt>
+        <dd>
+          le jour off : un jour par semaine, tiré le matin même parmi
+          lundi→vendredi, <b>le même pour tout le monde</b>. Ta série tient
+          sans rien cocher, et il compte comme rempli pour la semaine
+          pleine. Il ne rapporte aucun point, et ne compte pas dans le
+          duel. Si tu t&apos;entraînes quand même, tout compte normalement
+          (depuis le 03/08)
+        </dd>
+      </div>
+    )}
     <div className="flex items-baseline gap-3">
       <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
       <dd>
@@ -114,6 +132,25 @@ export function MiniBareme({
         change (aucune perte).
       </dd>
     </div>
+    {s4 && (
+      <>
+        <div className="flex items-baseline gap-3">
+          <dt className="w-6 shrink-0 text-center" aria-hidden>🔁</dt>
+          <dd>
+            bonus doublés : toutes les puces que tu <b>déclares</b> ce
+            jour-là comptent double. Ni la coche, ni le boss — les puces
+            (depuis le 03/08)
+          </dd>
+        </div>
+        <div className="flex items-baseline gap-3">
+          <dt className="w-6 shrink-0 text-center" aria-hidden>🎁</dt>
+          <dd>
+            jour de fête : +5 si tu fais ton 3/3, rien à déclarer
+            (depuis le 03/08)
+          </dd>
+        </div>
+      </>
+    )}
     {!s3 && (
       <div className="flex items-baseline gap-3">
         <dt className="w-6 shrink-0 text-center" aria-hidden>🪞</dt>
@@ -152,7 +189,7 @@ export function BaremeSheet({ onClose }: { onClose: () => void }) {
         </button>
         <h1 className="flex-1 text-lg font-bold">Comment on marque</h1>
       </div>
-      <MiniBareme s3={saison3Started(f)} avecTitre={false} />
+      <MiniBareme s3={saison3Started(f)} s4={saison4Started(f)} avecTitre={false} />
       <div className="h-4 shrink-0" />
     </div>
   );

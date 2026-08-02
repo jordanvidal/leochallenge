@@ -565,6 +565,7 @@ export default function App() {
             player={player}
             players={data.players}
             entries={data.entries}
+            joursOff={bonus?.joursOff}
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             onShareWeek={shareWeek}

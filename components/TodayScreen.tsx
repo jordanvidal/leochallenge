@@ -6,7 +6,11 @@
 // coche rien, il met en séance et il montre où en est le groupe.
 
 import { useEffect, useState } from "react";
-import { BonusCatalogItem, BonusState } from "@/lib/bonus";
+import {
+  BonusCatalogItem,
+  BonusState,
+  estJourOffAujourdhui,
+} from "@/lib/bonus";
 import {
   daysLeft,
   frenchDate,
@@ -17,6 +21,7 @@ import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, EXERCISES, Player } from "@/lib/types";
 import BonusSection from "./BonusSection";
 import EventBanner from "./EventBanner";
+import JourOffBanner from "./JourOffBanner";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
 import { Avatar, ExoDots } from "./ui";
@@ -229,6 +234,11 @@ export default function TodayScreen({
         />
       )}
 
+      {/* 😴 Le jour off. Il ne peut jamais cohabiter avec un événement :
+          get_daily_event() rend « rien » ce jour-là, exprès — deux
+          annonces opposées le même matin ne s'expliquent pas. */}
+      {estJourOffAujourdhui(bonus) && <JourOffBanner />}
+
       {/* La ligne de statut : rang + série, et la série seule quand elle
           est en jeu. C'est cette phrase qui fait faire les pompes. */}
       {!over && (
@@ -240,6 +250,7 @@ export default function TodayScreen({
           enPanne={gamificationEnPanne}
           perfect={perfect}
           onGoLeaderboard={onGoLeaderboard}
+          jourOff={estJourOffAujourdhui(bonus)}
         />
       )}
 
