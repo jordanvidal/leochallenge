@@ -124,35 +124,47 @@ export default function HistoryGrid({
                     const isMine = p.id === player.id;
                     const editable = isMine && isEditable(day, f);
                     const isJoker = jokerDayByPlayer.get(p.id) === day;
+                    const label = isJoker
+                      ? `${p.name}, ${day} : jour manqué sauvé par le joker`
+                      : joursOff?.has(day)
+                        ? `${p.name}, ${day} : ${count}/3, jour off du groupe`
+                        : `${p.name}, ${day} : ${count}/3`;
                     return (
                       <td key={p.id}>
-                        <button
-                          disabled={!isMine && !isJoker}
-                          aria-label={
-                            isJoker
-                              ? `${p.name}, ${day} : jour manqué sauvé par le joker`
-                              : joursOff?.has(day)
-                                ? `${p.name}, ${day} : ${count}/3, jour off du groupe`
-                                : `${p.name}, ${day} : ${count}/3`
-                          }
-                          onClick={() =>
-                            showToast(
-                              isJoker
-                                ? "Joker : la série a tenu malgré ce jour manqué"
-                                : editable
-                                  ? "C'est ta séance qui coche ▶"
-                                  : "Ce jour est verrouillé 🔒",
-                            )
-                          }
-                          className="relative flex size-11 items-center justify-center rounded-lg"
-                          style={cellStyle(count, p.color)}
-                        >
-                          {isJoker && (
-                            <span style={{ color: p.color }}>
-                              <IconJoker size={18} />
-                            </span>
-                          )}
-                        </button>
+                        {isMine || isJoker ? (
+                          <button
+                            aria-label={label}
+                            onClick={() =>
+                              showToast(
+                                isJoker
+                                  ? "Joker : la série a tenu malgré ce jour manqué"
+                                  : editable
+                                    ? "C'est ta séance qui coche ▶"
+                                    : "Ce jour est verrouillé 🔒",
+                              )
+                            }
+                            className="relative flex size-11 items-center justify-center rounded-lg"
+                            style={cellStyle(count, p.color)}
+                          >
+                            {isJoker && (
+                              <span style={{ color: p.color }}>
+                                <IconJoker size={18} />
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          // Un affichage n'est pas un contrôle désactivé
+                          // (DESIGN.md) : la case d'un autre montre, elle ne
+                          // fait rien. En <button disabled>, VoiceOver taisait
+                          // son libellé (« Léo, 21/07 : 2/3 ») — un div avec
+                          // sr-only le rend, sans annoncer de faux bouton.
+                          <div
+                            className="relative flex size-11 items-center justify-center rounded-lg"
+                            style={cellStyle(count, p.color)}
+                          >
+                            <span className="sr-only">{label}</span>
+                          </div>
+                        )}
                         {/* Le cadenas a disparu : il marquait les cases
                             fermées quand certaines s'ouvraient encore. Tout
                             étant verrouillé, le signaler neuf fois par colonne

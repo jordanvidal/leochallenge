@@ -473,7 +473,11 @@ export default function ChatBubble({
             // intérieure. Elle en effleure donc le coin arrondi et ne
             // touche jamais le texte — c'était le défaut du premier
             // réglage, où elle se posait en plein sur le premier mot.
-            className={`absolute -top-5 flex min-h-6 items-center gap-0.5 rounded-full px-1.5 ${
+            //
+            // La zone de tap, elle, ne peut pas rester à 24 px : le
+            // pseudo-élément before l'étend à 44 px autour du visuel
+            // (24 + 2 × 10) sans grossir la pastille ni bouger sa place.
+            className={`absolute -top-5 flex min-h-6 items-center gap-0.5 rounded-full px-1.5 before:absolute before:-inset-2.5 before:content-[''] ${
               isMine ? "-left-1.5" : "-right-1.5"
             }`}
             style={{
