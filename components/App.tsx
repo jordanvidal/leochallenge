@@ -397,7 +397,11 @@ export default function App() {
   // nouveau, mais le rendu ne doit pas l'afficher une seule frame en
   // attendant. L'aperçu manuel et « Revoir le lancement » passent toujours —
   // eux sont demandés.
-  const s4 = saison4Started(f);
+  // `forceLaunch` compte comme S4 : l'aperçu manuel sert précisément à
+  // relire le carrousel AVANT sa date, et le seul qui reste à relire est
+  // celui de la S4. Sans ça, ?lancement=1 le 02/08 rejouerait la S3 —
+  // l'écran qu'on ne cherche justement pas à revoir.
+  const s4 = saison4Started(f) || forceLaunch;
   const aDejaJoue = [...data.entries.values()].some(
     (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
   );
@@ -406,8 +410,12 @@ export default function App() {
     : saison3Started(f) && aUneBasculeDeBareme(f) && !id.launchS3Seen;
   if (!over && (forceLaunch || replayLaunch || (lancementDu && aDejaJoue))) {
     const marquerVu = () => {
-      if (s4) id.markLaunchS4Seen();
-      else id.markLaunchS3Seen();
+      // Un aperçu manuel ne consomme pas l'affichage unique : relire
+      // l'écran le dimanche soir ne doit pas priver du lundi matin.
+      if (!forceLaunch) {
+        if (s4) id.markLaunchS4Seen();
+        else id.markLaunchS3Seen();
+      }
       setReplayLaunch(false);
       setForceLaunch(false);
     };
