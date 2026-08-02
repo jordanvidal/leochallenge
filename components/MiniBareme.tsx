@@ -55,6 +55,19 @@ export function MiniBareme({
       <dt className="num-display w-14 shrink-0 text-ink">×2</dt>
       <dd>série de 7 jours parfaits</dd>
     </div>
+    {s4 && (
+      <div className="flex items-baseline gap-3">
+        <dt className="w-14 shrink-0 text-center text-ink" aria-hidden>😴</dt>
+        <dd>
+          le jour off : un jour par semaine, tiré le matin même parmi
+          lundi→vendredi, <b>le même pour tout le monde</b>. Ta série tient
+          sans rien cocher, et il compte comme rempli pour la semaine
+          pleine. Il ne rapporte aucun point, et ne compte pas dans le
+          duel. Si tu t&apos;entraînes quand même, tout compte normalement
+          (depuis le 03/08)
+        </dd>
+      </div>
+    )}
     <div className="flex items-baseline gap-3">
       <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
       <dd>

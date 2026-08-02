@@ -145,6 +145,14 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
           comprises → +10
         </EventRow>
       </div>
+      {s4 && (
+        <p className="mt-5 border-t border-line pt-4 text-sm text-muted">
+          <span aria-hidden>😴</span>{" "}
+          <b className="text-ink">Et un jour off par semaine.</b> Tiré le
+          matin même, le même pour tout le monde : ta série tient sans que
+          tu coches. Si tu y vas quand même, tout compte normalement.
+        </p>
+      )}
     </div>,
   ];
 

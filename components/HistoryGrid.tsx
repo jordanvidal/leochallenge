@@ -21,6 +21,11 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  /** 😴 Les jours off tirés jusqu'ici. Un ensemble de dates, pas une carte
+      par joueur : le jour off est le même pour tout le monde, et c'est
+      précisément ce que la grille doit montrer — une LIGNE entière, là où
+      le joker ne marque qu'une case. */
+  joursOff?: Set<string>;
   gamification: Gamification | null;
   showToast: (msg: string) => void;
 };
@@ -46,6 +51,7 @@ export default function HistoryGrid({
   player,
   players,
   entries,
+  joursOff,
   gamification,
   showToast,
 }: Props) {
@@ -97,7 +103,21 @@ export default function HistoryGrid({
               {days.map((day) => (
                 <tr key={day}>
                   <td className="pr-2 text-right text-xs whitespace-nowrap text-muted">
-                    {dayFmt.format(new Date(`${day}T12:00:00Z`))}
+                    {/* 😴 marque la DATE, pas les cases : le jour off est un
+                        fait de calendrier, il ne dit rien de personne. Une
+                        case grise ce jour-là ne veut pas dire « raté ». */}
+                    {joursOff?.has(day) && (
+                      <span
+                        aria-hidden
+                        title="Jour off : personne n'avait à cocher"
+                        className="mr-1"
+                      >
+                        😴
+                      </span>
+                    )}
+                    <span className={joursOff?.has(day) ? "text-faint" : ""}>
+                      {dayFmt.format(new Date(`${day}T12:00:00Z`))}
+                    </span>
                   </td>
                   {columns.map((p) => {
                     const count = entryCount(entries.get(entryKey(p.id, day)));
@@ -111,7 +131,9 @@ export default function HistoryGrid({
                           aria-label={
                             isJoker
                               ? `${p.name}, ${day} : jour manqué sauvé par le joker`
-                              : `${p.name}, ${day} : ${count}/3`
+                              : joursOff?.has(day)
+                                ? `${p.name}, ${day} : ${count}/3, jour off du groupe`
+                                : `${p.name}, ${day} : ${count}/3`
                           }
                           onClick={() =>
                             showToast(

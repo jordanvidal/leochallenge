@@ -38,6 +38,22 @@ Tu as **un joker, un seul, pour tout le challenge**. Il encaisse une journée ra
 - Le jour sauvé **ne compte pas** dans la série : 5 jours, joker, puis 3/3 → tu es à 6, pas 7. Il préserve, il ne récompense pas. Et il ne rapporte aucun point ce jour-là.
 - Une fois brûlé, il ne revient pas.
 
+**Le jour off** (depuis le 03/08, S4)
+
+Un jour par semaine, **le même pour tout le monde**, où ta série tient sans que tu coches quoi que ce soit.
+
+- Il est tiré **au hasard parmi lundi→vendredi**, jamais le week-end, **un par semaine** — ni zéro, ni deux.
+- Il se découvre **le matin même** : la machine tire vers 6h et tu reçois une notification qui dit ce que c'est, sans énigme. Personne ne peut le connaître à l'avance, pas même en fouillant l'appli : le jour off n'existe pas en base avant son matin.
+- Il **préserve ta série sans l'allonger**, exactement comme le joker : 5 jours, jour off, puis 3/3 → tu es à 6, pas 7.
+- Il ne rapporte **aucun point** et ne compte pas comme un jour parfait — donc pas dans le duel de la semaine. Comme il tombe le même jour pour les deux adversaires, ça ne change rien entre eux.
+- **Une seule exception** : il compte comme rempli pour 📅 la semaine pleine. Six jours parfaits plus le jour off valent les +5. Sans ça, ce bonus punirait le repos.
+- Il **enjambe aussi les badges de série** : 🌱 la première semaine, ⚙️ Machine, 🛡️ Increvable et 💎 Sans faute ne sont pas cassés par un jour off.
+- **Ton joker ne part jamais dessus.** Il n'y a rien à racheter — et il reste disponible pour le lendemain si tu rates un vrai jour.
+- Le soir d'un jour off, l'appli **se tait** : ni « ta série est en jeu », ni « Marc et Léo ont fini, pas toi ».
+- **Tu peux t'entraîner quand même.** Rien n'est verrouillé, la séance se lance normalement, et ta journée compte comme un vrai 3/3 — série comprise. Le jour off est une permission, pas une fermeture.
+
+Il n'y en a pas le 31 août : c'est le dernier jour du challenge, et celui du badge 🏁 le finisseur.
+
 Tu vois son état au Classement, à côté de ta série : 🛟 plein = disponible, estompé = déjà utilisé (la date au survol). Quand il part, le fil l'annonce à tout le monde : « 🛟 Léo a brûlé son joker — sa série de 9 jours tient ».
 
 ---
@@ -103,7 +119,7 @@ Ceux-là, tu n'as rien à déclarer. L'appli les calcule toute seule.
 | Bonus | Points | Condition |
 |---|---|---|
 | 🔙 Le retour | +3 | 3/3 juste après un jour à zéro — la main tendue à celui qui revient |
-| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08 |
+| 📅 La semaine pleine | +5 | **Nouveau en S3.** Sept jours parfaits sur une semaine lundi→dimanche, posés sur le dimanche. Ni déclaré ni tiré : l'appli le calcule. Première semaine payée : 27/07→02/08, sur le 02/08. Depuis le 03/08, **le jour off compte comme rempli** — six jours parfaits plus le jour off font les +5 |
 
 **Ce qui a disparu le 27/07 (S3) :**
 
@@ -223,6 +239,7 @@ Toutes les heures sont en heure de Paris.
 | Quand | Quoi | Qui la reçoit |
 |---|---|---|
 | 9h | « Le tirage est tombé » (sans dire quoi) | Tout le monde — seulement si un événement est tombé |
+| 6h | « 😴 Jour off » — et il dit ce que c'est | Tout le monde, les jours off (lundi→vendredi, un par semaine) |
 | 17h | « Ta série est en jeu » | Ceux qui ont une série de 3+ jours et rien coché |
 | 20h | « Marc et Léo ont fini. Pas toi. » | Les actifs encore à 0/3 |
 | 21h30 | « Dernier debout » | Le SEUL actif à 0/3 quand tous les autres ont avancé |
@@ -232,6 +249,7 @@ Toutes les heures sont en heure de Paris.
 
 **Les règles de silence** — l'appli motive, elle ne harcèle pas :
 
+- **Jour off** : les trois rappels du soir (17h, 20h, 22h30) et le « dernier debout » de 21h30 se taisent. L'appli annoncerait le repos à 6h et le reprocherait à 20h. Le récap du lundi, lui, part normalement.
 - **Plancher d'activité** : les rappels du soir ne visent que les actifs (au moins une coche sur les 7 derniers jours). Les fantômes ne sont pas culpabilisés.
 - **Décroissance** : après 3 jours de suite à zéro, le rappel de 22h30 se tait. Il ne reste que celui de 20h.
 - **Win-back** : décroché depuis 7 à 21 jours → un seul message le lundi, ton chaud, barre basse.
@@ -283,6 +301,18 @@ Tu n'as pas encore lancé ta séance. Tape n'importe où sur une carte, le lance
 
 **Mon joker est parti sans que je demande, c'est normal ?**
 Oui. Il se déclenche tout seul le jour où ta série de 3+ aurait cassé, à condition que tu reviennes le lendemain. Tu ne peux ni le garder pour plus tard, ni le refuser — sinon il faudrait décider à 23h59 si on brûle son joker, et personne n'a envie de ce dilemme dans son lit.
+
+**Le jour off, je dois le demander ?**
+Non, et tu ne peux pas le choisir. Il est tiré par la machine, le matin même, et c'est le même pour les six. C'est ce qui le rend équitable : personne ne pose son repos le jour qui l'arrange.
+
+**Si je m'entraîne le jour off, je perds quelque chose ?**
+Rien du tout. Ta journée compte comme n'importe quelle autre — coches, points, série, multiplicateur. Le jour off ne retire rien, il ajoute juste une permission.
+
+**Deux jours off dans la même semaine, c'est possible ?**
+Non. Exactement un par semaine, garanti. Si rien n'est tombé du lundi au jeudi, c'est vendredi.
+
+**Mon joker peut partir un jour off ?**
+Jamais. Il n'y a rien à racheter ce jour-là. Il reste entier pour un vrai jour raté.
 
 **Je peux avoir un deuxième joker ?**
 Non. Un seul pour les 50 jours. C'est ce qui fait qu'il compte.
