@@ -1,6 +1,6 @@
 # CLAUDE.md — contexte pour les sessions Claude sur ce repo
 
-PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, chacun coche, tout le monde voit tout. Avant de coder quoi que ce soit, lis `README.md` (setup, migrations, crons), `PRODUCT.md` (utilisateurs, principes de design, anti-références) et `DESIGN.md` (tokens, typo, formes, composants — le système visuel réel, extrait du code). Ils font foi. Avant d'écrire la moindre couleur, taille ou animation, `DESIGN.md` tranche.
+PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jour, chacun déroule sa séance, tout le monde voit tout. Avant de coder quoi que ce soit, lis `README.md` (setup, migrations, crons), `PRODUCT.md` (utilisateurs, principes de design, anti-références) et `DESIGN.md` (tokens, typo, formes, composants — le système visuel réel, extrait du code). Ils font foi. Avant d'écrire la moindre couleur, taille ou animation, `DESIGN.md` tranche.
 
 ## Stack
 
@@ -25,8 +25,8 @@ PWA de challenge sportif entre potes : 100 pompes, 100 abdos, 100 squats par jou
 
 ## Règles produit — elles priment sur toute idée de feature
 
-- **10 secondes.** L'usage type : dans un lit à 23h, ouvrir → lancer sa séance → cocher 3 exos → fermer. Chaque écran se juge au temps entre ouverture et coche. Une feature qui ralentit ce chemin est refusée d'office.
-- **Pas de coche sans séance lancée** (depuis le 21/07). « Lancer ma séance » ouvre un chrono côté serveur, et c'est cette ligne en base qui déverrouille la journée — jusqu'à minuit, sur tous les écrans. Le portier est `hooks/useTodaySession.ts`, avec un dernier filet dans `App.toggleAndScore`. Une carte verrouillée s'affiche à 50 % avec un cadenas et ouvre le lanceur au tap : elle ne râle jamais. C'est la seule étape jamais ajoutée au chemin critique, et elle a coûté une discussion — ne la contourne pas « pour aller plus vite », et n'ajoute pas de deuxième porte au nom du même raisonnement.
+- **L'entrée en 10 secondes, la séance sans un geste de trop.** (Réécrit le 02/08 : l'ancien critère « ouvrir → cocher 3 exos → fermer en 10 secondes » décrivait l'app d'avant le 31/07.) L'usage type : le soir, ouvrir → « Lancer ma séance » → dérouler ~12 blocs l'app en main (~15 min) → fermer. Le chemin ouverture → lancement reste jugé au chronomètre (< 10 s), toute feature qui le ralentit est refusée d'office. Pendant la séance, un écran = un chiffre + un bouton « Terminé » — jamais un geste de plus.
+- **Pas de journée sans séance** (chrono obligatoire depuis le 21/07, seul chemin depuis le 31/07 — les cartes à cocher ont été supprimées). « Lancer ma séance » ouvre un chrono côté serveur, et c'est cette ligne en base qui déverrouille la journée — jusqu'à minuit, sur tous les écrans. Le portier est `hooks/useTodaySession.ts` ; l'écriture des exos passe uniquement par la fin de séance (`WorkoutMode` → `App.validateWorkout` → `useChallengeData.setExercisesDone`) — `App.toggleAndScore` et les cartes n'existent plus. Valider sa journée = dérouler la séance, ou déclarer une séance déjà faite ailleurs. Cette porte a coûté une discussion — ne la contourne pas « pour aller plus vite », et n'ajoute pas de deuxième porte au nom du même raisonnement.
 - **Mobile-first, sombre, physique.** Touch targets ≥ 44px, optimistic UI (jamais de spinner bloquant), feedback immédiat. La couleur, c'est les joueurs (palette fixe dans `lib/palette.ts`), le reste est neutre.
 - **Anti-références** (voir `PRODUCT.md`) : pas de dashboard SaaS, pas de badges à confettis, pas d'élément décoratif gratuit.
 - Toute l'UI est en **français**.
