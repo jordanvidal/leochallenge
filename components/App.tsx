@@ -543,6 +543,8 @@ export default function App() {
             players={data.players}
             entries={data.entries}
             gamification={gamification}
+            enPanne={gamificationEnPanne}
+            onRetry={reloadGamification}
             onShareFinal={shareFinal}
             onRematch={rematch}
             onGoHistory={() => setTab("stats")}

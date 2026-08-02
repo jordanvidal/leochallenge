@@ -23,6 +23,12 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
   const monday = mondayOf(today);
   if (monday < DUELS_FROM) return null;
 
+  // Pas de duel pour moi cette semaine : silence assumé, pas un oubli.
+  // `gamification` est non-null ici, donc le fetch a RÉUSSI — l'absence
+  // de ligne est un fait (le cron du lundi n'est pas encore passé, ou je
+  // viens d'arriver), pas une panne. Afficher « erreur » serait le
+  // mensonge inverse de celui qu'on corrige ; l'échec de chargement,
+  // lui, est déjà dit par l'écran Classement (enPanne + Réessayer).
   const duel = duelOf(gamification.duels, player.id, monday);
   if (!duel) return null;
 
@@ -37,6 +43,10 @@ export default function DuelCard({ player, players, entries, gamification }: Pro
   const iAmA = duel.player_a === player.id;
   const oppId = iAmA ? duel.player_b : duel.player_a;
   const opp = players.find((p) => p.id === oppId);
+  // Adversaire introuvable dans la ligue : donnée incohérente (il a
+  // quitté le groupe) plus que panne. Une carte « duel contre ? » ne
+  // dirait rien d'actionnable — silence là aussi, et le classement
+  // hebdo reste la vérité des points.
   if (!opp) return null;
 
   const sunday = addDays(monday, 6);

@@ -125,12 +125,15 @@ export default function StatsScreen({
 }: Props) {
   const f = useFenetre();
   const [profiles, setProfiles] = useState<Map<string, Profile> | null>(null);
+  // L'échec n'est pas le vide : la map vide dit « personne n'a de
+  // créneau » (un fait), la panne dit « on ne sait pas ». Confondues,
+  // une coupure réseau écrivait « pas encore de séance » sous le nom de
+  // gens qui avaient coché le matin même.
+  const [profilsEnPanne, setProfilsEnPanne] = useState(false);
   useEffect(() => {
-    // Un rejet laisserait `profiles` à null pour toujours, donc des blocs
-    // gris qui respirent sans fin. La map vide, elle, dit « rien à montrer ».
     fetchProfiles()
-      .then(setProfiles)
-      .catch(() => setProfiles(new Map()));
+      .then((m) => (m ? setProfiles(m) : setProfilsEnPanne(true)))
+      .catch(() => setProfilsEnPanne(true));
   }, []);
 
   const elapsed = elapsedDays(f).length;
@@ -209,7 +212,7 @@ export default function StatsScreen({
         {/* Le créneau : la place est tenue pendant le chargement (sinon la
             carte grandit d'un coup sous le doigt), puis définitivement
             absente pour qui n'a jamais bouclé une journée. */}
-        {profiles === null && (
+        {profiles === null && !profilsEnPanne && (
           <div
             className="mt-3.5"
             role="status"
@@ -218,6 +221,13 @@ export default function StatsScreen({
             <Skeleton w={110} h={12} radius={6} />
             <Skeleton className="mt-2" h={26} radius={6} />
           </div>
+        )}
+        {/* La panne se dit en une ligne, sans bloc d'erreur : le créneau
+            est un contenu secondaire, pas le sujet de l'écran. */}
+        {profilsEnPanne && (
+          <p className="mt-3.5 text-[11px] font-semibold text-quiet">
+            Créneaux indisponibles pour l&apos;instant.
+          </p>
         )}
         {mySlot && myProfile && (
           <div className="mt-3.5">
@@ -247,7 +257,9 @@ export default function StatsScreen({
         )}
 
         <div className="mt-3.5 flex gap-2">
-          {profiles === null && <Skeleton className="flex-1" h={56} />}
+          {profiles === null && !profilsEnPanne && (
+            <Skeleton className="flex-1" h={56} />
+          )}
           {myProfile?.fastestSeconds != null && (
             <Fact
               value={clockOf(myProfile.fastestSeconds)}
@@ -295,7 +307,7 @@ export default function StatsScreen({
           // Tant que les profils ne sont pas là, on ne sait rien : écrire
           // « pas encore de séance » à tout le monde pendant une seconde,
           // c'est accuser à tort ceux qui ont coché ce matin.
-          const chargement = profiles === null;
+          const chargement = profiles === null && !profilsEnPanne;
           return (
             <li
               key={p.id}
@@ -304,9 +316,11 @@ export default function StatsScreen({
               <span
                 className="w-16 shrink-0 truncate text-sm font-bold"
                 style={{
+                  // En panne, on garde la couleur du joueur : le gris
+                  // voudrait dire « inactif », et on n'en sait rien.
                   color: chargement
                     ? "var(--color-muted)"
-                    : active
+                    : active || profilsEnPanne
                       ? p.color
                       : "var(--color-faint)",
                 }}
@@ -319,6 +333,26 @@ export default function StatsScreen({
                     <Skeleton h={14} radius={4} />
                   </div>
                   <Skeleton className="shrink-0" w={36} h={18} radius={6} />
+                </>
+              ) : profilsEnPanne ? (
+                <>
+                  {/* Le créneau vient du réseau, la meilleure série des
+                      entries déjà en mémoire : quand le premier manque,
+                      on montre quand même la seconde — c'est le titre de
+                      la section, et elle, on la connaît. */}
+                  <span className="flex-1 text-[11px] text-quiet">
+                    créneau indisponible
+                  </span>
+                  <span
+                    className="num-display w-9 shrink-0 text-right text-base"
+                    style={{ color: p.color }}
+                  >
+                    {s.bestStreak}
+                    <span className="text-[max(11px,0.55em)] font-semibold text-muted">
+                      {" "}
+                      j
+                    </span>
+                  </span>
                 </>
               ) : active ? (
                 <>
