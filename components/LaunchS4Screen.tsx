@@ -79,11 +79,12 @@ export default function LaunchS4Screen({
       </p>
       <h1 className="mt-4 text-4xl font-black">Trois règles de plus.</h1>
       <p className="mt-4 text-lg text-muted">
-        Rien ne disparaît, rien ne se remet à zéro. Le barème de la S3 tient,
-        on lui ajoute un jour de repos et deux tirages.
+        Rien ne disparaît : le barème de la S3 tient. On lui ajoute un jour de
+        repos et deux tirages.
       </p>
       <p className={vanne} style={{ borderColor: player.color }}>
-        {joursRestants} jours au compteur. Autant les passer bien accompagné. 💪
+        Un jour de repos dans la poche, et deux façons de plus de rafler des
+        points. Personne n&apos;a dit que ça serait plus facile. 💪
       </p>
     </div>,
 
@@ -134,9 +135,12 @@ export default function LaunchS4Screen({
     // 3 — Les deux nouveaux tirages
     <div key="tirages">
       <span className={badge} style={badgeStyle}>
-        ⚡ Deux tirages de plus
+        ⚡ Nouveau
       </span>
-      <h1 className="mt-4 text-3xl font-black">La roue s&apos;étoffe</h1>
+      <h1 className="mt-4 text-3xl font-black">Deux nouveaux bonus</h1>
+      <p className="mt-3 text-lg text-muted">
+        Deux tirages de plus dans la roue du matin, à partir de lundi.
+      </p>
       <div className="mt-5 space-y-3">
         <NewsRow icon="🔁">
           <b className="text-ink">Bonus doublés</b> — toutes les puces que tu
@@ -150,10 +154,6 @@ export default function LaunchS4Screen({
           </b>{" "}
           si tu boucles ton 3/3. Rien à déclarer, aucune heure à viser.
         </NewsRow>
-        <NewsRow icon="📉">
-          Ils se financent sur les journées sans événement et sur les exos
-          doublés — <b className="text-ink">quitte ou double ne bouge pas</b>.
-        </NewsRow>
         <NewsRow icon="😴">
           Un <b className="text-ink">jour off n&apos;a pas d&apos;événement</b>{" "}
           : « repose-toi » à 6h et « charge sur les bonus » à 9h se
@@ -161,8 +161,8 @@ export default function LaunchS4Screen({
         </NewsRow>
       </div>
       <p className={vanne} style={{ borderColor: player.color }}>
-        Un jour sur douze environ, tes puces valent double. Autant les garder
-        sous le coude. 🎰
+        Le jour où ça tombe, tes puces comptent double. Autant en avoir sous le
+        coude. 🎰
       </p>
     </div>,
 
@@ -172,16 +172,18 @@ export default function LaunchS4Screen({
         Coup d&apos;envoi
       </p>
       <h1 className="mt-4 text-4xl font-black">
-        Lundi.
+        {joursRestants} jours.
         <br />
-        Minuit pile.
+        Ça se joue là.
       </h1>
       <p className="mt-4 text-lg text-muted">
-        Le classement général ne s&apos;efface pas, ta série non plus. Tout ce
-        que tu as encaissé reste acquis.
+        Le classement de la semaine repart à zéro, comme chaque lundi. Le
+        général, lui, ne s&apos;efface pas : tout ce que tu as encaissé reste
+        acquis.
       </p>
       <p className={vanne} style={{ borderColor: player.color }}>
-        Un jour de repos offert par semaine, et pas une excuse de plus. 💥
+        Personne ne se souviendra du soir où t&apos;as eu la flemme. Tout le
+        monde verra le classement du 31 août. 💥
       </p>
     </div>,
   ];
