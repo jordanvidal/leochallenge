@@ -366,7 +366,7 @@ export function useChat(
       // Une pièce jointe se suffit à elle-même : la légende est
       // facultative (contrainte chat_body_non_vide, migration44 et 45).
       // Sans elle, en revanche, un message vide reste un message vide.
-      if (!myId || (!texte && !opts.photo && !opts.vocal)) return;
+      if (!myId || (!texte && !opts.photo && !opts.vocal)) return false;
       const tmpId = `tmp-${Date.now()}`;
       // L'URL locale des octets qu'on tient déjà : la pièce jointe est à
       // l'écran — et un vocal déjà écoutable — avant même que le
@@ -389,11 +389,18 @@ export function useChat(
       };
       setMessages((prev) => (prev ? [...prev, optimiste] : [optimiste]));
 
-      /** Retire la bulle en vol et rend la mémoire de l'aperçu. */
-      const abandonner = (erreur: string, quoi: "photo" | "vocal" = "photo") => {
+      /** Retire la bulle en vol, rend la mémoire de l'aperçu, et rend
+          `false` : c'est ce retour qui permet au composeur de remettre le
+          brouillon en place — le toast dit « réessaie », il faut qu'il
+          reste quelque chose à réessayer. */
+      const abandonner = (
+        erreur: string,
+        quoi: "photo" | "vocal" = "photo",
+      ): false => {
         setMessages((prev) => prev?.filter((m) => m.id !== tmpId) ?? prev);
         if (blobLocal) URL.revokeObjectURL(blobLocal);
         showToast(humanChatError(erreur, quoi));
+        return false;
       };
 
       // Les octets d'abord, la ligne ensuite. L'ordre inverse laisserait
@@ -454,6 +461,7 @@ export function useChat(
         prev ? upsert(prev.filter((m) => m.id !== tmpId), res.message) : prev,
       );
       notifyChatMessage(res.message.id, myId);
+      return true;
     },
     [myId, showToast],
   );
