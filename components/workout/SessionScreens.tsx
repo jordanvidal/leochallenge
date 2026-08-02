@@ -54,7 +54,9 @@ function AbandonButton({ onAbandon }: { onAbandon: () => void }) {
   return (
     <button
       onClick={onAbandon}
-      className="absolute top-0 right-0 min-h-11 px-2 text-[13px] font-medium text-faint"
+      // `quiet` : la seule sortie de la séance doit se lire, discrète mais
+      // lisible — `faint` (2,7:1) la rendait introuvable à l'œil fatigué.
+      className="absolute top-0 right-0 min-h-11 px-2 text-[13px] font-medium text-quiet"
     >
       Abandonner
     </button>

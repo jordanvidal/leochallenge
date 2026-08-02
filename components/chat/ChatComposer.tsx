@@ -560,7 +560,9 @@ export default function ChatComposer({
       )}
 
       {reste <= 60 && (
-        <p className="mt-1 text-right text-[11px] text-faint">
+        // `quiet` : le compteur n'apparaît que quand il faut le lire —
+        // à 2,7:1, `faint` en faisait une info illisible au moment utile.
+        <p className="mt-1 text-right text-[11px] text-quiet">
           {reste} caractères restants
         </p>
       )}

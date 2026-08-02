@@ -184,6 +184,13 @@ export default function StatsScreen({
               style={jokerDay ? { opacity: 0.35 } : undefined}
             >
               <IconJoker size={18} />
+              {/* Le title d'un span non focusable n'existe pour personne
+                  d'autre que la souris : l'état du joker passe en sr-only. */}
+              <span className="sr-only">
+                {jokerDay
+                  ? `Joker brûlé le ${jokerDay}`
+                  : "Joker de série disponible"}
+              </span>
             </span>
           )}
         </div>
@@ -304,11 +311,13 @@ export default function StatsScreen({
               <span
                 className="w-16 shrink-0 truncate text-sm font-bold"
                 style={{
+                  // `quiet`, pas `faint` : un prénom inactif reste un prénom
+                  // à lire — l'état « pas de séance » ne le rend pas décoratif.
                   color: chargement
                     ? "var(--color-muted)"
                     : active
                       ? p.color
-                      : "var(--color-faint)",
+                      : "var(--color-quiet)",
                 }}
               >
                 {p.name}
@@ -341,7 +350,10 @@ export default function StatsScreen({
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-[11px] text-faint">
+                  {/* `quiet` : cette ligne est la seule explication de
+                      l'absence de bande — une information seule. Le tiret,
+                      lui, reste `faint` : il ne fait que tenir la colonne. */}
+                  <span className="flex-1 text-[11px] text-quiet">
                     pas encore de séance
                   </span>
                   <span className="w-9 shrink-0 text-right text-faint">—</span>

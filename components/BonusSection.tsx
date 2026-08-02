@@ -529,7 +529,9 @@ function BonusSheet({
           </div>
 
           {movementClash && (
-            <p className="mt-3 text-[11px] font-medium text-faint">
+            // `quiet`, pas `faint` : c'est la seule explication des puces
+            // éteintes — une information seule, elle doit se lire (DESIGN.md).
+            <p className="mt-3 text-[11px] font-medium text-quiet">
               🚶 Un seul déplacement par jour : 5 km, 10 km ou 10 000 pas. Tes
               kilomètres comptent une fois. Décoche pour changer.
             </p>

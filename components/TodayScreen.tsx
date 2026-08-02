@@ -136,8 +136,23 @@ export default function TodayScreen({
             // déborder sous la barre d'onglets. Ces lignes ne sont pas des
             // cibles, leur hauteur est du rythme — le plancher des 44 px ne
             // s'y applique pas.
+            // La ligne entière pour VoiceOver : l'avatar est décoratif, les
+            // pastilles sont aria-hidden et les emojis de bonus n'ont qu'un
+            // title — sans cette phrase, l'assistance lisait des prénoms
+            // nus. Même pattern que l'état du jour plus bas : le sr-only
+            // porte l'état, le visible est masqué pour ne pas doubler.
+            const faits = entryCount(entries.get(entryKey(p.id, today)));
+            const emojis = claimedEmojis(p.id);
             return (
               <li key={p.id} className="flex min-h-12 items-center gap-3">
+                <span className="sr-only">
+                  {`${p.name}, ${faits} exercice${faits > 1 ? "s" : ""} sur 3`}
+                  {live
+                    ? ", a coché à l'instant"
+                    : emojis
+                      ? `, bonus déclarés : ${emojis}`
+                      : ""}
+                </span>
                 <div
                   key={live ?? undefined}
                   className={live ? "live-pulse" : undefined}
@@ -150,23 +165,28 @@ export default function TodayScreen({
                     size={36}
                   />
                 </div>
-                <span className="min-w-0 flex-1 truncate font-medium">
+                <span
+                  aria-hidden
+                  className="min-w-0 flex-1 truncate font-medium"
+                >
                   {p.name}
                 </span>
                 {live ? (
                   <span
+                    aria-hidden
                     className="text-[11px] font-bold"
                     style={{ color: p.color }}
                   >
                     à l&apos;instant
                   </span>
                 ) : (
-                  claimedEmojis(p.id) && (
+                  emojis && (
                     <span
+                      aria-hidden
                       className="text-[11px]"
                       title="Bonus déclarés aujourd'hui"
                     >
-                      {claimedEmojis(p.id)}
+                      {emojis}
                     </span>
                   )
                 )}

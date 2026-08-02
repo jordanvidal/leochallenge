@@ -37,7 +37,8 @@ export function MiniBareme({
 }) {
   return (
 <div className={`${avecTitre ? "mt-8" : "mt-2"} mb-4 rounded-2xl bg-surface p-4 text-xs text-muted`}>
-  {avecTitre && <p className="mb-3 font-bold text-faint">Comment on marque</p>}
+  {/* Titres de section en `quiet` : ils nomment ce qui suit, on les lit. */}
+  {avecTitre && <p className="mb-3 font-bold text-quiet">Comment on marque</p>}
   <dl className="space-y-2">
     <div className="flex items-baseline gap-3">
       <dt className="num-display w-14 shrink-0 text-ink">1 pt</dt>
@@ -92,7 +93,7 @@ export function MiniBareme({
   </dl>
 
   {/* Les événements du jour : tirés au hasard, expliqués une bonne fois */}
-  <p className="mt-4 mb-3 border-t border-line pt-4 font-bold text-faint">
+  <p className="mt-4 mb-3 border-t border-line pt-4 font-bold text-quiet">
     Les événements du jour{" "}
     <span className="font-normal">(tirés au hasard, 1 max/jour)</span>
   </p>

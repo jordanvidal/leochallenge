@@ -317,16 +317,21 @@ export default function LeaderboardScreen({
             {podiumOrder.map((r) => {
               const p = byId.get(r.player_id)!;
               const first = r.rank === 1;
+              // Le 🏆 du gagnant est du texte visuel : sans le reprendre dans
+              // le label du bouton, VoiceOver ignorait la victoire.
+              const gagnant = isPastWeek && first && r.points > 0;
               return (
                 <button
                   key={r.player_id}
                   onClick={() => setDetail(r)}
-                  aria-label={`Voir le détail des points de ${p.name}`}
+                  aria-label={`Voir le détail des points de ${p.name}${
+                    gagnant ? ", a gagné la semaine" : ""
+                  }`}
                   className="flex flex-col items-center gap-1 rounded-xl p-1 transition-transform active:scale-95"
                 >
                   <Avatar name={p.name} color={p.color} photo={p.photo} size={first ? 64 : 48} />
                   <span className="max-w-20 truncate text-sm font-bold">
-                    {isPastWeek && first && r.points > 0 ? "🏆 " : ""}
+                    {gagnant ? "🏆 " : ""}
                     {p.name}
                   </span>
                   <span
@@ -393,6 +398,13 @@ export default function LeaderboardScreen({
                                 Dessinée depuis le 31/07 — l'emoji 🛟 est un
                                 anneau sombre, invisible à 12 px sur ce fond. */}
                             <IconJoker size={13} className="inline-block align-[-2px]" />
+                            {/* Le title d'un span non focusable est muet en
+                                VoiceOver : l'état du joker passe en sr-only. */}
+                            <span className="sr-only">
+                              {r.joker_day
+                                ? `Joker brûlé le ${frenchDayMonth(r.joker_day)}`
+                                : "Joker de série disponible"}
+                            </span>
                             {" · "}
                           </span>
                         )}
