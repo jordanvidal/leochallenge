@@ -23,7 +23,7 @@ import {
   Profile,
   slotLabel,
 } from "@/lib/profile";
-import { computeStats } from "@/lib/stats";
+import { computeStats } from "@/lib/score";
 import { Entry, Player } from "@/lib/types";
 import HistoryGrid from "./HistoryGrid";
 import { EditablePhotoAvatar, IconJoker, Skeleton } from "./ui";
@@ -134,7 +134,7 @@ export default function StatsScreen({
   }, []);
 
   const elapsed = elapsedDays(f).length;
-  const mine = computeStats(player.id, entries, f);
+  const mine = computeStats(player.id, entries, f, joursOff);
   const myProfile = profiles?.get(player.id);
   const mySlot = myProfile ? slotLabel(myProfile.hours) : null;
   const myBadges = gamification?.badges.get(player.id) ?? [];
@@ -154,7 +154,7 @@ export default function StatsScreen({
   // serait le Classement en double, et ce n'est pas la question ici.
   const others = players
     .filter((p) => p.id !== player.id)
-    .map((p) => ({ p, s: computeStats(p.id, entries, f) }))
+    .map((p) => ({ p, s: computeStats(p.id, entries, f, joursOff) }))
     .sort((a, b) => b.s.bestStreak - a.s.bestStreak);
 
   return (

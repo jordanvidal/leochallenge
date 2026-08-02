@@ -6,7 +6,7 @@
 // Le challenge de référence commence le 13/07/2026 (lib/challenge.ts).
 
 import { describe, expect, it } from "vitest";
-import { streakEnSursis } from "@/lib/stats";
+import { streakEnSursis } from "@/lib/score";
 import { Entry, entryKey } from "@/lib/types";
 
 const MOI = "hichem";

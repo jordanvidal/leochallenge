@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { daysLeft, parisToday } from "@/lib/challenge";
 import { fmtPoints, frenchRank, Gamification } from "@/lib/gamification";
-import { streakEnSursis } from "@/lib/stats";
+import { multiplicateurSerie, streakEnSursis } from "@/lib/score";
 import { Entry, Player } from "@/lib/types";
 import StreakCount from "./StreakCount";
 import { IconJoker, Skeleton } from "./ui";
@@ -31,16 +31,17 @@ type Props = {
   onGoLeaderboard: () => void;
   /** 😴 Aujourd'hui est le jour off du groupe. */
   jourOff: boolean;
+  /** Tous les jours off tirés jusqu'ici : le sursis du joker doit savoir
+      qu'un repos d'hier n'est pas un trou à racheter. */
+  joursOff?: Set<string>;
 };
 
 /** Durée du beat de fond, alignée sur .streak-beat dans globals.css. */
 const BEAT_MS = 1500;
 
-/** ×1 avant 3 jours parfaits consécutifs, ×1,5 dès 3, ×2 dès 7.
-    Même barème que la vue daily_points — copie assumée, 3 lignes. */
-function multFor(pos: number): number {
-  return pos >= 7 ? 2 : pos >= 3 ? 1.5 : 1;
-}
+// Le multiplicateur de série vient du moteur (lib/score.ts) : plus de
+// copie locale du barème.
+const multFor = multiplicateurSerie;
 
 /** "×1,5" / "×2" */
 function fmtMult(m: number): string {
@@ -55,6 +56,7 @@ export default function RankLine({
   enPanne,
   perfect,
   jourOff,
+  joursOff,
   onGoLeaderboard,
 }: Props) {
   const f = useFenetre();
@@ -101,7 +103,7 @@ export default function RankLine({
   // sans la menacer.
   const sursis =
     !perfect && streak === 0 && !jourOff
-      ? streakEnSursis(player.id, entries, mine.joker_day, parisToday())
+      ? streakEnSursis(player.id, entries, mine.joker_day, parisToday(), f, joursOff)
       : 0;
 
   // ReactNode et plus string : la bouée du joker est dessinée depuis le

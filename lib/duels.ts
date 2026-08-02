@@ -9,7 +9,6 @@
 
 import { addDays, CHALLENGE_START, FENETRE_ENV, Fenetre, mondayOf } from "./challenge";
 import { normalizeName } from "./palette";
-import { Entry, entryCount, entryKey } from "./types";
 
 /**
  * Prénoms tenus hors de l'appariement, lus depuis `DUELS_EXCLUS` (variable
@@ -65,10 +64,11 @@ export type Duel = {
   player_b: string | null; // null = exempt (nombre impair)
 };
 
-export type DuelTally = {
-  perfectA: number;
-  perfectB: number;
-};
+// Les règles du duel (tally et vainqueur) vivent dans le moteur de score
+// (lib/score.ts), avec les autres règles rejouées côté client. Ré-exportées
+// ici pour que « les duels » restent un seul import — l'implémentation, elle,
+// n'existe qu'à un endroit.
+export { duelWinner, tallyDuel, type DuelTally } from "./score";
 
 /** Le duel (ou l'exemption) d'un joueur pour un lundi donné. */
 export function duelOf(
@@ -85,35 +85,3 @@ export function duelOf(
   );
 }
 
-/** Jours parfaits de chaque camp sur [from, to], bornes incluses.
-    Se calcule depuis la Map entries déjà en mémoire (et en realtime) —
-    aucun aller-retour serveur. */
-export function tallyDuel(
-  entries: Map<string, Entry>,
-  duel: Duel,
-  from: string,
-  to: string,
-): DuelTally {
-  const t: DuelTally = { perfectA: 0, perfectB: 0 };
-  for (let day = from; day <= to; day = addDays(day, 1)) {
-    const a = entryCount(entries.get(entryKey(duel.player_a, day)));
-    if (a === 3) t.perfectA++;
-    if (duel.player_b) {
-      const b = entryCount(entries.get(entryKey(duel.player_b, day)));
-      if (b === 3) t.perfectB++;
-    }
-  }
-  return t;
-}
-
-/** Même règle que la vue duel_results : jours parfaits, puis points de
-    la semaine (le classement hebdo, hors transferts), sinon nul. */
-export function duelWinner(
-  t: DuelTally,
-  pointsA: number,
-  pointsB: number,
-): "a" | "b" | null {
-  if (t.perfectA !== t.perfectB) return t.perfectA > t.perfectB ? "a" : "b";
-  if (pointsA !== pointsB) return pointsA > pointsB ? "a" : "b";
-  return null;
-}

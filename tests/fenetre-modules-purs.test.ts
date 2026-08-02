@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fenetre, FENETRE_ENV } from "../lib/challenge";
 import { duelsFrom, DUELS_FROM } from "../lib/duels";
 import { buildFinalShare, buildWeekShare } from "../lib/share";
-import { computeStats, groupTimeline, streakEnSursis } from "../lib/stats";
+import { computeStats, groupTimeline, streakEnSursis } from "../lib/score";
 import { Entry, entryKey, Player } from "../lib/types";
 
 function onEstLe(jour: string) {

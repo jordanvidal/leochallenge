@@ -11,7 +11,7 @@ import {
   joursDeFenetre,
 } from "@/lib/challenge";
 import { BADGES, fmtPoints, frenchRank, Gamification, LeaderboardRow } from "@/lib/gamification";
-import { computeStats, groupTimeline, PlayerStats, TimelineCell } from "@/lib/stats";
+import { computeStats, groupTimeline, PlayerStats, TimelineCell } from "@/lib/score";
 import { Entry, Player } from "@/lib/types";
 import { Avatar, BigButton, Skeleton } from "./ui";
 import { useFenetre } from "./ligue/LigueContexte";
@@ -20,6 +20,10 @@ type Props = {
   player: Player;
   players: Player[];
   entries: Map<string, Entry>;
+  /** 😴 Les jours off tirés (S4) : les séries des cartes joueurs doivent
+      les enjamber, comme le fait le classement. Absent hors du challenge
+      d'origine ou tant que le catalogue n'est pas chargé. */
+  joursOff?: Set<string>;
   gamification: Gamification | null;
   onShareFinal: () => void;
   onRematch: () => void;
@@ -229,6 +233,7 @@ export default function BilanScreen({
   player,
   players,
   entries,
+  joursOff,
   gamification,
   onShareFinal,
   onRematch,
@@ -289,7 +294,7 @@ export default function BilanScreen({
               key={r.player_id}
               player={p}
               row={r}
-              stats={computeStats(p.id, entries, f)}
+              stats={computeStats(p.id, entries, f, joursOff)}
               badges={gamification.badges.get(p.id) ?? []}
               open={i === 0 || p.id === player.id}
             />
