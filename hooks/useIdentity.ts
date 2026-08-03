@@ -13,6 +13,7 @@ const LATER_KEY = "lc100.installLater"; // sessionStorage : revient à chaque ou
 const TUTO_KEY = "lc100.tutorialSeen"; // localStorage : le tuto ne s'impose qu'une fois
 const LAUNCH_S3_KEY = "lc100.launchS3Seen"; // localStorage : l'écran de lancement S3, une fois
 const LAUNCH_S4_KEY = "lc100.launchS4Seen"; // localStorage : idem pour la S4, clé distincte
+const MI_TEMPS_KEY = "lc100.miTempsSeen"; // localStorage : la mi-temps, une fois et une seule
 
 export function useIdentity() {
   const [mounted, setMounted] = useState(false);
@@ -21,6 +22,7 @@ export function useIdentity() {
   const [tutorialSeen, setTutorialSeen] = useState(true); // vrai par défaut : pas de flash
   const [launchS3Seen, setLaunchS3Seen] = useState(true); // vrai par défaut : pas de flash
   const [launchS4Seen, setLaunchS4Seen] = useState(true); // vrai par défaut : pas de flash
+  const [miTempsSeen, setMiTempsSeen] = useState(true); // vrai par défaut : pas de flash
   const [installLater, setInstallLater] = useState(false);
   const [standalone, setStandalone] = useState(true); // vrai par défaut : pas de flash
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
@@ -34,6 +36,7 @@ export function useIdentity() {
     setTutorialSeen(localStorage.getItem(TUTO_KEY) === "1");
     setLaunchS3Seen(localStorage.getItem(LAUNCH_S3_KEY) === "1");
     setLaunchS4Seen(localStorage.getItem(LAUNCH_S4_KEY) === "1");
+    setMiTempsSeen(localStorage.getItem(MI_TEMPS_KEY) === "1");
     setInstallLater(sessionStorage.getItem(LATER_KEY) === "1");
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -98,6 +101,14 @@ export function useIdentity() {
     setLaunchS4Seen(true);
   }
 
+  /** Mi-temps vue : un événement one-shot, il ne revient jamais. Clé à part
+      des lancements de saison — celui qui a vu les trois carrousels de saison
+      doit quand même recevoir la mi-temps le 7 au matin. */
+  function markMiTempsSeen() {
+    localStorage.setItem(MI_TEMPS_KEY, "1");
+    setMiTempsSeen(true);
+  }
+
   return {
     mounted,
     gateOk,
@@ -105,6 +116,7 @@ export function useIdentity() {
     tutorialSeen,
     launchS3Seen,
     launchS4Seen,
+    miTempsSeen,
     installLater,
     standalone,
     installPrompt,
@@ -115,5 +127,6 @@ export function useIdentity() {
     markTutorialSeen,
     markLaunchS3Seen,
     markLaunchS4Seen,
+    markMiTempsSeen,
   };
 }

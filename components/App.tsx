@@ -26,12 +26,19 @@ import {
 } from "@/lib/challenge";
 import { CLE_EVENEMENT_VU } from "@/lib/bonus";
 import { FeedEvent } from "@/lib/feed";
-import { useFenetre } from "./ligue/LigueContexte";
+import { useFenetre, useLigueCourante } from "./ligue/LigueContexte";
 import { notifyMoments, resyncPush } from "@/lib/gamification";
+import {
+  buildMiTempsShare,
+  fetchMiTemps,
+  MiTempsData,
+  miTempsOuverte,
+} from "@/lib/mitemps";
 import {
   shareFinalFlow,
   shareInvite,
   shareRematch,
+  shareText,
   shareWeekFlow,
 } from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
@@ -48,6 +55,7 @@ import TabBar, { Tab } from "./TabBar";
 import TodayScreen from "./TodayScreen";
 import LaunchS3Screen from "./LaunchS3Screen";
 import LaunchS4Screen from "./LaunchS4Screen";
+import MiTempsScreen from "./MiTempsScreen";
 import TutorialScreen from "./TutorialScreen";
 import WorkoutMode from "./workout/WorkoutMode";
 import { Toast } from "./ui";
@@ -66,6 +74,7 @@ export default function App() {
   // La fenêtre de la ligue courante — celle des variables d'env en groupe
   // unique. Tout ce qui date dans cet écran passe par elle.
   const f = useFenetre();
+  const ligueId = useLigueCourante()?.id ?? null;
   const data = useChallengeData();
   const id = useIdentity();
   const { playerId } = id;
@@ -314,6 +323,55 @@ export default function App() {
     else id.markLaunchS3Seen();
   }, [player, id, data.players, data.entries, data.offline, f]);
 
+  /**
+   * La mi-temps : l'écran story one-shot du lendemain de la moitié du
+   * challenge (le 07/08 au matin sur le challenge d'origine).
+   *
+   * Il ne s'ouvre qu'une fois ses chiffres en main : `fetchMiTemps` rend
+   * `null` si le classement ne répond pas, et on préfère alors ne rien
+   * montrer — un bilan de mi-temps rempli de zéros vaut moins que pas de
+   * bilan du tout, et le drapeau n'étant pas posé, la prochaine ouverture
+   * réessaiera.
+   *
+   * Comme les carrousels de saison, il ne tombe jamais sur quelqu'un qui
+   * n'a jamais joué : on marque vu et on passe. Ouvrir « voilà ta première
+   * moitié » sur une colonne de zéros, c'est la seule façon de rater
+   * l'écran censé relancer les décrochés.
+   *
+   * Le `ref` garde l'appel unique : `useIdentity` rend un objet neuf à
+   * chaque rendu, donc cet effet rejoue à chaque rendu — sans lui, une
+   * requête de classement partirait en boucle jusqu'à la fermeture.
+   */
+  const [miTemps, setMiTemps] = useState<MiTempsData | null>(null);
+  const miTempsDemandee = useRef(false);
+  useEffect(() => {
+    if (!player || data.players === null || data.offline) return;
+    // `aUneBasculeDeBareme` : le challenge d'origine, et lui seul. Une ligue
+    // neuve a ses propres dates et n'a rien à raconter à la moitié de sa
+    // deuxième semaine — même discriminant que la saison 4.
+    if (id.miTempsSeen || !aUneBasculeDeBareme(f) || !miTempsOuverte(f)) return;
+    const aJoue = [...data.entries.values()].some(
+      (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+    );
+    if (!aJoue) {
+      id.markMiTempsSeen();
+      return;
+    }
+    if (miTempsDemandee.current) return;
+    miTempsDemandee.current = true;
+    fetchMiTemps(player.id, data.players, data.entries, f, ligueId).then((d) => {
+      if (d) setMiTemps(d);
+    });
+  }, [player, id, data.players, data.entries, data.offline, f, ligueId]);
+
+  /** Partage du bilan collectif de la mi-temps (carte 5). */
+  async function shareMiTemps() {
+    if (!miTemps) return;
+    const channel = await shareText(buildMiTempsShare(miTemps));
+    if (channel === "clipboard")
+      data.showToast("Copié ! Colle-le dans WhatsApp 💬");
+  }
+
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
       bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
   function dismissEventModal() {
@@ -487,6 +545,28 @@ export default function App() {
             onDone={marquerVu}
           />
         )}
+        <Toast message={data.toast} />
+      </div>
+    );
+  }
+
+  // La mi-temps, une fois ses chiffres chargés. Après les carrousels de
+  // saison — le 07/08 tout le monde les a vus depuis longtemps, mais l'ordre
+  // vaut mieux qu'un empilement — et avant l'install, comme eux : on ouvre
+  // sur du positif. Les stats sont gelées au 06/08, l'écran dit donc la même
+  // chose au 7 au réveil qu'au 10 en rentrant de vacances.
+  if (!over && miTemps && !id.miTempsSeen) {
+    return (
+      <div style={accent}>
+        <MiTempsScreen
+          player={player}
+          data={miTemps}
+          onShare={shareMiTemps}
+          onClose={() => {
+            id.markMiTempsSeen();
+            setMiTemps(null);
+          }}
+        />
         <Toast message={data.toast} />
       </div>
     );
