@@ -319,48 +319,54 @@ function WeekRecapCard({
                 <span aria-hidden>⚔️</span> Duels à venir
                 {openedWeek ? ` — semaine ${openedWeek.index}` : ""}
               </p>
-              {/* D'où sort le tirage. Sans cette ligne, les rangs affichés
-                  sur chaque duel ne seraient qu'un chiffre de plus. */}
+              {/* La règle de lecture de l'échelle, une fois. Le reste — qui
+                  affronte qui, et pourquoi celui-là — est dit par la forme :
+                  deux voisins partagent une boîte, l'exempt est seul dans la
+                  sienne. Une phrase qui redirait ça ferait doublon. */}
               <p className="mt-1 text-xs leading-snug text-quiet">
-                Chacun affronte son voisin au classement général de dimanche
-                soir.
-                {fresh.some((p) => p.b === null) &&
-                  " Effectif impair : l'exempt tourne d'une semaine à l'autre."}
+                Le classement général de dimanche soir, redescendu en duels :
+                deux voisins, un duel.
               </p>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {fresh.map((p) => {
                   const involved = p.a.id === me.id || p.b?.id === me.id;
+                  // Dans une échelle, les rangs doivent se suivre : on remet
+                  // les deux joueurs dans l'ordre du classement, quel que soit
+                  // celui qui portait l'événement duel_start.
+                  const duo = p.b
+                    ? [p.a, p.b].sort(
+                        (x, y) =>
+                          (ranks?.get(x.id) ?? Number.MAX_SAFE_INTEGER) -
+                          (ranks?.get(y.id) ?? Number.MAX_SAFE_INTEGER),
+                      )
+                    : [p.a];
                   return (
                     <li
                       key={`${p.a.id}-${p.b?.id ?? "bye"}`}
-                      className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm"
-                      style={
-                        involved
-                          ? {
-                              background: `color-mix(in oklch, ${me.color} 14%, transparent)`,
-                            }
-                          : undefined
-                      }
+                      className="flex flex-col gap-0.5 rounded-xl px-2 py-1.5 text-sm"
+                      style={{
+                        background: involved
+                          ? `color-mix(in oklch, ${me.color} 14%, transparent)`
+                          : "var(--color-raised)",
+                      }}
                     >
-                      <Rank n={ranks?.get(p.a.id)} />
-                      <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
-                      <Name p={p.a} me={me} serre />
-                      {p.b ? (
-                        <>
-                          {/* `aria-label` sur un span sans rôle est ignoré : le
-                              lecteur d'écran annonçait l'emoji brut. Le mot est
-                              maintenant dit, et le glyphe se tait. */}
-                          <span className="shrink-0 text-quiet" aria-hidden>
-                            ⚔️
-                          </span>
-                          <span className="sr-only">contre</span>
-                          <Name p={p.b} me={me} serre />
-                          <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
-                          <Rank n={ranks?.get(p.b.id)} />
-                        </>
-                      ) : (
-                        <span className="text-muted">— exempt cette semaine</span>
-                      )}
+                      {duo.map((joueur, i) => (
+                        <div key={joueur.id} className="flex items-center gap-2">
+                          {/* Le mot que la forme ne dit pas : sans lui, un
+                              lecteur d'écran énumère quatre personnes sans
+                              jamais dire qui affronte qui. */}
+                          {i > 0 && <span className="sr-only">contre</span>}
+                          <Rank n={ranks?.get(joueur.id)} />
+                          <Avatar
+                            name={joueur.name}
+                            color={joueur.color}
+                            photo={joueur.photo}
+                            size={20}
+                          />
+                          <Name p={joueur} me={me} serre />
+                          {!p.b && <span className="text-muted">— exempt cette semaine</span>}
+                        </div>
+                      ))}
                     </li>
                   );
                 })}
