@@ -15,7 +15,13 @@
 
 import { memo, useEffect, useId, useState } from "react";
 import { addDays, challengeWeeks, mondayOf } from "@/lib/challenge";
-import { fetchWeekLeaderboard, fmtPoints, frenchRank, LeaderboardRow } from "@/lib/gamification";
+import {
+  fetchGeneralRanks,
+  fetchWeekLeaderboard,
+  fmtPoints,
+  frenchRank,
+  LeaderboardRow,
+} from "@/lib/gamification";
 import { eventPhrase, FeedComment, FeedEvent, FeedReaction } from "@/lib/feed";
 import { Player } from "@/lib/types";
 import { Avatar } from "../ui";
@@ -42,7 +48,16 @@ type Pair = {
   a: Player;
   b: Player | null; // null = exempt
   /** Renseigné seulement pour les duels réglés. */
-  result?: { winner: Player | null; loser: Player | null; score: string };
+  result?: {
+    winner: Player | null;
+    loser: Player | null;
+    score: string;
+    /** Le départage aux points, vainqueur d'abord ("41,5–38"). Présent
+        quand les deux ont fait le même nombre de jours parfaits : sans lui
+        la ligne dit « bat » sur un 7–7 et ne s'explique pas. */
+    pointsScore?: string;
+    tiebreak?: boolean;
+  };
 };
 
 /** "Toi" quand c'est moi — le fil s'adresse au joueur, pas à un public. */
@@ -65,6 +80,14 @@ function Name({ p, me, serre }: { p: Player; me: Player; serre?: boolean }) {
       {label(p, me)}
     </span>
   );
+}
+
+/** Le rang au général de dimanche soir — celui qui a produit l'appariement.
+    Muet si le classement n'a pas pu être lu, ou en semaine 1 où personne
+    n'a encore de points : un rang sans points ne veut rien dire. */
+function Rank({ n }: { n: number | undefined }) {
+  if (!n) return null;
+  return <span className="shrink-0 text-xs text-quiet">{frenchRank(n)}</span>;
 }
 
 function WeekRecapCard({
@@ -105,14 +128,24 @@ function WeekRecapCard({
     ? (weeks.find((w) => mondayOf(w.from) === openedMonday) ?? null)
     : null;
 
-  // Classement de la semaine close, chargé une fois. null = échec, on se
-  // tait plutôt que d'afficher un faux podium.
+  // Deux lectures pour deux choses différentes, en parallèle :
+  //  - le classement DE LA SEMAINE close, qui donne le vainqueur ;
+  //  - les rangs AU GÉNÉRAL au dimanche soir, qui sont ceux sur lesquels le
+  //    job du lundi a apparié (lib/server/duels.ts) — sans eux la carte ne
+  //    peut pas dire d'où sortent les duels de la semaine qui s'ouvre.
+  // null = échec, on se tait plutôt que d'afficher un faux podium.
   const [rows, setRows] = useState<LeaderboardRow[] | null | undefined>(undefined);
+  const [ranks, setRanks] = useState<Map<string, number> | null>(null);
   useEffect(() => {
     if (!closedWeek) return;
     let cancelled = false;
-    fetchWeekLeaderboard(closedWeek.from, closedWeek.until, ligueId).then((r) => {
-      if (!cancelled) setRows(r);
+    Promise.all([
+      fetchWeekLeaderboard(closedWeek.from, closedWeek.until, ligueId),
+      fetchGeneralRanks(closedWeek.until, ligueId),
+    ]).then(([semaine, general]) => {
+      if (cancelled) return;
+      setRows(semaine);
+      setRanks(general);
     });
     return () => {
       cancelled = true;
@@ -139,6 +172,8 @@ function WeekRecapCard({
           winner: draw ? null : a,
           loser: draw ? null : b,
           score: e.payload.score ?? "",
+          pointsScore: e.payload.pointsScore,
+          tiebreak: e.payload.tiebreak,
         },
       },
     ];
@@ -157,8 +192,23 @@ function WeekRecapCard({
 
   // Mon duel d'abord : c'est celui qu'on cherche des yeux.
   const mine = (p: Pair) => (p.a.id === me.id || p.b?.id === me.id ? 0 : 1);
-  fresh.sort((x, y) => mine(x) - mine(y));
   settled.sort((x, y) => mine(x) - mine(y));
+
+  // Les duels à venir, eux, se rangent par rang dès qu'on connaît les rangs :
+  // c'est l'échelle qui explique le tirage (1er contre 2e, 3e contre 4e), et
+  // elle ne se lit que dans l'ordre. Mon duel reste trouvable au premier coup
+  // d'œil — il est le seul teinté à ma couleur. Sans les rangs (classement
+  // illisible, semaine 1), on retombe sur mon duel d'abord.
+  const bestRank = (p: Pair) =>
+    Math.min(
+      ranks?.get(p.a.id) ?? Number.MAX_SAFE_INTEGER,
+      p.b ? (ranks?.get(p.b.id) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER,
+    );
+  fresh.sort(
+    ranks && ranks.size > 0
+      ? (x, y) => bestRank(x) - bestRank(y)
+      : (x, y) => mine(x) - mine(y),
+  );
 
   if (fresh.length === 0 && settled.length === 0 && !recit) return null;
 
@@ -186,96 +236,138 @@ function WeekRecapCard({
         {closedWeek ? `Semaine ${closedWeek.index} bouclée` : "Semaine bouclée"}
       </h3>
 
-      {recitAuthor && recitLine && (
-        <p className="mt-2 text-sm leading-snug">
-          <span aria-hidden>{recitLine.emoji}</span>{" "}
-          <span className="font-bold" style={{ color: recitAuthor.color }}>
-            {recitAuthor.name}
-          </span>{" "}
-          {recitLine.text}
-        </p>
-      )}
-
-      {/* Le podium de la semaine close. Muet tant qu'il n'est pas chargé —
-          mieux vaut une carte plus courte qu'un chiffre faux. */}
-      {winnerPlayer && winner && (
-        <p className="mt-2 text-sm leading-snug">
-          <span aria-hidden>🏆</span> <Name p={winnerPlayer} me={me} /> rafle la
-          semaine avec {fmtPoints(winner.points)} pts.
-          {myRow && myRow.player_id !== winner.player_id && (
-            <> Tu finis {frenchRank(myRow.rank)}.</>
+      {/* Premier bloc : les faits de jeu de la semaine close, sans un seul
+          duel. Le récit passe avant le podium — le podium redit le
+          classement, le récit dit ce qu'il ne montre pas. */}
+      {(recitLine || (winnerPlayer && winner)) && (
+        <div
+          className="mt-2 flex flex-col gap-2.5 rounded-2xl px-3 py-3"
+          style={{ background: "var(--color-surface)" }}
+        >
+          {recitAuthor && recitLine && (
+            <p className="text-sm leading-snug">
+              <span aria-hidden>{recitLine.emoji}</span>{" "}
+              <span className="font-bold" style={{ color: recitAuthor.color }}>
+                {recitAuthor.name}
+              </span>{" "}
+              {recitLine.text}
+            </p>
           )}
-        </p>
+
+          {/* Le podium de la semaine close. Muet tant qu'il n'est pas chargé —
+              mieux vaut une carte plus courte qu'un chiffre faux. */}
+          {winnerPlayer && winner && (
+            <p className="text-sm leading-snug">
+              <span aria-hidden>🏆</span> <Name p={winnerPlayer} me={me} /> rafle
+              la semaine avec {fmtPoints(winner.points)} pts.
+              {myRow && myRow.player_id !== winner.player_id && (
+                <> Tu finis {frenchRank(myRow.rank)}.</>
+              )}
+            </p>
+          )}
+        </div>
       )}
 
-      {settled.length > 0 && (
-        <>
-          <p className="mt-4 text-xs font-bold text-muted">
-            <span aria-hidden>⚔️</span> Les duels sont réglés
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-1">
-            {settled.map((p) => (
-              <li key={`${p.a.id}-${p.b?.id}`} className="text-sm leading-snug">
-                {p.result?.winner && p.result.loser ? (
-                  <>
-                    <Name p={p.result.winner} me={me} /> bat{" "}
-                    <Name p={p.result.loser} me={me} /> {p.result.score}
-                  </>
-                ) : (
-                  <>
-                    <Name p={p.a} me={me} /> et <Name p={p.b!} me={me} /> se
-                    quittent sur un nul {p.result?.score}
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      {/* Second bloc : TOUS les duels, réglés et à venir, dans la même
+          fenêtre. Ce sont deux moments d'un même tournoi — les séparer en
+          deux surfaces les faisait lire comme deux sujets sans rapport,
+          alors que la deuxième liste sort du classement que la première
+          vient de bouger. */}
+      {(settled.length > 0 || fresh.length > 0) && (
+        <div
+          className="mt-2 flex flex-col gap-4 rounded-2xl px-3 py-3"
+          style={{ background: "var(--color-surface)" }}
+        >
+          {settled.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-muted">
+                <span aria-hidden>⚔️</span> Résultats des duels
+                {closedWeek ? ` — semaine ${closedWeek.index}` : ""}
+              </p>
+              <ul className="mt-1.5 flex flex-col gap-1">
+                {settled.map((p) => (
+                  <li key={`${p.a.id}-${p.b?.id}`} className="text-sm leading-snug">
+                    {p.result?.winner && p.result.loser ? (
+                      <>
+                        <Name p={p.result.winner} me={me} /> bat{" "}
+                        <Name p={p.result.loser} me={me} /> {p.result.score}
+                        {/* Un 7–7 avec un vainqueur ne se lit pas tout seul :
+                            le chiffre qui a tranché doit être dans la ligne,
+                            sinon la carte a l'air de désigner au hasard. */}
+                        {p.result.tiebreak && p.result.pointsScore && (
+                          <span className="text-quiet">
+                            {" "}
+                            — départage aux points {p.result.pointsScore}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Name p={p.a} me={me} /> et <Name p={p.b!} me={me} /> se
+                        quittent sur un nul {p.result?.score}
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {fresh.length > 0 && (
-        <>
-          <p className="mt-4 text-xs font-bold text-muted">
-            <span aria-hidden>⚔️</span> Les duels de la semaine
-            {openedWeek ? ` ${openedWeek.index}` : ""}
-          </p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {fresh.map((p) => {
-              const involved = p.a.id === me.id || p.b?.id === me.id;
-              return (
-                <li
-                  key={`${p.a.id}-${p.b?.id ?? "bye"}`}
-                  className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm"
-                  style={
-                    involved
-                      ? {
-                          background: `color-mix(in oklch, ${me.color} 14%, transparent)`,
-                        }
-                      : undefined
-                  }
-                >
-                  <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
-                  <Name p={p.a} me={me} serre />
-                  {p.b ? (
-                    <>
-                      {/* `aria-label` sur un span sans rôle est ignoré : le
-                          lecteur d'écran annonçait l'emoji brut. Le mot est
-                          maintenant dit, et le glyphe se tait. */}
-                      <span className="shrink-0 text-quiet" aria-hidden>
-                        ⚔️
-                      </span>
-                      <span className="sr-only">contre</span>
-                      <Name p={p.b} me={me} serre />
-                      <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
-                    </>
-                  ) : (
-                    <span className="text-muted">— exempt cette semaine</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </>
+          {fresh.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-muted">
+                <span aria-hidden>⚔️</span> Duels à venir
+                {openedWeek ? ` — semaine ${openedWeek.index}` : ""}
+              </p>
+              {/* D'où sort le tirage. Sans cette ligne, les rangs affichés
+                  sur chaque duel ne seraient qu'un chiffre de plus. */}
+              <p className="mt-1 text-xs leading-snug text-quiet">
+                Chacun affronte son voisin au classement général de dimanche
+                soir.
+                {fresh.some((p) => p.b === null) &&
+                  " Effectif impair : l'exempt tourne d'une semaine à l'autre."}
+              </p>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {fresh.map((p) => {
+                  const involved = p.a.id === me.id || p.b?.id === me.id;
+                  return (
+                    <li
+                      key={`${p.a.id}-${p.b?.id ?? "bye"}`}
+                      className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm"
+                      style={
+                        involved
+                          ? {
+                              background: `color-mix(in oklch, ${me.color} 14%, transparent)`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <Rank n={ranks?.get(p.a.id)} />
+                      <Avatar name={p.a.name} color={p.a.color} photo={p.a.photo} size={24} />
+                      <Name p={p.a} me={me} serre />
+                      {p.b ? (
+                        <>
+                          {/* `aria-label` sur un span sans rôle est ignoré : le
+                              lecteur d'écran annonçait l'emoji brut. Le mot est
+                              maintenant dit, et le glyphe se tait. */}
+                          <span className="shrink-0 text-quiet" aria-hidden>
+                            ⚔️
+                          </span>
+                          <span className="sr-only">contre</span>
+                          <Name p={p.b} me={me} serre />
+                          <Avatar name={p.b.name} color={p.b.color} photo={p.b.photo} size={24} />
+                          <Rank n={ranks?.get(p.b.id)} />
+                        </>
+                      ) : (
+                        <span className="text-muted">— exempt cette semaine</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       <button
