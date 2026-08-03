@@ -510,7 +510,7 @@ export function buildMiTempsShare(d: MiTempsData): string {
     "",
     ...d.top3.map((p, i) => `${medals[i]} ${p.name} — ${fmtPoints(p.points)} pts`),
     "",
-    `La bande : ${frNum(d.totalExos)} exos validés, ${frNum(d.totalReps)} répétitions, ` +
+    `L'équipe : ${frNum(d.totalExos)} exos validés, ${frNum(d.totalReps)} répétitions, ` +
       `${d.joursParfaitsCollectifs} jours parfaits, ${d.seances} séances guidées.`,
     ...(serie ? [`🔥 ${joinNoms(serie.noms)} ${serie.exploit}`] : []),
     ...(d.duels.tranches + d.duels.nuls > 0
