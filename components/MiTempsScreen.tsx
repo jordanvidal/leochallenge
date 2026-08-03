@@ -1,17 +1,34 @@
 "use client";
 
-// La mi-temps : écran story one-shot en 5 cartes tapables, même gabarit que
-// TutorialScreen / LaunchS4Screen. Ce composant est PUR AFFICHAGE : toutes
-// les stats arrivent en props, figées au dernier jour de la première mi-temps
-// par `lib/mitemps`. Il ne lit rien lui-même, il ne score rien.
+// La mi-temps : écran story one-shot en 5 cartes tapables. Pur affichage —
+// toutes les stats arrivent en props, figées au dernier jour de la première
+// mi-temps par `lib/mitemps`. Il ne lit rien lui-même, il ne score rien.
 //
-// Concept figé le 17/07, visuel revu à cette date : docs/mi-temps.md.
+// Direction visuelle (03/08, demande de Jordan « type Spotify Wrapped ») :
+// la story quitte le gabarit sobre des carrousels de saison pour un
+// traitement plein cadre. Trois leviers, et trois seulement :
+//
+//  1. **Le fond prend une couleur par carte** et se fond de l'une à
+//     l'autre. La recette est celle de `.celebrate-bg` (globals.css), juste
+//     poussée plus haut — et la couleur reste TOUJOURS une couleur de
+//     joueur : celle du lecteur, celle du leader, ou l'or du ×2. DESIGN.md
+//     dit « la couleur, c'est les joueurs » ; ici on l'applique à fond,
+//     on n'invente pas une palette de plus. Baisser l'intensité, c'est la
+//     constante `TEINTE` ci-dessous, rien d'autre.
+//  2. **Un chiffre héros par carte**, en `num-display`, qui monte de zéro.
+//  3. **Une entrée en cascade** : les blocs arrivent l'un après l'autre.
+//     Coupée net par `prefers-reduced-motion`, comme le reste de l'app.
+//
+// Concept et contenu : docs/mi-temps.md.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fmtPoints, frenchRank } from "@/lib/gamification";
 import { joinNoms, MiTempsData } from "@/lib/mitemps";
 import { Player } from "@/lib/types";
 import { Avatar, BigButton } from "./ui";
+
+/** Force du voile de couleur derrière chaque carte. Un seul curseur. */
+const TEINTE = "34%";
 
 type Props = {
   player: Player;
@@ -20,17 +37,104 @@ type Props = {
   onClose: () => void;
 };
 
-/** Une grosse stat : chiffre massif + légende. */
-function Big({ value, label }: { value: string; label: string }) {
+/** Dupliqué de LaunchS3Screen : cinq lignes pures, et cet écran ne doit
+    rien devoir à un carrousel de saison qui finira supprimé. */
+function prefersReducedMotion(): boolean {
   return (
-    <div>
-      <p className="num-display text-4xl text-ink">{value}</p>
-      <p className="mt-1 text-sm text-muted">{label}</p>
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** Compteur qui monte de 0 à `to` au montage. Respecte reduced-motion.
+    Même patron que le bilan de la S3 — c'est le geste qui fait qu'un
+    chiffre se regarde au lieu de se lire. */
+function CountUp({ to, duree = 900 }: { to: number; duree?: number }) {
+  const [n, setN] = useState(prefersReducedMotion() ? to : 0);
+  useEffect(() => {
+    if (prefersReducedMotion()) return setN(to);
+    const debut = performance.now();
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - debut) / duree);
+      // Décélération franche : le chiffre part vite et se pose, il ne
+      // rampe pas sur les vingt derniers pour cent.
+      setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, duree]);
+  return <>{n.toLocaleString("fr-FR")}</>;
+}
+
+/** Un bloc qui monte à son tour. `ordre` est son rang dans la cascade. */
+function Reveal({
+  ordre = 0,
+  children,
+}: {
+  ordre?: number;
+  children: React.ReactNode;
+}) {
+  const [vu, setVu] = useState(prefersReducedMotion());
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const id = setTimeout(() => setVu(true), 90 + ordre * 160);
+    return () => clearTimeout(id);
+  }, [ordre]);
+  return (
+    <div
+      style={{
+        opacity: vu ? 1 : 0,
+        transform: vu ? "none" : "translateY(14px)",
+        transition: "opacity .5s ease, transform .5s cubic-bezier(.22,1,.36,1)",
+      }}
+    >
+      {children}
     </div>
   );
 }
 
-/** Une ligne MVP : le trophée, le ou les noms, l'exploit. */
+/** Le chiffre héros d'une carte. */
+function Hero({
+  valeur,
+  suffixe,
+  legende,
+  couleur,
+}: {
+  valeur: React.ReactNode;
+  suffixe?: string;
+  legende: string;
+  couleur: string;
+}) {
+  return (
+    <div>
+      <p
+        className="num-display text-[5.5rem] leading-[0.85]"
+        style={{
+          color: couleur,
+          filter: `drop-shadow(0 10px 40px color-mix(in oklch, ${couleur} 40%, transparent))`,
+        }}
+      >
+        {valeur}
+        {suffixe && <span className="text-4xl text-faint"> {suffixe}</span>}
+      </p>
+      <p className="mt-3 text-lg text-muted">{legende}</p>
+    </div>
+  );
+}
+
+/** Petite stat de soutien, sous un chiffre héros. */
+function Stat({ valeur, label }: { valeur: string; label: string }) {
+  return (
+    <div>
+      <p className="num-display text-3xl text-ink">{valeur}</p>
+      <p className="mt-1 text-xs text-muted">{label}</p>
+    </div>
+  );
+}
+
+/** Une ligne de distinction : le trophée, le ou les noms, l'exploit. */
 function Mvp({
   emoji,
   noms,
@@ -42,141 +146,273 @@ function Mvp({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-7 shrink-0 text-center text-lg" aria-hidden>
+      <span className="w-6 shrink-0 text-center text-base" aria-hidden>
         {emoji}
       </span>
-      <p className="text-base text-muted">
+      <p className="text-sm leading-snug text-muted">
         <span className="font-bold text-ink">{joinNoms(noms)}</span> {exploit}
       </p>
     </div>
   );
 }
 
-/** Nombre à la française : 35100 → "35 100". */
+/**
+ * Le podium révélé de bas en haut : le 3e d'abord, puis le 2e, puis le 1er.
+ *
+ * Repris tel quel de l'écran de lancement de la S3 — c'est le geste que le
+ * groupe connaît déjà, et le seul endroit de l'app où un classement se
+ * regarde arriver au lieu de s'afficher. Le suspense tient à ça : on sait
+ * qui est 3e avant de savoir qui est 1er.
+ */
+function PodiumReveal({
+  top3,
+}: {
+  top3: MiTempsData["top3"];
+}) {
+  const medailles = ["🥇", "🥈", "🥉"];
+  const [step, setStep] = useState(prefersReducedMotion() ? top3.length : 0);
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const ids = top3.map((_, i) =>
+      setTimeout(() => setStep((s) => Math.max(s, i + 1)), 500 + i * 700),
+    );
+    return () => ids.forEach(clearTimeout);
+  }, [top3.length]);
+
+  return (
+    <div className="space-y-3">
+      {top3.map((p, k) => {
+        // k=0 est en haut mais révélé en dernier : il faut step >= n - k.
+        const vu = step >= top3.length - k;
+        return (
+          <div
+            key={p.name}
+            className="flex items-center gap-3 border-b border-line pb-3 last:border-0"
+            style={{
+              opacity: vu ? 1 : 0,
+              transform: vu ? "none" : "translateY(12px) scale(0.97)",
+              transition:
+                "opacity .45s ease, transform .45s cubic-bezier(.22,1,.36,1)",
+            }}
+          >
+            <span className="text-2xl leading-none" aria-hidden>
+              {medailles[k]}
+            </span>
+            <Avatar name={p.name} color={p.color} size={34} />
+            <span className="flex-1 truncate text-lg font-bold">{p.name}</span>
+            <span className="num-display text-2xl" style={{ color: p.color }}>
+              {fmtPoints(p.points)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Nombre à la française : 30200 → "30 200". */
 function frNum(n: number): string {
   return n.toLocaleString("fr-FR");
 }
 
 export default function MiTempsScreen({ player, data, onShare, onClose }: Props) {
-  const glow = {
-    filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
-  };
   const total = data.joursFaits + data.joursRestants;
+  const leader = data.top3[0]?.color || player.color;
+  // L'or du ×2 : la seule couleur de l'app qui n'appartienne à personne.
+  // C'est donc elle qui porte la carte du collectif.
+  const collectif = "var(--color-x2)";
 
-  const cards = [
-    // 1 — Le cadre : la moitié exacte.
-    <div key="cadre">
-      <p className="num-display text-7xl" style={{ color: player.color, ...glow }}>
-        {data.joursFaits}
-        <span className="text-4xl text-faint"> / {total}</span>
-      </p>
-      <h1 className="mt-6 text-3xl font-bold">La mi-temps</h1>
-      <p className="mt-4 text-lg text-muted">
-        {data.joursFaits} jours de challenge dans les jambes,{" "}
-        {data.joursRestants} devant.
-      </p>
-      <p className="mt-3 text-lg text-muted">
-        Voilà ce que la première moitié raconte — et pourquoi la deuxième
-        n&apos;est écrite pour personne.
-      </p>
-    </div>,
+  const eyebrow =
+    "text-xs font-bold uppercase tracking-[0.18em] text-faint";
 
-    // 2 — La bande : le collectif d'abord, puis les distinctions nommées.
-    <div key="bande">
-      <h1 className="text-2xl font-bold">La bande</h1>
-      <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6">
-        <Big value={frNum(data.totalExos)} label="exos à nous tous" />
-        <Big value={frNum(data.totalReps)} label="répétitions" />
-        <Big
-          value={String(data.joursParfaitsCollectifs)}
-          label="jours parfaits cumulés"
-        />
-        <Big value={String(data.seances)} label="séances guidées" />
-      </div>
-      {data.mvps.length > 0 && (
-        <div className="mt-8 space-y-4 border-t border-line pt-6">
-          {data.mvps.map((m) => (
-            <Mvp key={m.emoji} emoji={m.emoji} noms={m.noms} exploit={m.exploit} />
-          ))}
+  const cards: { teinte: string; contenu: React.ReactNode }[] = [
+    // 1 — Le cadre. Un seul chiffre, et ce qu'il veut dire.
+    {
+      teinte: player.color,
+      contenu: (
+        <div key="cadre" className="space-y-6">
+          <Reveal ordre={0}>
+            <p className={eyebrow}>Mi-temps</p>
+          </Reveal>
+          <Reveal ordre={1}>
+            <Hero
+              valeur={<CountUp to={data.joursFaits} />}
+              suffixe={`/ ${total}`}
+              legende="jours de challenge dans les jambes"
+              couleur={player.color}
+            />
+          </Reveal>
+          <Reveal ordre={2}>
+            <h1 className="text-4xl font-black leading-[1.05]">
+              On est à la moitié du challenge.
+            </h1>
+          </Reveal>
+          <Reveal ordre={3}>
+            <p className="text-lg text-muted">
+              {data.joursRestants} jours devant. Voilà ce que la première
+              moitié raconte — et pourquoi la deuxième n&apos;est écrite pour
+              personne.
+            </p>
+          </Reveal>
         </div>
-      )}
-    </div>,
+      ),
+    },
 
-    // 3 — La course : le podium et les duels, sans enterrer personne.
-    <div key="course">
-      <h1 className="text-2xl font-bold">La course</h1>
-      <div className="mt-6 space-y-3">
-        {data.top3.map((p, i) => (
-          <div key={p.name} className="flex items-center gap-3">
-            <span className="num-display w-7 text-2xl text-faint">{i + 1}</span>
-            <Avatar name={p.name} color={p.color} size={36} />
-            <span className="flex-1 truncate font-bold">{p.name}</span>
-            <span className="num-display text-xl" style={{ color: p.color }}>
-              {fmtPoints(p.points)}
-            </span>
-          </div>
-        ))}
-      </div>
-      {data.duels.tranches + data.duels.nuls > 0 && (
-        <p className="mt-6 border-t border-line pt-4 text-base text-muted">
-          ⚔️ Duels : {data.duels.tranches} tranché
-          {data.duels.tranches > 1 ? "s" : ""}, {data.duels.nuls} nul
-          {data.duels.nuls > 1 ? "s" : ""}.
-        </p>
-      )}
-      <p className="mt-3 text-base text-muted">
-        Les multiplicateurs de série et les duels peuvent tout renverser en{" "}
-        {data.joursRestants} jours. Personne n&apos;est à l&apos;abri, personne
-        n&apos;est condamné.
-      </p>
-    </div>,
+    // 2 — Le collectif. Le gros chiffre, c'est les répétitions : c'est
+    // celui qui fait « on a fait ÇA ? », pas le compte d'exos.
+    {
+      teinte: collectif,
+      contenu: (
+        <div key="equipe" className="space-y-6">
+          <Reveal ordre={0}>
+            <p className={eyebrow}>L&apos;équipe</p>
+          </Reveal>
+          <Reveal ordre={1}>
+            <Hero
+              valeur={<CountUp to={data.totalReps} duree={1300} />}
+              legende="répétitions à nous tous"
+              couleur={collectif}
+            />
+          </Reveal>
+          <Reveal ordre={2}>
+            <div className="grid grid-cols-3 gap-4 border-t border-line pt-5">
+              <Stat valeur={frNum(data.totalExos)} label="exos validés" />
+              <Stat
+                valeur={String(data.joursParfaitsCollectifs)}
+                label="jours parfaits"
+              />
+              <Stat valeur={String(data.seances)} label="séances guidées" />
+            </div>
+          </Reveal>
+          {data.mvps.length > 0 && (
+            <Reveal ordre={3}>
+              <div className="space-y-3 border-t border-line pt-5">
+                {data.mvps.map((m) => (
+                  <Mvp
+                    key={m.emoji}
+                    emoji={m.emoji}
+                    noms={m.noms}
+                    exploit={m.exploit}
+                  />
+                ))}
+              </div>
+            </Reveal>
+          )}
+        </div>
+      ),
+    },
 
-    // 4 — Toi : tes chiffres, puis TA raison d'attaquer la 2e mi-temps.
-    <div key="toi">
-      <h1 className="text-2xl font-bold">Toi</h1>
-      <p className="mt-2 text-lg font-medium" style={{ color: player.color }}>
-        {frenchRank(data.me.rank)} — {fmtPoints(data.me.points)} pts à la
-        mi-temps.
-      </p>
-      <div className="mt-6 grid grid-cols-3 gap-4">
-        <Big value={String(data.me.exos)} label="exos validés" />
-        <Big value={String(data.me.perfectDays)} label="jours parfaits" />
-        <Big value={String(data.me.bestStreak)} label="meilleure série" />
-      </div>
-      <p className="mt-8 border-t border-line pt-6 text-lg text-muted">
-        {data.me.relance}
-      </p>
-    </div>,
+    // 3 — La course. Le podium arrive du 3e au 1er, et la phrase de
+    // suspense tombe en grand, après — pas en note de bas de carte.
+    {
+      teinte: leader,
+      contenu: (
+        <div key="course" className="space-y-6">
+          <Reveal ordre={0}>
+            <p className={eyebrow}>La course</p>
+          </Reveal>
+          <PodiumReveal top3={data.top3} />
+          {data.duels.tranches + data.duels.nuls > 0 && (
+            <Reveal ordre={4}>
+              <p className="text-sm text-muted">
+                ⚔️ {data.duels.tranches} duel
+                {data.duels.tranches > 1 ? "s" : ""} tranché
+                {data.duels.tranches > 1 ? "s" : ""}, {data.duels.nuls} nul
+                {data.duels.nuls > 1 ? "s" : ""} depuis le début.
+              </p>
+            </Reveal>
+          )}
+          <Reveal ordre={5}>
+            <p className="text-3xl leading-[1.15] font-black text-balance">
+              Personne n&apos;est à l&apos;abri,
+              <br />
+              <span style={{ color: leader }}>personne n&apos;est condamné.</span>
+            </p>
+          </Reveal>
+          <Reveal ordre={6}>
+            <p className="text-base text-muted">
+              Les multiplicateurs de série et les duels peuvent tout renverser
+              en {data.joursRestants} jours.
+            </p>
+          </Reveal>
+        </div>
+      ),
+    },
 
-    // 5 — La suite : le partage et la relance collective.
-    <div key="suite">
-      <p className="text-7xl" aria-hidden style={glow}>
-        🏁
-      </p>
-      <h1 className="mt-6 text-3xl font-bold">Deuxième mi-temps</h1>
-      <p className="mt-4 text-lg text-muted">
-        {data.joursRestants} jours. Les compteurs hebdo repartent de zéro chaque
-        lundi, les duels distribuent leurs points, et la série de quelqu&apos;un
-        va craquer — ou pas.
-      </p>
-      <p className="mt-3 text-lg text-muted">
-        Balance le bilan dans le groupe, et que le meilleur tienne.
-      </p>
-      <button
-        onClick={onShare}
-        className="mt-6 min-h-11 w-full rounded-2xl px-4 py-3 text-center font-bold"
-        style={{
-          background: `color-mix(in oklch, ${player.color} 14%, var(--color-surface))`,
-          color: player.color,
-        }}
-      >
-        Partager le bilan de la bande 📤
-      </button>
-    </div>,
+    // 4 — Toi. La seule carte qui change d'un joueur à l'autre.
+    {
+      teinte: player.color,
+      contenu: (
+        <div key="toi" className="space-y-6">
+          <Reveal ordre={0}>
+            <p className={eyebrow}>Toi</p>
+          </Reveal>
+          <Reveal ordre={1}>
+            <Hero
+              valeur={frenchRank(data.me.rank)}
+              legende={`${fmtPoints(data.me.points)} pts à la mi-temps`}
+              couleur={player.color}
+            />
+          </Reveal>
+          <Reveal ordre={2}>
+            <div className="grid grid-cols-3 gap-4 border-t border-line pt-5">
+              <Stat valeur={String(data.me.exos)} label="exos validés" />
+              <Stat valeur={String(data.me.perfectDays)} label="jours parfaits" />
+              <Stat valeur={String(data.me.bestStreak)} label="meilleure série" />
+            </div>
+          </Reveal>
+          <Reveal ordre={3}>
+            <p className="border-t border-line pt-5 text-lg text-muted">
+              {data.me.relance}
+            </p>
+          </Reveal>
+        </div>
+      ),
+    },
+
+    // 5 — La suite. Le partage, puis la sortie.
+    {
+      teinte: player.color,
+      contenu: (
+        <div key="suite" className="space-y-6">
+          <Reveal ordre={0}>
+            <p className={eyebrow}>Ce qui reste</p>
+          </Reveal>
+          <Reveal ordre={1}>
+            <Hero
+              valeur={<CountUp to={data.joursRestants} />}
+              legende="jours de deuxième mi-temps"
+              couleur={player.color}
+            />
+          </Reveal>
+          <Reveal ordre={2}>
+            <p className="text-lg text-muted">
+              Les compteurs hebdo repartent de zéro chaque lundi, les duels
+              distribuent leurs points, et la série de quelqu&apos;un va
+              craquer — ou pas.
+            </p>
+          </Reveal>
+          <Reveal ordre={3}>
+            <button
+              onClick={onShare}
+              className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
+              style={{
+                background: `color-mix(in oklch, ${player.color} 16%, var(--color-surface))`,
+                color: player.color,
+                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 40%, transparent)`,
+              }}
+            >
+              Balancer le bilan dans le groupe 📤
+            </button>
+          </Reveal>
+        </div>
+      ),
+    },
   ];
 
   const [i, setI] = useState(0);
   const last = i === cards.length - 1;
+  const teinte = cards[i].teinte;
 
   function next() {
     setI((v) => v + 1);
@@ -184,17 +420,28 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
 
   return (
     <main
-      style={{ "--pc": player.color } as React.CSSProperties}
-      className="fixed inset-0 z-[60] flex flex-col bg-bg pt-safe pb-safe"
+      style={
+        {
+          "--pc": player.color,
+          background: `
+            radial-gradient(125% 95% at 50% -10%,
+              color-mix(in oklch, ${teinte} ${TEINTE}, transparent),
+              transparent 68%),
+            var(--color-bg)`,
+          transition: "background 600ms ease-out",
+        } as React.CSSProperties
+      }
+      className="fixed inset-0 z-[60] flex flex-col pt-safe pb-safe"
     >
       {/* En-tête : pastille, progression, sortie. Hors zone de tap. */}
       <div className="flex items-center gap-3 px-6 py-3">
         <span
           className="rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase"
           style={{
-            background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-            color: player.color,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 55%, transparent)`,
+            background: `color-mix(in oklch, ${teinte} 22%, var(--color-surface))`,
+            color: teinte,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${teinte} 55%, transparent)`,
+            transition: "background 600ms ease-out, color 600ms ease-out",
           }}
         >
           Mi-temps
@@ -204,7 +451,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <span
               key={n}
               className="h-1 flex-1 rounded-full transition-colors"
-              style={{ background: n <= i ? player.color : "var(--color-line)" }}
+              style={{ background: n <= i ? teinte : "var(--color-line)" }}
             />
           ))}
         </div>
@@ -219,13 +466,10 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
       {/* Zone de tap : tape n'importe où pour avancer. La dernière carte
           n'en est pas une — elle porte le bouton de partage, et un bouton
           dans un bouton est du HTML invalide autant qu'un tap qui
-          déclencherait les deux actions à la fois. On en sort par le
-          bouton du pied, comme sur les carrousels de saison. */}
+          déclencherait les deux actions à la fois. */}
       {last ? (
         <div className="flex flex-1 flex-col justify-center px-8 text-left">
-          <div key={i} className="rise-in">
-            {cards[i]}
-          </div>
+          <div key={i}>{cards[i].contenu}</div>
         </div>
       ) : (
         <button
@@ -233,9 +477,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           aria-label="Carte suivante"
           className="flex flex-1 flex-col justify-center px-8 text-left"
         >
-          <div key={i} className="rise-in">
-            {cards[i]}
-          </div>
+          <div key={i}>{cards[i].contenu}</div>
         </button>
       )}
 
