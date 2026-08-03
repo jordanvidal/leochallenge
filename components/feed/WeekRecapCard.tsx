@@ -42,7 +42,16 @@ type Pair = {
   a: Player;
   b: Player | null; // null = exempt
   /** Renseigné seulement pour les duels réglés. */
-  result?: { winner: Player | null; loser: Player | null; score: string };
+  result?: {
+    winner: Player | null;
+    loser: Player | null;
+    score: string;
+    /** Le départage aux points, vainqueur d'abord ("41,5–38"). Présent
+        quand les deux ont fait le même nombre de jours parfaits : sans lui
+        la ligne dit « bat » sur un 7–7 et ne s'explique pas. */
+    pointsScore?: string;
+    tiebreak?: boolean;
+  };
 };
 
 /** "Toi" quand c'est moi — le fil s'adresse au joueur, pas à un public. */
@@ -139,6 +148,8 @@ function WeekRecapCard({
           winner: draw ? null : a,
           loser: draw ? null : b,
           score: e.payload.score ?? "",
+          pointsScore: e.payload.pointsScore,
+          tiebreak: e.payload.tiebreak,
         },
       },
     ];
@@ -186,56 +197,80 @@ function WeekRecapCard({
         {closedWeek ? `Semaine ${closedWeek.index} bouclée` : "Semaine bouclée"}
       </h3>
 
-      {recitAuthor && recitLine && (
-        <p className="mt-2 text-sm leading-snug">
-          <span aria-hidden>{recitLine.emoji}</span>{" "}
-          <span className="font-bold" style={{ color: recitAuthor.color }}>
-            {recitAuthor.name}
-          </span>{" "}
-          {recitLine.text}
-        </p>
-      )}
-
-      {/* Le podium de la semaine close. Muet tant qu'il n'est pas chargé —
-          mieux vaut une carte plus courte qu'un chiffre faux. */}
-      {winnerPlayer && winner && (
-        <p className="mt-2 text-sm leading-snug">
-          <span aria-hidden>🏆</span> <Name p={winnerPlayer} me={me} /> rafle la
-          semaine avec {fmtPoints(winner.points)} pts.
-          {myRow && myRow.player_id !== winner.player_id && (
-            <> Tu finis {frenchRank(myRow.rank)}.</>
+      {/* Ce qui est joué tient dans un seul bloc, un étage en dessous de la
+          carte : récit, podium et duels réglés parlent tous de la semaine
+          close. Ce qui reste sur le fond de la carte, dessous, est ce qui
+          n'a pas encore eu lieu. Deux registres, deux surfaces — c'est la
+          seule façon de les séparer sans poser un filet (voir plus bas). */}
+      {(recitLine || (winnerPlayer && winner) || settled.length > 0) && (
+        <div
+          className="mt-2 flex flex-col gap-2.5 rounded-2xl px-3 py-3"
+          style={{ background: "var(--color-surface)" }}
+        >
+          {recitAuthor && recitLine && (
+            <p className="text-sm leading-snug">
+              <span aria-hidden>{recitLine.emoji}</span>{" "}
+              <span className="font-bold" style={{ color: recitAuthor.color }}>
+                {recitAuthor.name}
+              </span>{" "}
+              {recitLine.text}
+            </p>
           )}
-        </p>
-      )}
 
-      {settled.length > 0 && (
-        <>
-          <p className="mt-4 text-xs font-bold text-muted">
-            <span aria-hidden>⚔️</span> Les duels sont réglés
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-1">
-            {settled.map((p) => (
-              <li key={`${p.a.id}-${p.b?.id}`} className="text-sm leading-snug">
-                {p.result?.winner && p.result.loser ? (
-                  <>
-                    <Name p={p.result.winner} me={me} /> bat{" "}
-                    <Name p={p.result.loser} me={me} /> {p.result.score}
-                  </>
-                ) : (
-                  <>
-                    <Name p={p.a} me={me} /> et <Name p={p.b!} me={me} /> se
-                    quittent sur un nul {p.result?.score}
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
+          {/* Le podium de la semaine close. Muet tant qu'il n'est pas chargé —
+              mieux vaut une carte plus courte qu'un chiffre faux. */}
+          {winnerPlayer && winner && (
+            <p className="text-sm leading-snug">
+              <span aria-hidden>🏆</span> <Name p={winnerPlayer} me={me} /> rafle
+              la semaine avec {fmtPoints(winner.points)} pts.
+              {myRow && myRow.player_id !== winner.player_id && (
+                <> Tu finis {frenchRank(myRow.rank)}.</>
+              )}
+            </p>
+          )}
+
+          {settled.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-muted">
+                <span aria-hidden>⚔️</span> Résultats des duels
+                {closedWeek ? ` semaine ${closedWeek.index}` : ""}
+              </p>
+              <ul className="mt-1.5 flex flex-col gap-1">
+                {settled.map((p) => (
+                  <li key={`${p.a.id}-${p.b?.id}`} className="text-sm leading-snug">
+                    {p.result?.winner && p.result.loser ? (
+                      <>
+                        <Name p={p.result.winner} me={me} /> bat{" "}
+                        <Name p={p.result.loser} me={me} /> {p.result.score}
+                        {/* Un 7–7 avec un vainqueur ne se lit pas tout seul :
+                            le chiffre qui a tranché doit être dans la ligne,
+                            sinon la carte a l'air de désigner au hasard. */}
+                        {p.result.tiebreak && p.result.pointsScore && (
+                          <span className="text-quiet">
+                            {" "}
+                            — départage aux points {p.result.pointsScore}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Name p={p.a} me={me} /> et <Name p={p.b!} me={me} /> se
+                        quittent sur un nul {p.result?.score}
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       {fresh.length > 0 && (
         <>
-          <p className="mt-4 text-xs font-bold text-muted">
+          {/* Même graisse que le titre de la carte, en plus clair : c'est une
+              section de même rang, pas un sous-titre du bloc au-dessus. */}
+          <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">
             <span aria-hidden>⚔️</span> Les duels de la semaine
             {openedWeek ? ` ${openedWeek.index}` : ""}
           </p>
