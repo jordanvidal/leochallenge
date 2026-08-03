@@ -248,6 +248,34 @@ export function saison4Started(f: Fenetre = FENETRE_ENV): boolean {
   return aUneBasculeDeBareme(f) && parisToday() >= SAISON4_START;
 }
 
+// ---- La mi-temps ----
+//
+// Le dernier jour de la première moitié, déduit de la fenêtre plutôt
+// qu'écrit en dur : sur le challenge d'origine (50 jours à partir du
+// 13/07), ça rend le 06/08 — 25 jours faits, 25 devant.
+//
+// Ces deux fonctions vivent ici et non dans `lib/mitemps.ts` pour une
+// raison précise : la route de notification (`/api/cron/mi-temps`) en a
+// besoin, et `lib/mitemps.ts` importe le client Supabase du navigateur.
+// Une date du challenge n'a pas à traîner un client derrière elle sur le
+// serveur — et c'est de toute façon ce module qui les héberge toutes.
+
+/**
+ * Le dernier jour de la première mi-temps.
+ *
+ * Sur un nombre impair de jours, la première moitié prend le jour du
+ * milieu (`ceil`) : mieux vaut une mi-temps qui tombe un jour trop tard
+ * qu'un écran promettant plus de jours restants qu'il n'en existe.
+ */
+export function jourDeMiTemps(f: Fenetre = FENETRE_ENV): string {
+  return addDays(f.start, Math.ceil(joursDeFenetre(f) / 2) - 1);
+}
+
+/** Le matin où la mi-temps s'ouvre : le lendemain. */
+export function ouvertureMiTemps(f: Fenetre = FENETRE_ENV): string {
+  return addDays(jourDeMiTemps(f), 1);
+}
+
 /** Le bilan est-il encore provisoire ? Vrai tant que le dernier jour tombe dans
     la fenêtre d'édition. Avec EDIT_WINDOW_DAYS = 0, uniquement le jour même. */
 export function bilanProvisoire(f: Fenetre = FENETRE_ENV): boolean {
