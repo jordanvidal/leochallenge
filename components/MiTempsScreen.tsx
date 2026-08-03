@@ -23,7 +23,7 @@
 
 import { useEffect, useState } from "react";
 import { fmtPoints, frenchRank } from "@/lib/gamification";
-import { joinNoms, MiTempsData } from "@/lib/mitemps";
+import { MiTempsData } from "@/lib/mitemps";
 import { Player } from "@/lib/types";
 import { Avatar, BigButton } from "./ui";
 
@@ -134,14 +134,21 @@ function Stat({ valeur, label }: { valeur: string; label: string }) {
   );
 }
 
-/** Une ligne de distinction : le trophée, le ou les noms, l'exploit. */
+/**
+ * Une ligne de distinction : le trophée, le joueur, son terrain.
+ *
+ * Un nom par ligne, et chaque actif a la sienne — c'est le critère
+ * d'acceptance de la carte (voir `distinctions()`). Le tiret sépare le nom
+ * du fait : « Hichem — 13 séances guidées bouclées » se lit comme une
+ * ligne de palmarès, pas comme une phrase à rallonge.
+ */
 function Mvp({
   emoji,
-  noms,
+  nom,
   exploit,
 }: {
   emoji: string;
-  noms: string[];
+  nom: string;
   exploit: string;
 }) {
   return (
@@ -150,7 +157,7 @@ function Mvp({
         {emoji}
       </span>
       <p className="text-sm leading-snug text-muted">
-        <span className="font-bold text-ink">{joinNoms(noms)}</span> {exploit}
+        <span className="font-bold text-ink">{nom}</span> — {exploit}
       </p>
     </div>
   );
@@ -291,7 +298,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
                   <Mvp
                     key={m.emoji}
                     emoji={m.emoji}
-                    noms={m.noms}
+                    nom={m.nom}
                     exploit={m.exploit}
                   />
                 ))}

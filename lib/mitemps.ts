@@ -58,13 +58,16 @@ export function miTempsOuverte(f: Fenetre): boolean {
   return today >= ouvertureMiTemps(f) && today <= f.end;
 }
 
-/** Une distinction collective, avec le ou les noms qui la portent. */
+/** La distinction d'UN joueur : son terrain à lui, et son chiffre dessus. */
 export type Mvp = {
   emoji: string;
-  /** Les gagnants, du même exploit : à égalité, on nomme tout le monde. */
-  noms: string[];
-  /** Ce qu'ils ont fait, sans le nom (« tient la plus longue série : 21 jours »). */
+  /** Le joueur distingué. Un seul — voir `distinctions()`. */
+  nom: string;
+  /** Ce qu'il a fait, sans le nom (« 22 jours parfaits d'affilée »). */
   exploit: string;
+  /** Vrai s'il mène vraiment cette mesure. Seul cas où la phrase se
+      permet un superlatif — sinon elle énonce un fait, sans classer. */
+  superlatif: boolean;
 };
 
 /** Tout ce que la mi-temps raconte. Calculé par `fetchMiTemps`, figé. */
@@ -206,7 +209,21 @@ export async function fetchMiTemps(
     f.start,
   );
 
-  const mvps = construitMvps(rows, noms, stats, seancesParJoueur, premiersParJoueur);
+  // Les sept terrains, puis l'affectation « chacun le sien ». La présence
+  // sert deux fois : elle décide qui est actif, et elle est elle-même un
+  // terrain — celui de qui vient tous les jours sans jamais briller.
+  const joursFaits = diffDays(f.start, jour) + 1;
+  const presence = new Map(
+    players.map((p) => [p.id, joursPresentsJusqua(p.id, entries, f.start, jour)]),
+  );
+  const mvps = distinctions(joueursActifs(presence, joursFaits), noms, {
+    serie: new Map(players.map((p) => [p.id, stats.get(p.id)?.bestStreak ?? 0])),
+    matinal: premiersParJoueur,
+    seances: seancesParJoueur,
+    bonus: new Map(rows.map((r) => [r.player_id, r.bonus_points])),
+    parfaits: new Map(rows.map((r) => [r.player_id, r.perfect_days])),
+    presence,
+  });
 
   const moi = rows.find((r) => r.player_id === playerId);
   const statsMoi = stats.get(playerId);
@@ -216,7 +233,7 @@ export async function fetchMiTemps(
   const lignesDuel = duels.error ? [] : (duels.data as DuelRow[]);
 
   return {
-    joursFaits: diffDays(f.start, jour) + 1,
+    joursFaits,
     joursRestants: diffDays(jour, f.end),
     totalExos,
     totalReps: totalExos * 100,
@@ -239,7 +256,7 @@ export async function fetchMiTemps(
       perfectDays: moi.perfect_days,
       bestStreak: statsMoi.bestStreak,
       relance: angleDeRelance(moi, statsMoi.bestStreak, classement, noms, {
-        joursFaits: diffDays(f.start, jour) + 1,
+        joursFaits,
         joursRestants: diffDays(jour, f.end),
       }),
     },
@@ -311,101 +328,188 @@ export function premiersDuJour(
   return m;
 }
 
+// ---------------------------------------------------------------------------
+// Les distinctions : chacun son terrain
+// ---------------------------------------------------------------------------
+//
+// Règle d'acceptance posée par Jordan le 03/08 : **chaque joueur actif est
+// cité une fois et une seule** sur la carte « L'équipe ». C'est une contrainte
+// de couverture, et elle est incompatible avec « le meilleur de chaque mesure
+// gagne » : sur les données du 03/08, Pierre mène quatre mesures sur quatre et
+// quatre personnes ne sont nommées nulle part.
+//
+// On inverse donc le problème. Sept terrains pour cinq actifs, et une
+// affectation gloutonne : chacun reçoit **le terrain où il est le plus fort
+// par rapport au groupe**, chaque terrain ne servant qu'une fois. Le premier
+// servi est celui qui domine le plus nettement sa mesure.
+//
+// Le mensonge que ça pourrait introduire est écarté par une seule règle : **la
+// phrase ne se permet un superlatif que si le joueur mène vraiment sa mesure.**
+// Sinon elle énonce son chiffre, sans classer. « Hichem — 13 séances guidées
+// bouclées » reste vrai même si Pierre en a 19 ; « Hichem, le roi de la séance
+// guidée » ne l'aurait pas été.
+
+/** Les mesures brutes : une map joueur → valeur, par terrain. */
+export type Mesures = {
+  serie: Map<string, number>;
+  matinal: Map<string, number>;
+  seances: Map<string, number>;
+  bonus: Map<string, number>;
+  parfaits: Map<string, number>;
+  presence: Map<string, number>;
+};
+
+type Terrain = {
+  cle: keyof Mesures;
+  emoji: string;
+  /** Le fait, sans superlatif. */
+  fait: (v: number) => string;
+  /** Le fait, quand le joueur mène vraiment la mesure. */
+  record: (v: number) => string;
+};
+
 /**
- * Qui mène sur une mesure, à égalité comprise.
+ * Les sept terrains, dans l'ordre d'affichage.
  *
- * Nommer tous les ex æquo plutôt qu'en départager un au hasard : dans un
- * groupe où trois personnes bouclent 18 séances, désigner « le » vainqueur
- * par l'ordre de la base est un mensonge que le concerné repère en trois
- * secondes. Rend une liste vide si personne n'a rien fait (0 partout) — une
- * distinction pour un score nul n'en est pas une.
+ * L'ordre compte deux fois : il départage les ex æquo de l'affectation (il
+ * doit donc être stable), et c'est l'ordre des lignes à l'écran. La série
+ * d'abord, parce que c'est la mesure dont le groupe parle.
  */
-export function gagnants<T>(
-  candidats: T[],
-  cle: (c: T) => string,
-  valeur: (c: T) => number,
-): { ids: string[]; valeur: number } {
-  let meilleure = 0;
-  const ids: string[] = [];
-  for (const c of candidats) {
-    const v = valeur(c);
-    if (v <= 0 || v < meilleure) continue;
-    if (v > meilleure) {
-      meilleure = v;
-      ids.length = 0;
-    }
-    ids.push(cle(c));
-  }
-  return { ids, valeur: meilleure };
+const TERRAINS: Terrain[] = [
+  {
+    cle: "serie",
+    emoji: "🔥",
+    fait: (v) => `${v} jours parfaits d'affilée`,
+    record: (v) => `la plus longue série du challenge : ${v} jours parfaits`,
+  },
+  {
+    cle: "matinal",
+    emoji: "🌅",
+    fait: (v) => `${v} fois le premier du jour à boucler son 3/3`,
+    record: (v) => `${v} fois le premier du jour, personne n'a fait mieux`,
+  },
+  {
+    cle: "seances",
+    emoji: "💪",
+    fait: (v) =>
+      `${v} séance${v > 1 ? "s" : ""} guidée${v > 1 ? "s" : ""} bouclée${v > 1 ? "s" : ""}`,
+    record: (v) => `${v} séances guidées bouclées, le record de la bande`,
+  },
+  {
+    cle: "bonus",
+    emoji: "⚡",
+    fait: (v) => `${fmtPoints(v)} pts de bonus au compteur`,
+    record: (v) => `${fmtPoints(v)} pts de bonus, le plus gros magot`,
+  },
+  {
+    cle: "parfaits",
+    emoji: "✅",
+    fait: (v) => `${v} journées parfaites`,
+    record: (v) => `${v} journées parfaites, le meilleur total`,
+  },
+  // Pas de terrain « volume » ici, et c'est délibéré. Le chiffre héros de la
+  // carte EST le total de répétitions du groupe : une ligne « Hichem —
+  // 5 100 répétitions » juste en dessous invite la soustraction qui l'écrase,
+  // au lieu de le distinguer. Et le volume vaut trois fois les jours parfaits
+  // à peu de chose près — il n'apporte aucune information de plus.
+  {
+    cle: "presence",
+    emoji: "📅",
+    fait: (v) => `présent ${v} jours sur la première mi-temps`,
+    record: (v) => `présent ${v} jours, le plus assidu de tous`,
+  },
+];
+
+/**
+ * Qui compte comme « actif ».
+ *
+ * Le seuil est celui que `fetchBilanSaison` applique déjà au bilan de saison —
+ * **au moins la moitié des jours joués**. Il n'exclut personne à la main et la
+ * marge est large : au 6 août, les cinq qui jouent sont entre 17 et 22 jours
+ * de présence, les quatre autres entre 0 et 5. Reprendre ce seuil plutôt que
+ * d'en inventer un garde une seule définition de « joueur actif » dans l'app.
+ *
+ * Ceux qui n'y sont pas ne reçoivent PAS de ligne, et c'est voulu : « Nathan —
+ * 2 exos validés » n'est pas une distinction, c'est un constat d'absence
+ * affiché devant tout le monde.
+ */
+export function joueursActifs(
+  presence: Map<string, number>,
+  joursFaits: number,
+): string[] {
+  const seuil = Math.ceil(joursFaits / 2);
+  return [...presence.entries()]
+    .filter(([, jours]) => jours >= seuil)
+    .map(([id]) => id);
 }
 
-/** « Pierre », « Pierre et Léo », « Pierre, Léo et Doren ». */
-export function joinNoms(noms: string[]): string {
-  if (noms.length <= 1) return noms[0] ?? "";
-  return `${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}`;
-}
-
-function construitMvps(
-  rows: LeaderboardRow[],
+/**
+ * Une distinction par joueur actif, chaque terrain servi une seule fois.
+ *
+ * Glouton sur le score normalisé (valeur ÷ meilleure valeur du groupe) : on
+ * sert d'abord la paire joueur × terrain la plus dominante, on retire les deux
+ * du jeu, on recommence. Déterministe de bout en bout — à score égal, l'ordre
+ * des terrains puis le prénom tranchent, jamais l'ordre de la base.
+ *
+ * S'il y avait plus d'actifs que de terrains, les derniers ne recevraient pas
+ * de ligne. Sept terrains pour un groupe de neuf dont cinq jouent : la marge
+ * est là, et le test d'acceptance la surveille.
+ */
+export function distinctions(
+  actifs: string[],
   noms: Map<string, string>,
-  stats: Map<string, { bestStreak: number }>,
-  seances: Map<string, number>,
-  premiers: Map<string, number>,
+  m: Mesures,
 ): Mvp[] {
-  const nomsDe = (ids: string[]) =>
-    ids
-      .map((id) => noms.get(id) ?? "")
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, "fr"));
+  const valeur = (id: string, t: Terrain) => m[t.cle].get(id) ?? 0;
+  const maxima = new Map(
+    TERRAINS.map((t) => [
+      t.cle,
+      actifs.reduce((mx, id) => Math.max(mx, valeur(id, t)), 0),
+    ]),
+  );
 
-  const candidats = rows.map((r) => r.player_id);
-  // `texte` reçoit le nombre d'ex æquo : à trois, « a bouclé 18 séances »
-  // devient faux au premier coup d'œil, et rien ne décrédibilise plus vite
-  // un écran de stats qu'une faute d'accord sur le nom des gens.
-  const mesures: {
-    emoji: string;
-    valeur: (id: string) => number;
-    texte: (v: number, plusieurs: boolean) => string;
-  }[] = [
-    {
-      emoji: "🔥",
-      valeur: (id) => stats.get(id)?.bestStreak ?? 0,
-      // Espace insécable avant le deux-points : sans elle, le retour à la
-      // ligne pose « : 21 jours » en tête de ligne. Typographie française.
-      texte: (v, n) =>
-        `${n ? "tiennent" : "tient"} la plus longue série : ${v} jours parfaits`,
-    },
-    {
-      emoji: "🌅",
-      valeur: (id) => premiers.get(id) ?? 0,
-      texte: (v, n) =>
-        n
-          ? `ont été ${v} fois chacun le premier du jour à boucler son 3/3`
-          : `a été ${v} fois le premier du jour à boucler son 3/3`,
-    },
-    {
-      emoji: "💪",
-      valeur: (id) => seances.get(id) ?? 0,
-      texte: (v, n) =>
-        `${n ? "ont bouclé" : "a bouclé"} ${v} séance${v > 1 ? "s" : ""} guidée${v > 1 ? "s" : ""}`,
-    },
-    {
-      emoji: "⚡",
-      valeur: (id) => rows.find((r) => r.player_id === id)?.bonus_points ?? 0,
-      texte: (v, n) => `${n ? "ont raflé" : "a raflé"} ${fmtPoints(v)} pts de bonus`,
-    },
-  ];
+  type Paire = { id: string; terrain: Terrain; v: number; score: number };
+  const paires: Paire[] = [];
+  for (const id of actifs) {
+    for (const t of TERRAINS) {
+      const v = valeur(id, t);
+      if (v <= 0) continue; // un zéro n'est jamais une performance
+      const mx = maxima.get(t.cle) ?? 0;
+      paires.push({ id, terrain: t, v, score: mx > 0 ? v / mx : 0 });
+    }
+  }
+  paires.sort(
+    (a, b) =>
+      b.score - a.score ||
+      TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain) ||
+      (noms.get(a.id) ?? "").localeCompare(noms.get(b.id) ?? "", "fr"),
+  );
 
-  return mesures
-    .map((m) => {
-      const { ids, valeur } = gagnants(candidats, (id) => id, m.valeur);
-      return {
-        emoji: m.emoji,
-        noms: nomsDe(ids),
-        exploit: m.texte(valeur, ids.length > 1),
-      };
-    })
-    .filter((mvp) => mvp.noms.length > 0);
+  const prisJoueur = new Set<string>();
+  const prisTerrain = new Set<string>();
+  const retenues: Paire[] = [];
+  for (const p of paires) {
+    if (prisJoueur.has(p.id) || prisTerrain.has(p.terrain.cle)) continue;
+    prisJoueur.add(p.id);
+    prisTerrain.add(p.terrain.cle);
+    retenues.push(p);
+  }
+
+  // Affichage dans l'ordre des terrains, pas dans celui de l'affectation :
+  // la liste doit avoir la même allure d'un jour à l'autre.
+  retenues.sort(
+    (a, b) => TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain),
+  );
+
+  return retenues.map((p) => {
+    const superlatif = p.v === (maxima.get(p.terrain.cle) ?? 0);
+    return {
+      emoji: p.terrain.emoji,
+      nom: noms.get(p.id) ?? "",
+      exploit: superlatif ? p.terrain.record(p.v) : p.terrain.fait(p.v),
+      superlatif,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -502,7 +606,11 @@ function frNum(n: number): string {
  */
 export function buildMiTempsShare(d: MiTempsData): string {
   const medals = ["🥇", "🥈", "🥉"];
-  const serie = d.mvps.find((m) => m.emoji === "🔥");
+  // Une seule distinction dans le message, et seulement si c'en est
+  // vraiment une : les lignes non-superlatives sont des faits, justes à
+  // l'écran où chacun a la sienne, mais isolées dans WhatsApp elles
+  // ressembleraient à un titre qu'on ne mérite pas.
+  const exploit = d.mvps.find((m) => m.superlatif);
 
   return [
     "⏱️ 100-100-100 — MI-TEMPS",
@@ -512,7 +620,7 @@ export function buildMiTempsShare(d: MiTempsData): string {
     "",
     `L'équipe : ${frNum(d.totalExos)} exos validés, ${frNum(d.totalReps)} répétitions, ` +
       `${d.joursParfaitsCollectifs} jours parfaits, ${d.seances} séances guidées.`,
-    ...(serie ? [`🔥 ${joinNoms(serie.noms)} ${serie.exploit}`] : []),
+    ...(exploit ? [`${exploit.emoji} ${exploit.nom} — ${exploit.exploit}`] : []),
     ...(d.duels.tranches + d.duels.nuls > 0
       ? [
           `⚔️ ${d.duels.tranches} duel${d.duels.tranches > 1 ? "s" : ""} tranché${d.duels.tranches > 1 ? "s" : ""}, ` +
@@ -524,9 +632,14 @@ export function buildMiTempsShare(d: MiTempsData): string {
   ].join("\n");
 }
 
-/** Les jours parfaits d'un joueur sur la première mi-temps, pour les tests
-    et pour qui voudrait la mesure sans passer par le classement serveur. */
-export function joursParfaitsJusqua(
+/**
+ * Les jours où un joueur a validé au moins un exo, sur la première mi-temps.
+ *
+ * C'est la mesure de présence — pas de performance : elle sert à décider qui
+ * est actif (`joueursActifs`) et elle est aussi un terrain à part entière,
+ * celui de qui vient tous les jours sans jamais briller nulle part ailleurs.
+ */
+export function joursPresentsJusqua(
   playerId: string,
   entries: Map<string, Entry>,
   depuis: string,
@@ -534,7 +647,7 @@ export function joursParfaitsJusqua(
 ): number {
   let n = 0;
   for (let d = depuis; d <= jusqua; d = addDays(d, 1)) {
-    if (entryCount(entries.get(entryKey(playerId, d))) === 3) n++;
+    if (entryCount(entries.get(entryKey(playerId, d))) > 0) n++;
   }
   return n;
 }

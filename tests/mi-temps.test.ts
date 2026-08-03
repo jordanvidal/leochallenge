@@ -6,9 +6,10 @@ import { fenetre } from "@/lib/challenge";
 import {
   angleDeRelance,
   buildMiTempsShare,
-  gagnants,
-  joinNoms,
+  distinctions,
+  joueursActifs,
   jourDeMiTemps,
+  Mesures,
   MiTempsData,
   ouvertureMiTemps,
   premiersDuJour,
@@ -44,26 +45,83 @@ describe("la date de la mi-temps", () => {
   });
 });
 
-describe("les distinctions", () => {
-  it("nomme tous les ex æquo plutôt que d'en départager un au hasard", () => {
-    const g = gagnants(
-      ["a", "b", "c"],
-      (id) => id,
-      (id) => (id === "c" ? 1 : 18),
-    );
-    expect(g.ids).toEqual(["a", "b"]);
-    expect(g.valeur).toBe(18);
+describe("les distinctions — chacun son terrain", () => {
+  // Les cinq actifs du 6 août et leurs vraies mesures, arrondies. Pierre mène
+  // quatre terrains sur six : c'est exactement le cas qui cassait la version
+  // « le meilleur de chaque mesure gagne », où il raflait tout et où quatre
+  // personnes n'étaient nommées nulle part.
+  const NOMS = new Map([
+    ["pierre", "Pierre"],
+    ["leo", "Léo"],
+    ["doren", "Doren"],
+    ["jordan", "Jordan"],
+    ["hichem", "Hichem"],
+  ]);
+  const ACTIFS = [...NOMS.keys()];
+  const M: Mesures = {
+    serie: new Map([["pierre", 22], ["leo", 21], ["doren", 18], ["jordan", 19], ["hichem", 8]]),
+    matinal: new Map([["pierre", 5], ["leo", 3], ["doren", 8], ["jordan", 4], ["hichem", 2]]),
+    seances: new Map([["pierre", 19], ["leo", 17], ["doren", 18], ["jordan", 18], ["hichem", 13]]),
+    bonus: new Map([["pierre", 507], ["leo", 346], ["doren", 430], ["jordan", 400], ["hichem", 222]]),
+    parfaits: new Map([["pierre", 22], ["leo", 21], ["doren", 19], ["jordan", 19], ["hichem", 17]]),
+    presence: new Map([["pierre", 25], ["leo", 24], ["doren", 22], ["jordan", 23], ["hichem", 21]]),
+  };
+
+  // ---- LE critère d'acceptance, posé par Jordan le 03/08 ----
+  it("cite chaque joueur actif une fois et une seule", () => {
+    const d = distinctions(ACTIFS, NOMS, M);
+    const cites = d.map((x) => x.nom).sort();
+    expect(cites).toEqual(["Doren", "Hichem", "Jordan", "Léo", "Pierre"]);
+    // Une fois ET une seule : pas de doublon, pas de terrain servi deux fois.
+    expect(new Set(cites).size).toBe(5);
+    expect(new Set(d.map((x) => x.emoji)).size).toBe(5);
   });
 
-  it("ne distingue personne quand tout le monde est à zéro", () => {
-    const g = gagnants(["a", "b"], (id) => id, () => 0);
-    expect(g.ids).toEqual([]);
+  it("ne laisse un superlatif qu'à qui mène vraiment sa mesure", () => {
+    for (const x of distinctions(ACTIFS, NOMS, M)) {
+      if (x.superlatif) continue;
+      // Une ligne non-superlative énonce un fait, jamais un classement.
+      expect(x.exploit).not.toMatch(/plus longue|personne n'a fait mieux|record|plus gros|meilleur|plus assidu/);
+    }
   });
 
-  it("énumère les noms à la française", () => {
-    expect(joinNoms(["Pierre"])).toBe("Pierre");
-    expect(joinNoms(["Pierre", "Léo"])).toBe("Pierre et Léo");
-    expect(joinNoms(["Pierre", "Léo", "Doren"])).toBe("Pierre, Léo et Doren");
+  it("laisse la série à celui qui la tient vraiment", () => {
+    const serie = distinctions(ACTIFS, NOMS, M).find((x) => x.emoji === "🔥");
+    expect(serie?.nom).toBe("Pierre");
+    expect(serie?.superlatif).toBe(true);
+    expect(serie?.exploit).toContain("22 jours parfaits");
+  });
+
+  it("ne distingue personne sur un zéro", () => {
+    const vide: Mesures = {
+      serie: new Map([["a", 0]]), matinal: new Map([["a", 0]]),
+      seances: new Map([["a", 0]]), bonus: new Map([["a", 0]]),
+      parfaits: new Map([["a", 0]]),
+      presence: new Map([["a", 0]]),
+    };
+    expect(distinctions(["a"], new Map([["a", "A"]]), vide)).toEqual([]);
+  });
+
+  it("est déterministe — deux appels, le même palmarès", () => {
+    expect(distinctions(ACTIFS, NOMS, M)).toEqual(distinctions(ACTIFS, NOMS, M));
+  });
+});
+
+describe("qui compte comme actif", () => {
+  it("retient ceux présents au moins la moitié des jours", () => {
+    // Le seuil de `fetchBilanSaison`, repris tel quel. Au 6 août : 13 jours.
+    const presence = new Map([
+      ["pierre", 25], ["leo", 24], ["doren", 22], ["jordan", 23], ["hichem", 21],
+      ["jerem", 5], ["nathan", 2], ["hugo", 0], ["david", 0],
+    ]);
+    expect(joueursActifs(presence, 25).sort()).toEqual([
+      "doren", "hichem", "jordan", "leo", "pierre",
+    ]);
+  });
+
+  it("ne colle pas de ligne « 2 exos » à celui qui a décroché", () => {
+    const presence = new Map([["actif", 20], ["decroche", 2]]);
+    expect(joueursActifs(presence, 25)).not.toContain("decroche");
   });
 });
 
@@ -158,7 +216,18 @@ describe("le partage", () => {
     joursParfaitsCollectifs: 118,
     seances: 91,
     mvps: [
-      { emoji: "🔥", noms: ["Pierre"], exploit: "tient la plus longue série : 25 jours parfaits" },
+      {
+        emoji: "🔥",
+        nom: "Pierre",
+        exploit: "la plus longue série du challenge : 25 jours parfaits",
+        superlatif: true,
+      },
+      {
+        emoji: "💪",
+        nom: "Hichem",
+        exploit: "13 séances guidées bouclées",
+        superlatif: false,
+      },
     ],
     top3: [
       { name: "Pierre", color: "", points: 702.5 },
@@ -179,6 +248,14 @@ describe("le partage", () => {
     expect(texte).toContain("6 duels tranchés");
     // La carte « Toi » ne fuite pas dans le message du groupe.
     expect(texte).not.toContain("meilleure série");
+  });
+
+  it("ne sort qu'une distinction, et seulement si c'en est une vraie", () => {
+    const texte = buildMiTempsShare(data);
+    expect(texte).toContain("🔥 Pierre — la plus longue série");
+    // La ligne de Hichem est juste à l'écran, où chacun a la sienne. Isolée
+    // dans WhatsApp, elle ressemblerait à un titre qu'il n'a pas gagné.
+    expect(texte).not.toContain("Hichem");
   });
 
   it("tait la ligne des duels quand il n'y en a pas eu", () => {
