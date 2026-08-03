@@ -187,14 +187,33 @@ export async function fetchGamification(
 export async function fetchLastWeekRanks(
   ligueId: string | null,
 ): Promise<Map<string, number> | null> {
-  const lastSunday = addDays(mondayOf(parisToday()), -1);
+  return fetchGeneralRanks(addDays(mondayOf(parisToday()), -1), ligueId);
+}
+
+/**
+ * Les rangs au général à une date donnée, `player_id → rang`.
+ *
+ * Deuxième lecteur depuis le 03/08 : le bilan du lundi s'en sert pour dire
+ * d'où sortent les appariements de la semaine qui s'ouvre. Le job du lundi
+ * apparie sur `leaderboard(null, lundi - 1)` (lib/server/duels.ts) — c'est
+ * exactement cet appel, à la même date, sinon la carte expliquerait le
+ * tirage avec des rangs qui ne sont pas ceux qui l'ont produit.
+ *
+ * Rend une map vide quand personne n'a de point à cette date (première
+ * semaine) : un rang sans points ne veut rien dire, et l'appelant préfère
+ * ne rien afficher. `null` = l'appel a échoué, l'écran retentera.
+ */
+export async function fetchGeneralRanks(
+  until: string,
+  ligueId: string | null,
+): Promise<Map<string, number> | null> {
   const { data, error } = await supabase.rpc("leaderboard", {
     ...argLigue(ligueId),
-    p_until: lastSunday,
+    p_until: until,
   });
   if (error || !data) return null;
 
-  // Semaine 1 : personne n'avait de points dimanche dernier, la variation
+  // Semaine 1 : personne n'avait de points ce dimanche-là, la variation
   // n'a pas de sens — on ne l'affiche pas plutôt que d'afficher du faux.
   const rows = data as LeaderboardRow[];
   if (!rows.some((r) => Number(r.points) > 0)) return new Map();
