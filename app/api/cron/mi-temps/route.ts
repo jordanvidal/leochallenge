@@ -31,13 +31,13 @@ export async function GET(request: Request) {
 
   // Les chiffres restent dans l'écran : une notification qui annonce déjà le
   // total du groupe n'a plus rien à faire ouvrir. Elle dit qu'il y a quelque
-  // chose à voir, et où.
+  // chose à voir, et où. Formulation de Jordan, mot pour mot.
   const ids = (players.data as { id: string }[]).map((p) => p.id);
   const sent = await sendToPlayers(ids, {
-    title: "⏱️ Mi-temps",
+    title: "⏱️ On est à mi-parcours",
     body:
-      "La moitié du challenge est jouée. Ton bilan, celui de la bande et " +
-      "ce qui se joue encore : c'est dans l'app, une fois.",
+      "Viens consulter les stats de cette première partie de challenge : " +
+      "les tiennes, celles de l'équipe, et ce qui se joue encore.",
     url: "/",
   });
 
