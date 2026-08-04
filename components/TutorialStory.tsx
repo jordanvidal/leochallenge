@@ -236,9 +236,8 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       </Reveal>
       <Reveal ordre={3}>
         <p className="text-muted">
-          Le soir, tu appuies sur « Lancer ma séance ». L&apos;app affiche un
-          chiffre, tu le fais, tu tapes « Terminé ». Une douzaine de fois, un
-          quart d&apos;heure.
+          Le soir, tu appuies sur « Lancer ma séance ». Tu cumules des points
+          et tu fais la course avec tes potes.
         </p>
       </Reveal>
       <Reveal ordre={4}>
@@ -269,17 +268,15 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
         </p>
       </Reveal>
       <Reveal ordre={3}>
-        <div className="flex gap-8 border-t border-line pt-5">
-          <Stat valeur={10.5} label="le même soir, à 3 jours d'affilée" rang={0} />
-          <Stat valeur={14} label="le même soir, à 7 jours d'affilée" rang={1} />
-        </div>
+        <p className="border-t border-line pt-5 text-muted">
+          Et plus tu enchaînes les jours, plus chaque journée rapporte.
+        </p>
       </Reveal>
       <Reveal ordre={4}>
         <p className="text-muted">
-          Un jour sauté remet ce compteur à zéro — sauf une fois. Tu as{" "}
-          <b className="text-ink">un joker pour tout le challenge</b> : si tu
-          reviens dès le lendemain, il recolle le trou et ta série repart où
-          elle en était.
+          Un jour sauté fait tout repartir de zéro — sauf une fois. Tu as{" "}
+          <b className="text-ink">un joker pour tout le challenge</b> : reviens
+          dès le lendemain, et il efface le trou.
         </p>
       </Reveal>
     </div>,
@@ -292,26 +289,21 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       </Reveal>
       <Reveal ordre={1}>
         <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
-          Tu es tiré contre un pote.
+          Les duels
         </h1>
       </Reveal>
       <Reveal ordre={2}>
         <p className="text-lg text-muted">
-          Chaque lundi, l&apos;app te met face au joueur juste devant ou juste
-          derrière toi au classement. Toute la semaine, tu vois ses journées
-          se remplir à côté des tiennes.
+          Chaque lundi, l&apos;app te met face à un pote : le joueur juste
+          devant ou juste derrière toi au classement.
         </p>
       </Reveal>
       <Reveal ordre={3}>
-        <p className="text-muted">
-          Dimanche soir, celui qui a le plus de journées complètes gagne le
-          duel. <b className="text-ink">L&apos;autre le voit aussi.</b>
-        </p>
-      </Reveal>
-      <Reveal ordre={4}>
-        <p className="border-t border-line pt-4 text-sm text-faint">
-          3 points changent de main. C&apos;est peu — ce n&apos;est pas pour
-          ça qu&apos;on ne veut pas perdre.
+        <p className="text-lg text-muted">
+          Dimanche soir, celui qui a le plus de journées complètes — ou le
+          plus de points en cas d&apos;égalité —{" "}
+          <b className="text-ink">gagne le duel et prend 3 points</b> à
+          l&apos;autre.
         </p>
       </Reveal>
     </div>,
@@ -321,11 +313,11 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
     // que c'est un exemple parmi vingt-trois.
     <div key="bonus" className="space-y-6">
       <Reveal ordre={0}>
-        <p className={eyebrow}>Les bonus</p>
+        <p className={eyebrow}>Après ta séance</p>
       </Reveal>
       <Reveal ordre={1}>
         <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
-          Ce que tu ajoutes creuse l’écart.
+          Les bonus
         </h1>
       </Reveal>
       <Reveal ordre={2}>
@@ -358,14 +350,15 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       </Reveal>
       <Reveal ordre={1}>
         <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
-          Une carte est tirée pour tout le groupe.
+          Un extra
         </h1>
       </Reveal>
       <Reveal ordre={2}>
         <p className="text-lg text-muted">
-          Personne ne sait laquelle avant de se lever. Souvent, il ne se passe
-          rien. Sinon, la journée change de règle{" "}
-          <b className="text-ink">pour tout le monde en même temps</b>.
+          Un matin sur deux environ, l&apos;app tire une règle en plus au
+          hasard. Elle vaut{" "}
+          <b className="text-ink">pour tout le groupe, ce jour-là seulement</b>,
+          et tu la vois en ouvrant l&apos;app.
         </p>
       </Reveal>
       <Reveal ordre={3}>
