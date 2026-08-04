@@ -34,9 +34,11 @@ import {
   MiTempsData,
   miTempsOuverte,
 } from "@/lib/mitemps";
+import { carteMiTemps } from "@/lib/mitempsImage";
 import {
   shareFinalFlow,
   shareInvite,
+  shareImage,
   shareRematch,
   shareText,
   shareWeekFlow,
@@ -364,12 +366,27 @@ export default function App() {
     });
   }, [player, id, data.players, data.entries, data.offline, f, ligueId]);
 
-  /** Partage du bilan collectif de la mi-temps (carte 5). */
-  async function shareMiTemps() {
+  /** Le bilan de la mi-temps en texte : WhatsApp, Messages. */
+  async function shareMiTempsTexte() {
     if (!miTemps) return;
     const channel = await shareText(buildMiTempsShare(miTemps));
     if (channel === "clipboard")
       data.showToast("Copié ! Colle-le dans WhatsApp 💬");
+  }
+
+  /** Le bilan en image, au format story : Instagram, Facebook, tout ce qui
+      refuse un bloc de texte. Le dessin peut échouer (canvas indisponible) —
+      on retombe alors sur le texte plutôt que de ne rien faire. */
+  async function shareMiTempsImage() {
+    if (!miTemps || !player) return;
+    const blob = await carteMiTemps(
+      miTemps,
+      "oklch(0.85 0.17 88)",
+      player.color,
+    );
+    if (!blob) return shareMiTempsTexte();
+    const canal = await shareImage(blob, "mi-temps.png");
+    if (canal === "download") data.showToast("Image enregistrée 📸");
   }
 
   /** Événement vu pour la journée : ferme la modale si ouverte et retire le
@@ -561,7 +578,8 @@ export default function App() {
         <MiTempsScreen
           player={player}
           data={miTemps}
-          onShare={shareMiTemps}
+          onShareImage={shareMiTempsImage}
+          onShareTexte={shareMiTempsTexte}
           onClose={() => {
             id.markMiTempsSeen();
             setMiTemps(null);

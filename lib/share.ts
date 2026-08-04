@@ -236,3 +236,46 @@ export async function shareText(text: string): Promise<"share" | "clipboard"> {
   await navigator.clipboard.writeText(text);
   return "clipboard";
 }
+
+/**
+ * Partage une IMAGE via le sélecteur natif, avec repli en téléchargement.
+ *
+ * Pourquoi une fonction à part de `shareText` : les deux ne visent pas les
+ * mêmes applis. Le texte va dans WhatsApp et Messages ; **Instagram et
+ * Facebook ignorent purement et simplement un partage de texte** — une
+ * story, ça se poste en image. Le sélecteur natif, lui, ne montre que les
+ * applis capables de prendre ce qu'on lui donne : envoyer une image fait
+ * apparaître Insta là où le texte ne le faisait pas.
+ *
+ * `canShare({ files })` avant tout : Safari expose `navigator.share` sans
+ * forcément accepter les fichiers, et lui en passer quand même part en
+ * exception silencieuse. À défaut, on télécharge l'image — elle atterrit
+ * dans la pellicule, d'où elle se poste à la main.
+ */
+export async function shareImage(
+  blob: Blob,
+  nomFichier: string,
+  texte?: string,
+): Promise<"share" | "download"> {
+  const fichier = new File([blob], nomFichier, { type: blob.type });
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.share &&
+    navigator.canShare?.({ files: [fichier] })
+  ) {
+    try {
+      await navigator.share(texte ? { files: [fichier], text: texte } : { files: [fichier] });
+      return "share";
+    } catch {
+      // annulé, ou refusé par l'appli visée : on retombe sur le fichier.
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomFichier;
+  a.click();
+  // Révoqué après le tick : le clic est synchrone, la lecture ne l'est pas.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return "download";
+}

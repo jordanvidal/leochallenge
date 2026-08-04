@@ -75,7 +75,12 @@ function nappe(couleur: string, force: string, x: string, y: string) {
 type Props = {
   player: Player;
   data: MiTempsData;
-  onShare: () => void;
+  /** Partage l'image de la carte : Instagram, Facebook, tout ce qui prend
+      une image. C'est le partage mis en avant. */
+  onShareImage: () => void;
+  /** Partage le bloc de texte : WhatsApp, Messages. Le format qui marche
+      dans le groupe, gardé en second. */
+  onShareTexte: () => void;
   onClose: () => void;
 };
 
@@ -325,7 +330,13 @@ function PodiumReveal({
   );
 }
 
-export default function MiTempsScreen({ player, data, onShare, onClose }: Props) {
+export default function MiTempsScreen({
+  player,
+  data,
+  onShareImage,
+  onShareTexte,
+  onClose,
+}: Props) {
   const total = data.joursFaits + data.joursRestants;
   const leader = data.top3[0]?.color || player.color;
   // L'or du ×2 : la seule couleur de l'app qui n'appartienne à personne.
@@ -502,17 +513,32 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             </p>
           </Reveal>
           <Reveal ordre={3}>
-            <button
-              onClick={onShare}
-              className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
-              style={{
-                background: `color-mix(in oklch, ${teinte} 14%, var(--color-surface))`,
-                color: teinte,
-                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${teinte} 40%, transparent)`,
-              }}
-            >
-              Balancer le bilan dans le groupe 📤
-            </button>
+            {/* Deux partages, et l'image d'abord : c'est elle qui ouvre
+                Instagram et Facebook, qui ne savent rien faire d'un bloc de
+                texte. Le texte reste juste en dessous — c'est le format qui
+                se colle dans le groupe WhatsApp. */}
+            <div className="space-y-2.5">
+              <button
+                onClick={onShareImage}
+                className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
+                style={{
+                  background: teinte,
+                  color: "var(--color-bg)",
+                }}
+              >
+                Partager la carte 📸
+              </button>
+              <button
+                onClick={onShareTexte}
+                className="min-h-11 w-full rounded-2xl px-4 py-3 text-center text-sm font-bold"
+                style={{
+                  color: "var(--color-muted)",
+                  boxShadow: "inset 0 0 0 1.5px var(--color-line)",
+                }}
+              >
+                Envoyer le bilan en texte
+              </button>
+            </div>
           </Reveal>
         </div>
     ),
