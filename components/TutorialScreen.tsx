@@ -90,35 +90,47 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
     // d'énoncer deux multiplicateurs.
     <div key="score">
       <h1 className="text-2xl font-bold">Une journée complète vaut 7 points</h1>
+      <p className="mt-3 text-muted">
+        Une journée complète, c&apos;est{" "}
+        <b className="text-ink">100 pompes, 100 abdos et 100 squats</b>. Deux
+        exos sur trois, ce n&apos;en est pas une.
+      </p>
       <dl className="mt-5 space-y-3">
-        <Rule amount="7">tes trois exos, ce soir</Rule>
+        <Rule amount="7">quand tu as fait les trois, ce soir</Rule>
         <Rule amount="10,5">le même soir, si tu tiens 3 jours d&apos;affilée</Rule>
         <Rule amount="14">le même soir, si tu tiens 7 jours d&apos;affilée</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-muted">
-        Un jour sauté remet ce compteur à zéro. Ce n&apos;est pas le gros soir
-        qui gagne le challenge, c&apos;est celui qui ne s&apos;arrête pas.
+        Un jour sauté remet ce compteur à zéro — sauf une fois. Tu as{" "}
+        <b className="text-ink">un joker pour tout le challenge</b> : si tu
+        reviens dès le lendemain, il recolle le trou et ta série repart où
+        elle en était.
       </p>
     </div>,
 
     // 3 — Le rendez-vous du dimanche : duel, semaine gagnée, semaine pleine.
     // Trois lignes qui pèsent plus de 10 points par semaine et n'étaient
-    // nommées nulle part à l'arrivée d'un joueur.
+    // nommées nulle part à l'arrivée d'un joueur. Le duel ne se vend pas sur
+    // ses 3 points — ils sont dérisoires, et le dire franchement en bas de
+    // carte vaut mieux que les mettre en avant : ce qui tient quelqu'un une
+    // semaine, c'est le pote en face, pas le barème.
     <div key="semaine">
-      <h1 className="text-2xl font-bold">
-        Le lundi, tu es opposé à quelqu&apos;un
-      </h1>
+      <h1 className="text-2xl font-bold">Le lundi, tu es tiré contre un pote</h1>
       <p className="mt-3 text-muted">
-        Chaque lundi, tu es mis face au joueur qui te colle au classement.
-        Celui qui a le plus de journées complètes d&apos;ici dimanche{" "}
-        <b className="text-ink">prend 3 points à l&apos;autre</b>. C&apos;est
-        le seul endroit du jeu où on peut en perdre.
+        L&apos;app te met face au joueur juste devant ou juste derrière toi au
+        classement. Toute la semaine, tu vois ses journées se remplir à côté
+        des tiennes. Dimanche soir, celui qui en a le plus gagne le duel —{" "}
+        <b className="text-ink">et l&apos;autre le voit aussi</b>.
       </p>
-      <p className="mt-5 text-muted">Et dimanche soir, deux fois de plus :</p>
+      <p className="mt-5 text-muted">Le même soir, deux primes de plus :</p>
       <dl className="mt-4 space-y-3">
         <Rule amount="+3">au meilleur de la semaine</Rule>
         <Rule amount="+5">à qui a fait ses sept jours, du lundi au dimanche</Rule>
       </dl>
+      <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
+        Le duel fait changer 3 points de main. C&apos;est peu — ce n&apos;est
+        pas pour ça qu&apos;on ne veut pas perdre.
+      </p>
     </div>,
 
     // 4 — Ce qu'on ajoute et qu'on déclare. Les montants sont ceux du
@@ -147,7 +159,9 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
     <div key="events">
       <h1 className="text-2xl font-bold">Chaque matin, une carte est tirée</h1>
       <p className="mt-3 text-muted">
-        La même pour tout le groupe. Souvent, il n&apos;y a rien. Sinon :
+        Personne ne sait laquelle avant de se lever. Souvent, il ne se passe
+        rien. Sinon, la journée change de règle{" "}
+        <b className="text-ink">pour tout le monde en même temps</b> :
       </p>
       <div className="mt-5 space-y-2.5">
         <EventRow emoji="🎲">
