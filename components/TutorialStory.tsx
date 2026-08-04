@@ -236,12 +236,12 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       </Reveal>
       <Reveal ordre={3}>
         <p className="text-muted">
-          Le soir, tu appuies sur « Lancer ma séance ». Tu cumules des points
-          et tu fais la course avec tes potes.
+          Tu as la journée entière pour les faire. Tu appuies sur « Lancer ma
+          séance », tu cumules des points et tu fais la course avec tes potes.
         </p>
       </Reveal>
       <Reveal ordre={4}>
-        <p className="text-lg font-bold">Pas de séance, pas de journée.</p>
+        <p className="text-lg font-bold">Pas de séance, pas de point.</p>
       </Reveal>
     </div>,
 
@@ -313,7 +313,7 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
     // que c'est un exemple parmi vingt-trois.
     <div key="bonus" className="space-y-6">
       <Reveal ordre={0}>
-        <p className={eyebrow}>Après ta séance</p>
+        <p className={eyebrow}>Ce que tu fais en plus</p>
       </Reveal>
       <Reveal ordre={1}>
         <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
@@ -322,21 +322,21 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       </Reveal>
       <Reveal ordre={2}>
         <p className="text-lg text-muted">
-          Tout le monde fait les mêmes 300 répétitions. Ce que tu fais après,
-          tu le déclares le soir même — et ça ne compte que pour toi.
+          Tout le monde fait les mêmes 300 répétitions. Ce que tu fais en
+          plus, tu le déclares le jour même — et tu cumules les points.
         </p>
       </Reveal>
       <Reveal ordre={3}>
         <div className="flex gap-8 border-t border-line pt-5">
           <Stat valeur={4} label="50 pompes de plus" rang={0} />
-          <Stat valeur={8} label="5 km de course" rang={1} />
-          <Stat valeur={20} label="10 km" rang={2} />
+          <Stat valeur={7} label="60 burpees" rang={1} />
+          <Stat valeur={8} label="5 km de course" rang={2} />
         </div>
       </Reveal>
       <Reveal ordre={4}>
         <p className="text-sm text-faint">
-          Vingt-trois exos au catalogue, du gainage aux burpees. Tu prends ce
-          que tu as vraiment fait.
+          Vingt-trois exos au catalogue, du gainage à la corde à sauter. Tu
+          prends ce que tu as vraiment fait.
         </p>
       </Reveal>
     </div>,
