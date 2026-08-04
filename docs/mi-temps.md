@@ -69,3 +69,36 @@ Captures Playwright avec `?date=2026-08-07` (script
 `showcase-duels.mjs` du scratchpad comme modèle, mocks par interception
 réseau), test du push en local avec le Bearer, et revue des textes par
 Jordan avant merge — comme pour l'annonce des duels.
+
+---
+
+## Ce qui a été livré (04/08, PR #152 et #153)
+
+Le concept ci-dessus a tenu, à quelques décisions près, prises en revue
+avec Jordan pendant le build :
+
+- **Les distinctions ne sont pas des superlatifs par mesure.** « Le
+  meilleur de chaque mesure gagne » donnait quatre distinctions sur
+  quatre au même joueur. La règle est devenue *chaque joueur actif est
+  cité une fois et une seule*, chacun sur le terrain où il domine le plus
+  le groupe — et une phrase ne se permet un superlatif que si le joueur
+  mène vraiment sa mesure. Verrouillé par test.
+- **Les terrains viennent des bonus déclarés**, pas des compteurs de jeu :
+  pompes, jambes, gainage, course, corde. « 19 journées parfaites » ne
+  distingue personne quand quatre joueurs en ont 19.
+- **L'écart au joueur de devant se tait s'il est hors de portée.** « 339
+  pts te séparent de X » est vrai et démoralisant, sur l'écran même qui
+  existe pour relancer les décrochés.
+- **Le fond porte deux nappes de couleur qui dérivent** (`globals.css`),
+  au lieu du dégradé plein cadre d'abord essayé : deux couleurs chaudes
+  mélangées donnent un brun clair au centre, là où le texte se pose.
+- **Le partage produit une image** au format story (`lib/mitempsImage.ts`)
+  en plus du texte : Instagram et Facebook ignorent un partage de texte.
+- **`?mitemps=1`** ouvre l'écran hors date sans consommer l'affichage
+  unique — même rôle que `?lancement=1`, et la seule façon de relire
+  l'écran sur une preview, la simulation de date étant coupée en prod.
+
+Ce qui a été retiré une fois l'annonce partie : `mi-temps.yml` et
+`app/api/cron/mi-temps/route.ts`. L'écran, lui, reste jusqu'à la fin du
+challenge — un joueur peut l'ouvrir le 20 août, les chiffres sont figés
+au 6.

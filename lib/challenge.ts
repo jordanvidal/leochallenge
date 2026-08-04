@@ -254,11 +254,12 @@ export function saison4Started(f: Fenetre = FENETRE_ENV): boolean {
 // qu'écrit en dur : sur le challenge d'origine (50 jours à partir du
 // 13/07), ça rend le 06/08 — 25 jours faits, 25 devant.
 //
-// Ces deux fonctions vivent ici et non dans `lib/mitemps.ts` pour une
-// raison précise : la route de notification (`/api/cron/mi-temps`) en a
-// besoin, et `lib/mitemps.ts` importe le client Supabase du navigateur.
-// Une date du challenge n'a pas à traîner un client derrière elle sur le
-// serveur — et c'est de toute façon ce module qui les héberge toutes.
+// Ces deux fonctions vivent ici et non dans `lib/mitemps.ts` parce que
+// c'est ce module qui héberge toutes les dates du challenge. Elles y ont
+// d'abord atterri pour une raison plus terre à terre — la route de
+// notification en avait besoin côté serveur, et `lib/mitemps.ts` traîne
+// le client Supabase du navigateur. La route est partie avec le workflow
+// une fois l'annonce envoyée ; la règle de rangement, elle, reste.
 
 /**
  * Le dernier jour de la première mi-temps.
