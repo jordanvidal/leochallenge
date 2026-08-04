@@ -52,9 +52,10 @@ export async function notifyDailyEvent(t: Terrain = TERRAIN_ENV): Promise<{
   // faire d'un « aujourd'hui, double pompes ».
   const ids = await joueursDuTerrain(t);
   if (!ids) throw new Error("lecture joueurs échouée");
-  const sent = await sendToPlayers(ids, {
-    title: EVENT_PUSH_TITLE,
-    body: teaserFor(day),
-  });
+  const sent = await sendToPlayers(
+    ids,
+    { title: EVENT_PUSH_TITLE, body: teaserFor(day) },
+    t.schema,
+  );
   return { day, event, sent };
 }

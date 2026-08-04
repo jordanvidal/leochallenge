@@ -32,14 +32,21 @@ export async function GET(request: Request) {
   // Les chiffres restent dans l'écran : une notification qui annonce déjà le
   // total du groupe n'a plus rien à faire ouvrir. Elle dit qu'il y a quelque
   // chose à voir, et où. Formulation de Jordan, mot pour mot.
+  // « public » assumé : cette route lit `players` sur le schéma par défaut,
+  // et c'est voulu (voir l'en-tête). Les destinataires viennent de là, les
+  // souscriptions doivent venir du même endroit.
   const ids = (players.data as { id: string }[]).map((p) => p.id);
-  const sent = await sendToPlayers(ids, {
-    title: "⏱️ On est à mi-parcours",
-    body:
-      "Viens consulter les stats de cette première partie de challenge : " +
-      "les tiennes, celles de l'équipe, et ce qui se joue encore.",
-    url: "/",
-  });
+  const sent = await sendToPlayers(
+    ids,
+    {
+      title: "⏱️ On est à mi-parcours",
+      body:
+        "Viens consulter les stats de cette première partie de challenge : " +
+        "les tiennes, celles de l'équipe, et ce qui se joue encore.",
+      url: "/",
+    },
+    "public",
+  );
 
   return NextResponse.json({
     miTemps: jourDeMiTemps(),
