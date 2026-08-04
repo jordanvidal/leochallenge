@@ -8,7 +8,7 @@
 // C'est ce qui permet d'écrire la boucle une fois pour toutes, sans que chaque
 // route ait à savoir dans quel monde elle tourne.
 
-import { FENETRE_ENV, parisToday, type Fenetre } from "@/lib/challenge";
+import { addDays, FENETRE_ENV, parisToday, type Fenetre } from "@/lib/challenge";
 import { fenetreDeLigue, type Ligue } from "@/lib/ligue";
 import { serverSupabase } from "./push";
 
@@ -98,6 +98,63 @@ export async function terrainsActifs(): Promise<Terrain[]> {
   }
 
   return terrains;
+}
+
+/**
+ * Les ligues dont le premier jour est DEMAIN, à au moins deux joueurs.
+ *
+ * Fonction séparée, et c'est le cœur de la décision. La demande d'origine
+ * était d'élargir `terrainsActifs` à J-1 — mais ce filtre est ce qui protège
+ * TOUS les crons : l'événement du jour, les deux rappels du soir, la série en
+ * danger, le dernier debout, la clôture du dimanche. Une ligue qui y entrerait
+ * la veille recevrait « Personne n'a encore fini aujourd'hui » et « Ta série
+ * est en jeu » pour un jour où il n'y a rien à finir et aucune série à tenir.
+ * On ajoute donc une porte à côté, qui ne sert qu'à ce message-là. Rayon
+ * d'action sur l'existant : zéro.
+ *
+ * Comme `terrainsActifs`, le seuil de deux joueurs s'applique : annoncer
+ * « demain, première séance » à quelqu'un qui n'a encore invité personne,
+ * c'est lui promettre un groupe qui n'existe pas.
+ *
+ * Le challenge d'origine n'en fait jamais partie — sa fenêtre est celle de
+ * l'environnement, son premier jour est derrière nous, et il n'y a pas de
+ * ligue à lire pour lui.
+ */
+export async function terrainsQuiDemarrentDemain(): Promise<Terrain[]> {
+  const demain = addDays(parisToday(), 1);
+  try {
+    const sb = serverSupabase("app");
+    const { data: ligues, error } = await sb
+      .from("leagues")
+      .select(COLONNES)
+      .eq("start_day", demain);
+    if (error || !ligues || ligues.length === 0) return [];
+
+    const ids = (ligues as Ligue[]).map((l) => l.id);
+    const { data: joueurs, error: err2 } = await sb
+      .from("players")
+      .select("league_id")
+      .in("league_id", ids);
+    if (err2 || !joueurs) return [];
+
+    const compte = new Map<string, number>();
+    for (const j of joueurs as { league_id: string }[]) {
+      compte.set(j.league_id, (compte.get(j.league_id) ?? 0) + 1);
+    }
+
+    return (ligues as Ligue[])
+      .filter((l) => (compte.get(l.id) ?? 0) >= JOUEURS_MINIMUM)
+      .map((ligue) => ({
+        ligue,
+        fenetre: fenetreDeLigue(ligue),
+        schema: "app" as const,
+      }));
+  } catch {
+    // Même silence que `terrainsActifs` : le schéma `app` peut être absent
+    // selon l'environnement, et ce n'est pas une raison de faire tomber le
+    // cron des rappels du soir, qui porte le cœur du produit.
+    return [];
+  }
 }
 
 /** Les identifiants des joueurs d'un terrain — les destinataires d'un push. */

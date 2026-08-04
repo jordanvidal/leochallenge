@@ -12,7 +12,7 @@
 import { addDays } from "@/lib/challenge";
 import { argLigue } from "@/lib/ligue";
 import { estJourOff } from "./jour-off";
-import { TERRAIN_ENV, type Terrain } from "./ligues";
+import { joueursDuTerrain, TERRAIN_ENV, type Terrain } from "./ligues";
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 
 type Entry = {
@@ -166,6 +166,49 @@ export async function sendReminders(
     t.schema,
   );
   return { notified: slackers.length, sent };
+}
+
+/**
+ * 20h la veille du premier jour — « demain, on commence ».
+ *
+ * Une ligue s'ouvre avant de démarrer : on s'inscrit le mardi pour un départ
+ * le lundi. Entre les deux, aucun cron ne passe sur elle (`terrainsActifs`
+ * filtre sur `start_day <= today`), donc rien ne rappelle son existence à des
+ * gens qui se sont inscrits six jours plus tôt et n'ont plus rien vu depuis.
+ * Ce message est le seul qu'ils reçoivent avant le jour 1.
+ *
+ * Greffé sur le cron des rappels de 20h et pas sur un cron neuf : `CLAUDE.md`
+ * demande un accord explicite pour tout cron ajouté, et il n'en faut pas —
+ * celui-ci tourne déjà tous les jours à la bonne heure. Il faut juste qu'il
+ * regarde aussi ce qui commence demain.
+ *
+ * Le message dit l'heure de la première séance sans la prescrire, et ne
+ * promet rien d'autre. Pas de « prépare-toi », pas de compte à rebours : le
+ * produit n'a pas de vocabulaire de coach, et ce n'est pas ici qu'il en prend.
+ *
+ * Non idempotent, comme les autres pushs du soir : un déclenchement en double
+ * enverrait le message deux fois. Le cron de 20h ne tire qu'une fois par jour
+ * et cette route n'écrit aucun état — c'est le même compromis que les rappels
+ * qu'elle accompagne, pas une régression.
+ */
+export async function sendVeilleDeLancement(t: Terrain): Promise<{
+  ligue: string | null;
+  notified: number;
+  sent: number;
+}> {
+  const ids = await joueursDuTerrain(t);
+  if (!ids || ids.length === 0) {
+    return { ligue: t.ligue?.slug ?? null, notified: 0, sent: 0 };
+  }
+  const sent = await sendToPlayers(
+    ids,
+    {
+      title: "🏁 Demain, ça commence",
+      body: "Premier jour du challenge : 100 pompes, 100 abdos, 100 squats. À demain.",
+    },
+    t.schema,
+  );
+  return { ligue: t.ligue?.slug ?? null, notified: ids.length, sent };
 }
 
 /** Message "série en danger" : personnalisé, court, il fait mal gentiment. */
