@@ -122,24 +122,30 @@ export async function POST(request: Request) {
     const others = [...participants].filter((id) => id !== owner);
 
     if (ownerTarget.length > 0) {
-      totalSent += await sendToPlayers(ownerTarget, {
-        title: "💬 Ton moment fait parler",
-        body,
-      });
+      totalSent += await sendToPlayers(
+        ownerTarget,
+        { title: "💬 Ton moment fait parler", body },
+        monde,
+      );
     }
     if (others.length > 0) {
-      totalSent += await sendToPlayers(others, {
-        title: "💬 Ça discute",
-        body,
-      });
+      totalSent += await sendToPlayers(
+        others,
+        { title: "💬 Ça discute", body },
+        monde,
+      );
     }
   } else {
     // Réaction : seul l'auteur du moment est concerné (et jamais lui-même).
     if (owner !== actor) {
-      totalSent += await sendToPlayers([owner], {
-        title: "💬 Ton moment fait parler",
-        body: `${actorName} a réagi ${lastReaction!.emoji} à ton moment`,
-      });
+      totalSent += await sendToPlayers(
+        [owner],
+        {
+          title: "💬 Ton moment fait parler",
+          body: `${actorName} a réagi ${lastReaction!.emoji} à ton moment`,
+        },
+        monde,
+      );
     }
   }
 

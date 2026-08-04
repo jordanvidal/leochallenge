@@ -158,10 +158,26 @@ export type PushPayload = {
 /**
  * Envoie une notification aux joueurs donnés (toutes leurs subscriptions).
  * Retourne le nombre d'envois réussis.
+ *
+ * `schema` est OBLIGATOIRE, et c'est le correctif du 04/08. Cette fonction
+ * lisait `public.push_subscriptions` en dur alors que les identifiants qu'on
+ * lui passe viennent du terrain appelant : ceux d'une ligue vivent dans
+ * `app.players`, et leurs souscriptions dans `app.push_subscriptions`. Le
+ * `.in(player_id, ...)` ne trouvait donc jamais rien pour une ligue — zéro
+ * ligne, aucune erreur, `sent: 0`. Tous les pushs des ligues (rappels du
+ * soir, événement du jour, récap du lundi, feed, tchat) tombaient dans ce
+ * trou depuis la création du schéma `app`, sans le moindre bruit.
+ *
+ * Pas de valeur par défaut, volontairement. Un défaut à « public » aurait
+ * gardé cette panne exacte pour tout appelant qui oublie l'argument, et elle
+ * est invisible en production : le compte d'envois d'une ligue vide ressemble
+ * trait pour trait à celui d'une ligue dont personne n'est abonné. Rendre le
+ * paramètre obligatoire fait tomber l'oubli à la compilation.
  */
 export async function sendToPlayers(
   playerIds: string[],
   payload: PushPayload,
+  schema: "public" | "app",
 ): Promise<number> {
   if (playerIds.length === 0) return 0;
   if (!pushAutorise()) {
@@ -175,7 +191,8 @@ export async function sendToPlayers(
     return 0;
   }
   configureVapid();
-  const supabase = serverSupabase();
+  // Le schéma des souscriptions doit être celui des joueurs qu'on notifie.
+  const supabase = serverSupabase(schema);
 
   const { data, error } = await supabase
     .from("push_subscriptions")

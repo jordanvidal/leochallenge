@@ -79,9 +79,10 @@ export async function notifyJourOff(t: Terrain = TERRAIN_ENV): Promise<{
 
   const ids = await joueursDuTerrain(t);
   if (!ids) throw new Error("lecture joueurs échouée");
-  const sent = await sendToPlayers(ids, {
-    title: JOUR_OFF_PUSH_TITLE,
-    body: JOUR_OFF_PUSH_BODY,
-  });
+  const sent = await sendToPlayers(
+    ids,
+    { title: JOUR_OFF_PUSH_TITLE, body: JOUR_OFF_PUSH_BODY },
+    t.schema,
+  );
   return { day, off, sent };
 }

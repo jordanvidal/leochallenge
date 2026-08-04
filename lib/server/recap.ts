@@ -125,10 +125,11 @@ export async function sendWeeklyRecap(
       lines.push("Nouveau classement hebdo — ça repart, à toi de jouer.");
     }
     lines.push(...(duelLines?.get(row.player_id) ?? []));
-    sent += await sendToPlayers([row.player_id], {
-      title,
-      body: lines.join("\n"),
-    });
+    sent += await sendToPlayers(
+      [row.player_id],
+      { title, body: lines.join("\n") },
+      t.schema,
+    );
   }
 
   return { notified, sent };

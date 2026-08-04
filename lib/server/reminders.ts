@@ -163,6 +163,7 @@ export async function sendReminders(
   const sent = await sendToPlayers(
     slackers.map((s) => s.id),
     { title: "💪 100 · 100 · 100", body },
+    t.schema,
   );
   return { notified: slackers.length, sent };
 }
@@ -199,10 +200,14 @@ export async function sendStreakRisk(t: Terrain = TERRAIN_ENV): Promise<{
   // Envoi individuel : le message porte le nombre de jours de chacun.
   let sent = 0;
   for (const p of atRisk) {
-    sent += await sendToPlayers([p.id], {
-      title: "🔥 Ta série est en jeu",
-      body: streakBody(streaks.get(p.id) ?? 0),
-    });
+    sent += await sendToPlayers(
+      [p.id],
+      {
+        title: "🔥 Ta série est en jeu",
+        body: streakBody(streaks.get(p.id) ?? 0),
+      },
+      t.schema,
+    );
   }
   return { notified: atRisk.length, sent };
 }
@@ -225,10 +230,14 @@ export async function sendLastStanding(t: Terrain = TERRAIN_ENV): Promise<{
   const slackers = band.filter((p) => count(p) === 0);
   if (slackers.length !== 1) return { notified: 0, sent: 0 };
 
-  const sent = await sendToPlayers([slackers[0].id], {
-    title: "🕯️ Dernier debout",
-    body: "Tout le monde a coché aujourd'hui. Sauf toi.",
-  });
+  const sent = await sendToPlayers(
+    [slackers[0].id],
+    {
+      title: "🕯️ Dernier debout",
+      body: "Tout le monde a coché aujourd'hui. Sauf toi.",
+    },
+    t.schema,
+  );
   return { notified: 1, sent };
 }
 
@@ -284,9 +293,13 @@ export async function sendWinBack(t: Terrain = TERRAIN_ENV): Promise<{
   if (targets.length === 0) return { notified: 0, sent: 0, reengaged: [] };
 
   const ids = targets.map((t) => t.id);
-  const sent = await sendToPlayers(ids, {
-    title: "🌱 Nouvelle semaine, ardoise blanche",
-    body: "On t'a gardé ta place. Pas besoin de tout rattraper — un seul exo aujourd'hui et t'es reparti.",
-  });
+  const sent = await sendToPlayers(
+    ids,
+    {
+      title: "🌱 Nouvelle semaine, ardoise blanche",
+      body: "On t'a gardé ta place. Pas besoin de tout rattraper — un seul exo aujourd'hui et t'es reparti.",
+    },
+    t.schema,
+  );
   return { notified: targets.length, sent, reengaged: ids };
 }

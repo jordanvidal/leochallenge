@@ -373,10 +373,14 @@ export async function POST(request: Request) {
       .select("player_id");
     const notifiable = (locked ?? []).map((r) => r.player_id);
     if (notifiable.length > 0) {
-      sent = await sendToPlayers(notifiable, {
-        title: "📉 Tu viens de te faire doubler",
-        body: `${names.get(actorId) ?? "Quelqu'un"} vient de te passer au classement.`,
-      });
+      sent = await sendToPlayers(
+        notifiable,
+        {
+          title: "📉 Tu viens de te faire doubler",
+          body: `${names.get(actorId) ?? "Quelqu'un"} vient de te passer au classement.`,
+        },
+        monde,
+      );
     }
   }
 
@@ -614,6 +618,7 @@ export async function POST(request: Request) {
             ? `Et aussi : ${rest.map((p) => p.text).join(" · ")}`
             : "Ça se passe dans le feed.",
         },
+        monde,
       );
     }
   }

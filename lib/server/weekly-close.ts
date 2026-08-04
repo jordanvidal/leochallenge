@@ -79,10 +79,11 @@ export async function sendWeeklyClose(t: Terrain = TERRAIN_ENV): Promise<{
           `${leaderNames} ${leaders.length > 1 ? "mènent" : "mène"} la semaine avec ${leaderPts} pts. Tu es ${frenchRank(Number(row.rank))} avec ${fmtPoints(Number(row.points))} pts.`,
           "Dernières heures pour marquer — à minuit, le compteur repart à zéro.",
         ];
-    sent += await sendToPlayers([row.player_id], {
-      title,
-      body: lines.join("\n"),
-    });
+    sent += await sendToPlayers(
+      [row.player_id],
+      { title, body: lines.join("\n") },
+      t.schema,
+    );
   }
 
   return { notified, sent };
