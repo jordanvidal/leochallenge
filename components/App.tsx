@@ -44,6 +44,7 @@ import {
   shareWeekFlow,
 } from "@/lib/share";
 import { Exercise, Player, entryKey } from "@/lib/types";
+import AvantPremiere from "./AvantPremiere";
 import BilanScreen from "./BilanScreen";
 import ChatScreen from "./chat/ChatScreen";
 import DailyEventModal from "./DailyEventModal";
@@ -76,7 +77,14 @@ export default function App() {
   // La fenêtre de la ligue courante — celle des variables d'env en groupe
   // unique. Tout ce qui date dans cet écran passe par elle.
   const f = useFenetre();
-  const ligueId = useLigueCourante()?.id ?? null;
+  const ligue = useLigueCourante();
+  const ligueId = ligue?.id ?? null;
+
+  // Une ligue peut être ouverte avant son premier jour : on s'y inscrit le
+  // mardi pour un départ le lundi suivant. Ces jours-là, l'accueil n'a rien
+  // à offrir et le lanceur de séance ne peut pas aboutir — voir
+  // `components/AvantPremiere.tsx`.
+  const avantDepart = parisToday() < f.start;
   const data = useChallengeData();
   const id = useIdentity();
   const { playerId } = id;
@@ -664,7 +672,20 @@ export default function App() {
         </p>
       )}
       <div ref={scene} className="flex flex-1 flex-col">
-        {!over && effTab === "today" && (
+        {/* Avant le premier jour, l'accueil n'a rien à proposer : la base
+            refuse toute séance hors fenêtre (`trg_sessions_a_fenetre`). On
+            remplace donc l'onglet, sans toucher aux autres — le tchat reste
+            ouvert, et c'est tant mieux, c'est là que l'attente se vit. */}
+        {!over && effTab === "today" && avantDepart && (
+          <AvantPremiere
+            player={player}
+            players={data.players}
+            ligue={ligue}
+            debut={f.start}
+            showToast={data.showToast}
+          />
+        )}
+        {!over && effTab === "today" && !avantDepart && (
           <TodayScreen
             player={player}
             players={data.players}
