@@ -27,8 +27,80 @@ import { MiTempsData } from "@/lib/mitemps";
 import { Player } from "@/lib/types";
 import { Avatar, BigButton } from "./ui";
 
-/** Force du voile de couleur derrière chaque carte. Un seul curseur. */
+/** Force du voile de couleur derrière chaque carte, en ambiance « halo ». */
 const TEINTE = "34%";
+
+/**
+ * L'ambiance visuelle de la story. **Trois propositions, une seule à garder** —
+ * ce commutateur ne doit pas survivre à la revue de Jordan.
+ *
+ *  * `halo`  — fond sombre, halo de la couleur du moment. La sobriété de
+ *              l'app, poussée d'un cran. C'est la moins risquée.
+ *  * `aplat` — la couleur prend TOUT l'écran, l'encre passe en noir. C'est le
+ *              geste de Wrapped, et le plus gros écart jamais pris avec
+ *              DESIGN.md — mais la couleur reste celle d'un joueur.
+ *  * `duo`   — dégradé diagonal entre la couleur du moment et celle de la
+ *              carte suivante : la story change de couleur en continu.
+ *
+ * Les trois ne changent QUE des couleurs. La typo, les espacements et les
+ * animations sont partagés — on compare une ambiance, pas cinq écrans.
+ */
+type Ambiance = "halo" | "aplat" | "duo";
+const AMBIANCE: Ambiance = "aplat";
+
+type Look = {
+  /** Le `background` de l'écran. */
+  fond: string;
+  /** Surcharges des tokens de couleur : tout ce qui est en `text-ink`,
+      `text-muted`, `border-line`… suit sans qu'on touche une classe. */
+  vars: React.CSSProperties;
+  /** La couleur du chiffre héros. */
+  chiffre: string;
+  /** La couleur des éléments d'interface posés sur le fond (pastille,
+      barres de progression) — jamais la teinte en aplat, elle y serait
+      invisible. */
+  surFond: string;
+};
+
+function lookDe(teinte: string, suivante: string): Look {
+  if (AMBIANCE === "aplat") {
+    return {
+      fond: teinte,
+      // L'encre passe en sombre : sur un aplat à 0.72 de clarté, du blanc
+      // ne tient aucun contraste. Les gris sont neutres, pas teintés — la
+      // couleur est déjà partout, elle n'a pas besoin d'aide.
+      vars: {
+        "--color-ink": "oklch(0.14 0 0)",
+        "--color-muted": "oklch(0.30 0 0)",
+        "--color-faint": "oklch(0.40 0 0)",
+        "--color-line": "oklch(0.14 0 0 / 0.22)",
+        "--color-surface": "oklch(1 0 0 / 0.18)",
+      } as React.CSSProperties,
+      chiffre: "oklch(0.14 0 0)",
+      surFond: "oklch(0.14 0 0)",
+    };
+  }
+  if (AMBIANCE === "duo") {
+    return {
+      fond: `linear-gradient(158deg,
+        color-mix(in oklch, ${teinte} 62%, var(--color-bg)) 0%,
+        color-mix(in oklch, ${suivante} 46%, var(--color-bg)) 62%,
+        var(--color-bg) 100%)`,
+      vars: {},
+      chiffre: "var(--color-ink)",
+      surFond: teinte,
+    };
+  }
+  return {
+    fond: `radial-gradient(125% 95% at 50% -10%,
+      color-mix(in oklch, ${teinte} ${TEINTE}, transparent),
+      transparent 68%),
+      var(--color-bg)`,
+    vars: {},
+    chiffre: teinte,
+    surFond: teinte,
+  };
+}
 
 type Props = {
   player: Player;
@@ -173,8 +245,12 @@ function Mvp({
  */
 function PodiumReveal({
   top3,
+  couleurScore,
 }: {
   top3: MiTempsData["top3"];
+  /** null = la couleur de chaque joueur. Une couleur = celle de tous, quand
+      le fond est déjà l'aplat de l'un d'eux et les avalerait. */
+  couleurScore: string | null;
 }) {
   const medailles = ["🥇", "🥈", "🥉"];
   const [step, setStep] = useState(prefersReducedMotion() ? top3.length : 0);
@@ -207,7 +283,10 @@ function PodiumReveal({
             </span>
             <Avatar name={p.name} color={p.color} size={34} />
             <span className="flex-1 truncate text-lg font-bold">{p.name}</span>
-            <span className="num-display text-2xl" style={{ color: p.color }}>
+            <span
+              className="num-display text-2xl"
+              style={{ color: couleurScore ?? p.color }}
+            >
               {fmtPoints(p.points)}
             </span>
           </div>
@@ -232,11 +311,17 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
   const eyebrow =
     "text-xs font-bold uppercase tracking-[0.18em] text-faint";
 
-  const cards: { teinte: string; contenu: React.ReactNode }[] = [
+  // La couleur de chaque carte : la tienne pour ce qui te concerne, l'or du
+  // collectif pour l'équipe, celle du leader pour la course. L'index vit ici
+  // parce que le look en dépend, et que les cartes dépendent du look.
+  const [i, setI] = useState(0);
+  const teintes = [player.color, collectif, leader, player.color, player.color];
+  const teinte = teintes[i];
+  const look = lookDe(teinte, teintes[(i + 1) % teintes.length]);
+
+  const cards: React.ReactNode[] = [
     // 1 — Le cadre. Un seul chiffre, et ce qu'il veut dire.
-    {
-      teinte: player.color,
-      contenu: (
+    (
         <div key="cadre" className="space-y-6">
           <Reveal ordre={0}>
             <p className={eyebrow}>Mi-temps</p>
@@ -246,7 +331,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
               valeur={<CountUp to={data.joursFaits} />}
               suffixe={`/ ${total}`}
               legende="jours de challenge dans les jambes"
-              couleur={player.color}
+              couleur={look.chiffre}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -262,14 +347,11 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             </p>
           </Reveal>
         </div>
-      ),
-    },
+    ),
 
     // 2 — Le collectif. Le gros chiffre, c'est les répétitions : c'est
     // celui qui fait « on a fait ÇA ? », pas le compte d'exos.
-    {
-      teinte: collectif,
-      contenu: (
+    (
         <div key="equipe" className="space-y-6">
           <Reveal ordre={0}>
             <p className={eyebrow}>L&apos;équipe</p>
@@ -278,7 +360,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={<CountUp to={data.totalReps} duree={1300} />}
               legende="répétitions à nous tous"
-              couleur={collectif}
+              couleur={look.chiffre}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -306,19 +388,19 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             </Reveal>
           )}
         </div>
-      ),
-    },
+    ),
 
     // 3 — La course. Le podium arrive du 3e au 1er, et la phrase de
     // suspense tombe en grand, après — pas en note de bas de carte.
-    {
-      teinte: leader,
-      contenu: (
+    (
         <div key="course" className="space-y-6">
           <Reveal ordre={0}>
             <p className={eyebrow}>La course</p>
           </Reveal>
-          <PodiumReveal top3={data.top3} />
+          <PodiumReveal
+            top3={data.top3}
+            couleurScore={AMBIANCE === "aplat" ? "var(--color-ink)" : null}
+          />
           {data.duels.tranches + data.duels.nuls > 0 && (
             <Reveal ordre={4}>
               <p className="text-sm text-muted">
@@ -333,7 +415,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <p className="text-3xl leading-[1.15] font-black text-balance">
               Personne n&apos;est à l&apos;abri,
               <br />
-              <span style={{ color: leader }}>personne n&apos;est condamné.</span>
+              <span style={{ color: look.chiffre }}>personne n&apos;est condamné.</span>
             </p>
           </Reveal>
           <Reveal ordre={6}>
@@ -343,13 +425,10 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             </p>
           </Reveal>
         </div>
-      ),
-    },
+    ),
 
     // 4 — Toi. La seule carte qui change d'un joueur à l'autre.
-    {
-      teinte: player.color,
-      contenu: (
+    (
         <div key="toi" className="space-y-6">
           <Reveal ordre={0}>
             <p className={eyebrow}>Toi</p>
@@ -358,7 +437,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={frenchRank(data.me.rank)}
               legende={`${fmtPoints(data.me.points)} pts à la mi-temps`}
-              couleur={player.color}
+              couleur={look.chiffre}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -374,13 +453,10 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             </p>
           </Reveal>
         </div>
-      ),
-    },
+    ),
 
     // 5 — La suite. Le partage, puis la sortie.
-    {
-      teinte: player.color,
-      contenu: (
+    (
         <div key="suite" className="space-y-6">
           <Reveal ordre={0}>
             <p className={eyebrow}>Ce qui reste</p>
@@ -389,7 +465,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={<CountUp to={data.joursRestants} />}
               legende="jours de deuxième mi-temps"
-              couleur={player.color}
+              couleur={look.chiffre}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -404,22 +480,19 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
               onClick={onShare}
               className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
               style={{
-                background: `color-mix(in oklch, ${player.color} 16%, var(--color-surface))`,
-                color: player.color,
-                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 40%, transparent)`,
+                background: "var(--color-surface)",
+                color: look.chiffre,
+                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${look.chiffre} 40%, transparent)`,
               }}
             >
               Balancer le bilan dans le groupe 📤
             </button>
           </Reveal>
         </div>
-      ),
-    },
+    ),
   ];
 
-  const [i, setI] = useState(0);
   const last = i === cards.length - 1;
-  const teinte = cards[i].teinte;
 
   function next() {
     setI((v) => v + 1);
@@ -430,11 +503,9 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
       style={
         {
           "--pc": player.color,
-          background: `
-            radial-gradient(125% 95% at 50% -10%,
-              color-mix(in oklch, ${teinte} ${TEINTE}, transparent),
-              transparent 68%),
-            var(--color-bg)`,
+          ...look.vars,
+          color: "var(--color-ink)",
+          background: look.fond,
           transition: "background 600ms ease-out",
         } as React.CSSProperties
       }
@@ -445,9 +516,9 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
         <span
           className="rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase"
           style={{
-            background: `color-mix(in oklch, ${teinte} 22%, var(--color-surface))`,
-            color: teinte,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${teinte} 55%, transparent)`,
+            background: "var(--color-surface)",
+            color: look.surFond,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${look.surFond} 55%, transparent)`,
             transition: "background 600ms ease-out, color 600ms ease-out",
           }}
         >
@@ -458,7 +529,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <span
               key={n}
               className="h-1 flex-1 rounded-full transition-colors"
-              style={{ background: n <= i ? teinte : "var(--color-line)" }}
+              style={{ background: n <= i ? look.surFond : "var(--color-line)" }}
             />
           ))}
         </div>
@@ -476,7 +547,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           déclencherait les deux actions à la fois. */}
       {last ? (
         <div className="flex flex-1 flex-col justify-center px-8 text-left">
-          <div key={i}>{cards[i].contenu}</div>
+          <div key={i}>{cards[i]}</div>
         </div>
       ) : (
         <button
@@ -484,7 +555,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           aria-label="Carte suivante"
           className="flex flex-1 flex-col justify-center px-8 text-left"
         >
-          <div key={i}>{cards[i].contenu}</div>
+          <div key={i}>{cards[i]}</div>
         </button>
       )}
 
