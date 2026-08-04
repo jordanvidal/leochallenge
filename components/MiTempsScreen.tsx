@@ -88,26 +88,55 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-/** Compteur qui monte de 0 à `to` au montage. Respecte reduced-motion.
-    Même patron que le bilan de la S3 — c'est le geste qui fait qu'un
-    chiffre se regarde au lieu de se lire. */
-function CountUp({ to, duree = 900 }: { to: number; duree?: number }) {
-  const [n, setN] = useState(prefersReducedMotion() ? to : 0);
+/** Entier à la française : 30500 → "30 500". Le format par défaut. */
+const enEntier = (n: number) => Math.round(n).toLocaleString("fr-FR");
+
+/**
+ * Compteur qui monte de 0 à `to`. Respecte reduced-motion.
+ *
+ * Même patron que le bilan de la S3 — c'est le geste qui fait qu'un chiffre
+ * se regarde au lieu de se lire. Sur cet écran, TOUS les chiffres passent
+ * par lui : le héros, les stats de soutien et les scores du podium. Chacun
+ * avec son `delai`, pour qu'ils arrivent l'un après l'autre plutôt qu'en
+ * bloc — un tableau de bord affiche, une story raconte.
+ *
+ * L'état retient la chaîne formatée et pas le nombre : à 30 500, deux
+ * images successives donnent souvent le même texte, et React court-circuite
+ * alors le rendu. Sans ça, sept compteurs simultanés font sept rendus par
+ * image sur un téléphone qui n'en demandait pas tant.
+ */
+function CountUp({
+  to,
+  duree = 900,
+  delai = 0,
+  format = enEntier,
+}: {
+  to: number;
+  duree?: number;
+  delai?: number;
+  format?: (n: number) => string;
+}) {
+  const [txt, setTxt] = useState(() =>
+    format(prefersReducedMotion() ? to : 0),
+  );
   useEffect(() => {
-    if (prefersReducedMotion()) return setN(to);
+    if (prefersReducedMotion()) return setTxt(format(to));
     const debut = performance.now();
     let raf = 0;
     const tick = (t: number) => {
-      const p = Math.min(1, (t - debut) / duree);
+      // Le délai n'est pas un setTimeout : la course démarre tout de suite
+      // et reste bloquée à zéro, donc le nettoyage d'un seul rAF suffit.
+      const p = Math.min(1, Math.max(0, (t - debut - delai) / duree));
       // Décélération franche : le chiffre part vite et se pose, il ne
       // rampe pas sur les vingt derniers pour cent.
-      setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      const s = format(to * (1 - Math.pow(1 - p, 3)));
+      setTxt((avant) => (avant === s ? avant : s));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [to, duree]);
-  return <>{n.toLocaleString("fr-FR")}</>;
+  }, [to, duree, delai, format]);
+  return <>{txt}</>;
 }
 
 /** Un bloc qui monte à son tour. `ordre` est son rang dans la cascade. */
@@ -137,24 +166,35 @@ function Reveal({
   );
 }
 
-/** Le chiffre héros d'une carte. */
+/**
+ * Le chiffre héros d'une carte.
+ *
+ * `arrivee` est le moment où le compteur se pose : le chiffre prend alors
+ * le petit coup d'échelle de `reel-land`, l'animation d'arrivée de la roue
+ * du tirage. Un délai plutôt qu'un état : rien à synchroniser entre le
+ * compteur et son enveloppe, et le `both` de l'animation tient l'échelle à
+ * 1 pendant toute l'attente. En reduced-motion, `globals.css` la coupe.
+ */
 function Hero({
   valeur,
   suffixe,
   legende,
   couleur,
+  arrivee = 900,
 }: {
   valeur: React.ReactNode;
   suffixe?: string;
   legende: string;
   couleur: string;
+  arrivee?: number;
 }) {
   return (
     <div>
       <p
-        className="num-display text-[5.5rem] leading-[0.85]"
+        className="num-display reel-land inline-block text-[5.5rem] leading-[0.85]"
         style={{
           color: couleur,
+          animationDelay: `${arrivee}ms`,
           filter: `drop-shadow(0 10px 40px color-mix(in oklch, ${couleur} 40%, transparent))`,
         }}
       >
@@ -166,11 +206,23 @@ function Hero({
   );
 }
 
-/** Petite stat de soutien, sous un chiffre héros. */
-function Stat({ valeur, label }: { valeur: string; label: string }) {
+/** Petite stat de soutien, sous un chiffre héros. Le chiffre monte aussi,
+    plus vite que le héros et décalé de `rang` — les trois d'une rangée
+    arrivent en escalier, pas en bloc. */
+function Stat({
+  valeur,
+  label,
+  rang = 0,
+}: {
+  valeur: number;
+  label: string;
+  rang?: number;
+}) {
   return (
     <div>
-      <p className="num-display text-3xl text-ink">{valeur}</p>
+      <p className="num-display text-3xl text-ink">
+        <CountUp to={valeur} duree={700} delai={260 + rang * 130} />
+      </p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   );
@@ -257,18 +309,20 @@ function PodiumReveal({
               className="num-display text-2xl"
               style={{ color: couleurScore ?? p.color }}
             >
-              {fmtPoints(p.points)}
+              {/* Le score monte pile quand sa ligne arrive : même formule
+                  de délai que la révélation, un cran plus tard. */}
+              <CountUp
+                to={p.points}
+                duree={620}
+                delai={520 + (top3.length - 1 - k) * 700}
+                format={fmtPoints}
+              />
             </span>
           </div>
         );
       })}
     </div>
   );
-}
-
-/** Nombre à la française : 30200 → "30 200". */
-function frNum(n: number): string {
-  return n.toLocaleString("fr-FR");
 }
 
 export default function MiTempsScreen({ player, data, onShare, onClose }: Props) {
@@ -336,12 +390,13 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           </Reveal>
           <Reveal ordre={2}>
             <div className="grid grid-cols-3 gap-4 border-t border-line pt-5">
-              <Stat valeur={frNum(data.totalExos)} label="exos validés" />
+              <Stat valeur={data.totalExos} label="exos validés" rang={0} />
               <Stat
-                valeur={String(data.joursParfaitsCollectifs)}
+                valeur={data.joursParfaitsCollectifs}
                 label="jours parfaits"
+                rang={1}
               />
-              <Stat valeur={String(data.seances)} label="séances guidées" />
+              <Stat valeur={data.seances} label="séances guidées" rang={2} />
             </div>
           </Reveal>
           {data.mvps.length > 0 && (
@@ -413,9 +468,9 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           </Reveal>
           <Reveal ordre={2}>
             <div className="grid grid-cols-3 gap-4 border-t border-line pt-5">
-              <Stat valeur={String(data.me.exos)} label="exos validés" />
-              <Stat valeur={String(data.me.perfectDays)} label="jours parfaits" />
-              <Stat valeur={String(data.me.bestStreak)} label="meilleure série" />
+              <Stat valeur={data.me.exos} label="exos validés" rang={0} />
+              <Stat valeur={data.me.perfectDays} label="jours parfaits" rang={1} />
+              <Stat valeur={data.me.bestStreak} label="meilleure série" rang={2} />
             </div>
           </Reveal>
           <Reveal ordre={3}>
