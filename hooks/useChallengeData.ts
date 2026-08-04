@@ -17,6 +17,11 @@ function humanError(message: string): string {
   if (message.includes("JOUEUR_INDESTRUCTIBLE"))
     return "Ce joueur a déjà coché, il est indestructible";
   if (message.includes("CAP_JOUEURS")) return "Groupe complet : 12 joueurs max";
+  // Le filet sous `AvantPremiere` : cet écran empêche normalement d'arriver
+  // ici, mais le trigger reste la seule vérité et il parlait en `HORS_FENETRE`
+  // brut — donc « re-tape pour réessayer », sur une chose qui ne peut pas
+  // aboutir. Dire la vérité vaut mieux qu'inviter à réessayer (PRODUCT.md §5).
+  if (message.includes("HORS_FENETRE")) return "Hors des dates de la ligue";
   return "Écriture échouée, re-tape pour réessayer";
 }
 
