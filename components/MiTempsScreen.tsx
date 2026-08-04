@@ -27,79 +27,49 @@ import { MiTempsData } from "@/lib/mitemps";
 import { Player } from "@/lib/types";
 import { Avatar, BigButton } from "./ui";
 
-/** Force du voile de couleur derrière chaque carte, en ambiance « halo ». */
-const TEINTE = "34%";
-
 /**
- * L'ambiance visuelle de la story. **Trois propositions, une seule à garder** —
- * ce commutateur ne doit pas survivre à la revue de Jordan.
+ * Les deux nappes de couleur du fond.
  *
- *  * `halo`  — fond sombre, halo de la couleur du moment. La sobriété de
- *              l'app, poussée d'un cran. C'est la moins risquée.
- *  * `aplat` — la couleur prend TOUT l'écran, l'encre passe en noir. C'est le
- *              geste de Wrapped, et le plus gros écart jamais pris avec
- *              DESIGN.md — mais la couleur reste celle d'un joueur.
- *  * `duo`   — dégradé diagonal entre la couleur du moment et celle de la
- *              carte suivante : la story change de couleur en continu.
+ * Direction retenue par Jordan le 04/08, après comparaison de trois
+ * ambiances : le dégradé, mais lisible. Le dégradé plein cadre de la
+ * première version montait en clarté au milieu de l'écran — deux couleurs
+ * chaudes qui se mélangent donnent un brun clair — et c'est exactement là
+ * que le texte se pose. Le texte y était illisible.
  *
- * Les trois ne changent QUE des couleurs. La typo, les espacements et les
- * animations sont partagés — on compare une ambiance, pas cinq écrans.
+ * La correction tient en trois points :
+ *
+ *  1. **Les couleurs vont aux coins.** Deux nappes floues en diagonale,
+ *     jamais au centre : la bande où vit le texte reste sur le fond sombre
+ *     de l'app, donc au contraste de l'app.
+ *  2. **Elles plafonnent.** `FORCE_NAPPE` borne le mélange — au-delà, la
+ *     clarté du fond rattrape celle du texte secondaire.
+ *  3. **Le texte secondaire monte d'un cran** (`--color-muted` et
+ *     `--color-faint`), parce qu'il reste posé sur un fond teinté.
+ *
+ * Et elles dérivent lentement (`globals.css`), ce que l'aplat n'offrait
+ * pas : la story n'est jamais tout à fait la même image.
  */
-type Ambiance = "halo" | "aplat" | "duo";
-const AMBIANCE: Ambiance = "aplat";
+const FORCE_NAPPE = "70%";
+const FORCE_NAPPE_B = "60%";
 
-type Look = {
-  /** Le `background` de l'écran. */
-  fond: string;
-  /** Surcharges des tokens de couleur : tout ce qui est en `text-ink`,
-      `text-muted`, `border-line`… suit sans qu'on touche une classe. */
-  vars: React.CSSProperties;
-  /** La couleur du chiffre héros. */
-  chiffre: string;
-  /** La couleur des éléments d'interface posés sur le fond (pastille,
-      barres de progression) — jamais la teinte en aplat, elle y serait
-      invisible. */
-  surFond: string;
-};
-
-function lookDe(teinte: string, suivante: string): Look {
-  if (AMBIANCE === "aplat") {
-    return {
-      fond: teinte,
-      // L'encre passe en sombre : sur un aplat à 0.72 de clarté, du blanc
-      // ne tient aucun contraste. Les gris sont neutres, pas teintés — la
-      // couleur est déjà partout, elle n'a pas besoin d'aide.
-      vars: {
-        "--color-ink": "oklch(0.14 0 0)",
-        "--color-muted": "oklch(0.30 0 0)",
-        "--color-faint": "oklch(0.40 0 0)",
-        "--color-line": "oklch(0.14 0 0 / 0.22)",
-        "--color-surface": "oklch(1 0 0 / 0.18)",
-      } as React.CSSProperties,
-      chiffre: "oklch(0.14 0 0)",
-      surFond: "oklch(0.14 0 0)",
-    };
-  }
-  if (AMBIANCE === "duo") {
-    return {
-      fond: `linear-gradient(158deg,
-        color-mix(in oklch, ${teinte} 62%, var(--color-bg)) 0%,
-        color-mix(in oklch, ${suivante} 46%, var(--color-bg)) 62%,
-        var(--color-bg) 100%)`,
-      vars: {},
-      chiffre: "var(--color-ink)",
-      surFond: teinte,
-    };
-  }
-  return {
-    fond: `radial-gradient(125% 95% at 50% -10%,
-      color-mix(in oklch, ${teinte} ${TEINTE}, transparent),
-      transparent 68%),
-      var(--color-bg)`,
-    vars: {},
-    chiffre: teinte,
-    surFond: teinte,
-  };
+/** Une nappe : un dégradé radial doux, calé dans un coin. */
+/**
+ * Une nappe : un dégradé radial doux, calé dans un coin.
+ *
+ * Les coordonnées sont celles de la COUCHE, qui déborde de 25 % de chaque
+ * côté (`inset: -25%`, pour que la dérive ne découvre jamais de bord). Un
+ * point à x % de la couche tombe donc à (x × 1,5 − 25) % de l'écran : 26 %
+ * ici, c'est 14 % à l'écran. Se tromper là-dessus pousse la couleur hors
+ * cadre et rend la story presque noire — c'est arrivé.
+ */
+function nappe(couleur: string, force: string, x: string, y: string) {
+  // Trois arrêts et pas deux : avec un simple centre → transparent, la
+  // couleur ne tient qu'au point central et l'écran repart au noir en
+  // quelques pour cent. Le palier intermédiaire lui donne un corps.
+  return `radial-gradient(52% 44% at ${x} ${y},
+    color-mix(in oklch, ${couleur} ${force}, transparent) 0%,
+    color-mix(in oklch, ${couleur} calc(${force} * 0.55), transparent) 46%,
+    transparent 80%)`;
 }
 
 type Props = {
@@ -312,12 +282,13 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
     "text-xs font-bold uppercase tracking-[0.18em] text-faint";
 
   // La couleur de chaque carte : la tienne pour ce qui te concerne, l'or du
-  // collectif pour l'équipe, celle du leader pour la course. L'index vit ici
-  // parce que le look en dépend, et que les cartes dépendent du look.
+  // collectif pour l'équipe, celle du leader pour la course. La carte suivante
+  // donne la seconde nappe — la story change de couleur en continu, sans
+  // coupure d'un écran à l'autre.
   const [i, setI] = useState(0);
   const teintes = [player.color, collectif, leader, player.color, player.color];
   const teinte = teintes[i];
-  const look = lookDe(teinte, teintes[(i + 1) % teintes.length]);
+  const suivante = teintes[(i + 1) % teintes.length];
 
   const cards: React.ReactNode[] = [
     // 1 — Le cadre. Un seul chiffre, et ce qu'il veut dire.
@@ -331,7 +302,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
               valeur={<CountUp to={data.joursFaits} />}
               suffixe={`/ ${total}`}
               legende="jours de challenge dans les jambes"
-              couleur={look.chiffre}
+              couleur={teinte}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -360,7 +331,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={<CountUp to={data.totalReps} duree={1300} />}
               legende="répétitions à nous tous"
-              couleur={look.chiffre}
+              couleur={teinte}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -399,7 +370,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
           </Reveal>
           <PodiumReveal
             top3={data.top3}
-            couleurScore={AMBIANCE === "aplat" ? "var(--color-ink)" : null}
+            couleurScore={null}
           />
           {data.duels.tranches + data.duels.nuls > 0 && (
             <Reveal ordre={4}>
@@ -415,7 +386,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <p className="text-3xl leading-[1.15] font-black text-balance">
               Personne n&apos;est à l&apos;abri,
               <br />
-              <span style={{ color: look.chiffre }}>personne n&apos;est condamné.</span>
+              <span style={{ color: teinte }}>personne n&apos;est condamné.</span>
             </p>
           </Reveal>
           <Reveal ordre={6}>
@@ -437,7 +408,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={frenchRank(data.me.rank)}
               legende={`${fmtPoints(data.me.points)} pts à la mi-temps`}
-              couleur={look.chiffre}
+              couleur={teinte}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -465,7 +436,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <Hero
               valeur={<CountUp to={data.joursRestants} />}
               legende="jours de deuxième mi-temps"
-              couleur={look.chiffre}
+              couleur={teinte}
             />
           </Reveal>
           <Reveal ordre={2}>
@@ -480,9 +451,9 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
               onClick={onShare}
               className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
               style={{
-                background: "var(--color-surface)",
-                color: look.chiffre,
-                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${look.chiffre} 40%, transparent)`,
+                background: `color-mix(in oklch, ${teinte} 14%, var(--color-surface))`,
+                color: teinte,
+                boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${teinte} 40%, transparent)`,
               }}
             >
               Balancer le bilan dans le groupe 📤
@@ -503,22 +474,41 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
       style={
         {
           "--pc": player.color,
-          ...look.vars,
+          // Le texte secondaire monte d'un cran : il reste posé sur un fond
+          // teinté, où les gris de l'app perdent du contraste.
+          "--color-muted": "oklch(0.78 0 0)",
+          "--color-faint": "oklch(0.68 0 0)",
           color: "var(--color-ink)",
-          background: look.fond,
-          transition: "background 600ms ease-out",
+          background: "var(--color-bg)",
         } as React.CSSProperties
       }
-      className="fixed inset-0 z-[60] flex flex-col pt-safe pb-safe"
+      className="fixed inset-0 z-[60] isolate flex flex-col overflow-hidden pt-safe pb-safe"
     >
+      {/* Les deux nappes, sous tout le reste. `aria-hidden` : c'est du fond. */}
+      <div
+        aria-hidden
+        className="nappe nappe-a"
+        style={{
+          background: nappe(teinte, FORCE_NAPPE, "26%", "18%"),
+          transition: "background 700ms ease-out",
+        }}
+      />
+      <div
+        aria-hidden
+        className="nappe nappe-b"
+        style={{
+          background: nappe(suivante, FORCE_NAPPE_B, "74%", "82%"),
+          transition: "background 700ms ease-out",
+        }}
+      />
       {/* En-tête : pastille, progression, sortie. Hors zone de tap. */}
       <div className="flex items-center gap-3 px-6 py-3">
         <span
           className="rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase"
           style={{
-            background: "var(--color-surface)",
-            color: look.surFond,
-            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${look.surFond} 55%, transparent)`,
+            background: `color-mix(in oklch, ${teinte} 22%, var(--color-surface))`,
+            color: teinte,
+            boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${teinte} 55%, transparent)`,
             transition: "background 600ms ease-out, color 600ms ease-out",
           }}
         >
@@ -529,7 +519,7 @@ export default function MiTempsScreen({ player, data, onShare, onClose }: Props)
             <span
               key={n}
               className="h-1 flex-1 rounded-full transition-colors"
-              style={{ background: n <= i ? look.surFond : "var(--color-line)" }}
+              style={{ background: n <= i ? teinte : "var(--color-line)" }}
             />
           ))}
         </div>
