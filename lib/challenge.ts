@@ -228,6 +228,25 @@ export function saison3Started(f: Fenetre = FENETRE_ENV): boolean {
   return parisToday() >= f.saison3;
 }
 
+/**
+ * Le barème S3 est-il celui qu'il faut DÉCRIRE aux joueurs de cette fenêtre ?
+ *
+ * `saison3Started` répond à « la bascule a-t-elle eu lieu ». C'est la bonne
+ * question pour le challenge d'origine, qui a vraiment vécu sous deux barèmes.
+ * Elle est piégeuse pour une ligue neuve : sa bascule EST son premier jour,
+ * donc la réponse est non pendant toute l'avant-première. Quelqu'un qui
+ * installe l'app le vendredi pour une ligue qui démarre lundi lisait le
+ * barème d'avant la S3 — +2 au lieu de +4, la prime du premier du jour qui
+ * ne paie plus, et trois événements (happy hour, lève-tôt, jour miroir) que
+ * `app.get_daily_event` ne tire jamais pour lui.
+ *
+ * Une ligue sans bascule est en S3 du début à la fin, y compris la veille de
+ * son jour 1. Les écrans de règles posent donc cette question-ci.
+ */
+export function baremeS3(f: Fenetre = FENETRE_ENV): boolean {
+  return !aUneBasculeDeBareme(f) || saison3Started(f);
+}
+
 // Bascule de la saison 4 (deux tirages de plus, et le jour off hebdo).
 //
 // Elle ne vit PAS dans `Fenetre`, contrairement à `saison3`, et c'est une

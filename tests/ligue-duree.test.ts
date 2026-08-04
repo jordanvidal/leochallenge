@@ -1,8 +1,16 @@
 // La durée d'une ligue : le « -1 » que tout le monde oublie, et la borne des
 // 6 semaines qui doit tomber exactement là où le trigger SQL la met.
 
-import { describe, expect, it } from "vitest";
-import { addDays, aUneBasculeDeBareme, fenetre, joursDeFenetre } from "@/lib/challenge";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  addDays,
+  aUneBasculeDeBareme,
+  baremeS3,
+  fenetre,
+  FENETRE_ENV,
+  joursDeFenetre,
+  saison3Started,
+} from "@/lib/challenge";
 import {
   fenetreDeLigue,
   finDeLigue,
@@ -120,5 +128,41 @@ describe("aUneBasculeDeBareme", () => {
       const l = ligue("2026-03-02", finDeLigue("2026-03-02", s));
       expect(aUneBasculeDeBareme(fenetreDeLigue(l))).toBe(false);
     }
+  });
+});
+
+// Le drapeau que lisent les écrans de règles (tuto, mini-barème, détail
+// joueur). Il ne dit pas « la bascule a-t-elle eu lieu » mais « quel barème
+// faut-il décrire » — et les deux divergent avant le jour 1 d'une ligue.
+describe("baremeS3", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  const onEstLe = (jour: string) => vi.setSystemTime(new Date(`${jour}T10:00:00Z`));
+
+  const SPRINT = fenetreDeLigue(ligue("2026-03-02", "2026-03-29"));
+
+  it("décrit la S3 à une ligue neuve AVANT son premier jour", () => {
+    // Le vrai moment du tuto : on s'inscrit le vendredi pour une ligue qui
+    // démarre lundi. `saison3Started` répond non — et l'écran des règles
+    // affichait alors +2 par jour parfait, le premier du jour, le happy
+    // hour, le lève-tôt et le jour miroir. Rien de tout ça n'existe pour
+    // cette ligue, ni le jour 1, ni la veille.
+    onEstLe("2026-02-27");
+    expect(saison3Started(SPRINT)).toBe(false);
+    expect(baremeS3(SPRINT)).toBe(true);
+  });
+
+  it("reste vrai pendant toute la ligue", () => {
+    for (const jour of ["2026-03-02", "2026-03-15", "2026-03-29", "2026-04-10"]) {
+      onEstLe(jour);
+      expect(baremeS3(SPRINT)).toBe(true);
+    }
+  });
+
+  it("suit la bascule pour le challenge d'origine, lui qui l'a vécue", () => {
+    onEstLe("2026-07-26"); // veille de la S3
+    expect(baremeS3(FENETRE_ENV)).toBe(false);
+    onEstLe("2026-07-27");
+    expect(baremeS3(FENETRE_ENV)).toBe(true);
   });
 });
