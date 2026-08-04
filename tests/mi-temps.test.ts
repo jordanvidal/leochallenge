@@ -58,14 +58,26 @@ describe("les distinctions — chacun son terrain", () => {
     ["hichem", "Hichem"],
   ]);
   const ACTIFS = [...NOMS.keys()];
-  const M: Mesures = {
-    serie: new Map([["pierre", 22], ["leo", 21], ["doren", 18], ["jordan", 19], ["hichem", 8]]),
-    matinal: new Map([["pierre", 5], ["leo", 3], ["doren", 8], ["jordan", 4], ["hichem", 2]]),
-    seances: new Map([["pierre", 19], ["leo", 17], ["doren", 18], ["jordan", 18], ["hichem", 13]]),
-    bonus: new Map([["pierre", 507], ["leo", 346], ["doren", 430], ["jordan", 400], ["hichem", 222]]),
-    parfaits: new Map([["pierre", 22], ["leo", 21], ["doren", 19], ["jordan", 19], ["hichem", 17]]),
-    presence: new Map([["pierre", 25], ["leo", 24], ["doren", 22], ["jordan", 23], ["hichem", 21]]),
-  };
+  const mesures = (o: Record<string, Record<string, number>>): Mesures =>
+    new Map(Object.entries(o).map(([t, v]) => [t, new Map(Object.entries(v))]));
+  // Les vraies mesures du 6 août, arrondies. Pierre écrase les compteurs de
+  // jeu ; ce sont les mouvements qui distinguent les autres.
+  const M: Mesures = mesures({
+    serie: { pierre: 22, leo: 21, doren: 18, jordan: 19, hichem: 8 },
+    matinal: { pierre: 5, leo: 3, doren: 8, jordan: 4, hichem: 2 },
+    pompes: { pierre: 800, leo: 600, doren: 1250, jordan: 1100, hichem: 600 },
+    jambes: { pierre: 1300, leo: 700, doren: 500, jordan: 600, hichem: 200 },
+    abdos: { pierre: 1700, leo: 700, doren: 300, jordan: 1200, hichem: 100 },
+    course: { pierre: 35, leo: 15, doren: 30, hichem: 5 },
+    gainage: { pierre: 30, leo: 27, doren: 18, jordan: 24, hichem: 15 },
+    chaise: { pierre: 21, leo: 9, doren: 3, jordan: 21, hichem: 9 },
+    corde: { hichem: 30 },
+    marches: { leo: 1000 },
+    seances: { pierre: 19, leo: 17, doren: 18, jordan: 18, hichem: 13 },
+    bonus: { pierre: 507, leo: 346, doren: 430, jordan: 400, hichem: 222 },
+    parfaits: { pierre: 22, leo: 21, doren: 19, jordan: 19, hichem: 17 },
+    presence: { pierre: 25, leo: 24, doren: 22, jordan: 23, hichem: 21 },
+  });
 
   // ---- LE critère d'acceptance, posé par Jordan le 03/08 ----
   it("cite chaque joueur actif une fois et une seule", () => {
@@ -93,13 +105,19 @@ describe("les distinctions — chacun son terrain", () => {
   });
 
   it("ne distingue personne sur un zéro", () => {
-    const vide: Mesures = {
-      serie: new Map([["a", 0]]), matinal: new Map([["a", 0]]),
-      seances: new Map([["a", 0]]), bonus: new Map([["a", 0]]),
-      parfaits: new Map([["a", 0]]),
-      presence: new Map([["a", 0]]),
-    };
+    const vide = mesures({ serie: { a: 0 }, presence: { a: 0 }, pompes: { a: 0 } });
     expect(distinctions(["a"], new Map([["a", "A"]]), vide)).toEqual([]);
+  });
+
+  it("donne un mouvement, pas un compteur de jeu, quand il y en a un", () => {
+    // La demande de Jordan : « 19 journées parfaites » ne dit rien de
+    // personne quand quatre joueurs en ont 19. Les terrains de mouvement
+    // passent avant, donc au moins un actif sur deux repart avec un exo.
+    const d = distinctions(ACTIFS, NOMS, M);
+    const mouvements = new Set([
+      "💪", "🦵", "🫁", "🏃", "💥", "🧱", "🪑", "🪢", "🧗", "🤸", "🪜", "🚶",
+    ]);
+    expect(d.filter((x) => mouvements.has(x.emoji)).length).toBeGreaterThanOrEqual(3);
   });
 
   it("est déterministe — deux appels, le même palmarès", () => {

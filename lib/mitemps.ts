@@ -141,6 +141,25 @@ function joursOffJusqua(jour: string) {
 }
 
 /**
+ * Les bonus déclarés jusqu'à la mi-temps, et le catalogue qui les qualifie.
+ *
+ * C'est la source des terrains de mouvement : le catalogue dit quelles clés
+ * sont des exercices (`kind = 'exercise'`), les claims disent qui a déclaré
+ * quoi. Une trentaine de lignes par joueur sur 25 jours — deux requêtes
+ * légères, faites une seule fois à l'ouverture de l'écran.
+ */
+function claimsJusqua(jour: string) {
+  return supabase
+    .from("bonus_claims")
+    .select("player_id, bonus_key")
+    .lte("day", jour);
+}
+
+function catalogueExercices() {
+  return supabase.from("bonus_catalog").select("key, kind");
+}
+
+/**
  * Les duels **clos** au moment de la mi-temps.
  *
  * `duel_results` ne contient déjà que les semaines terminées, mais elle suit
@@ -177,12 +196,14 @@ export async function fetchMiTemps(
   const jour = jourDeMiTemps(f);
   const gelee: Fenetre = { ...f, end: jour };
 
-  const [lb, seances, chronos, duels, offs] = await Promise.all([
+  const [lb, seances, chronos, duels, offs, claims, catalogue] = await Promise.all([
     supabase.rpc("leaderboard", { ...argLigue(ligueId), p_until: jour }),
     seancesJusqua(jour),
     chronosJusqua(jour),
     duelsJusqua(jour),
     joursOffJusqua(jour),
+    claimsJusqua(jour),
+    catalogueExercices(),
   ]);
   if (lb.error || !lb.data) return null;
 
@@ -209,21 +230,38 @@ export async function fetchMiTemps(
     f.start,
   );
 
-  // Les sept terrains, puis l'affectation « chacun le sien ». La présence
-  // sert deux fois : elle décide qui est actif, et elle est elle-même un
-  // terrain — celui de qui vient tous les jours sans jamais briller.
+  // Les terrains, puis l'affectation « chacun le sien ». La présence sert
+  // deux fois : elle décide qui est actif, et elle est elle-même un terrain —
+  // celui de qui vient tous les jours sans jamais briller ailleurs.
   const joursFaits = diffDays(f.start, jour) + 1;
   const presence = new Map(
     players.map((p) => [p.id, joursPresentsJusqua(p.id, entries, f.start, jour)]),
   );
-  const mvps = distinctions(joueursActifs(presence, joursFaits), noms, {
-    serie: new Map(players.map((p) => [p.id, stats.get(p.id)?.bestStreak ?? 0])),
-    matinal: premiersParJoueur,
-    seances: seancesParJoueur,
-    bonus: new Map(rows.map((r) => [r.player_id, r.bonus_points])),
-    parfaits: new Map(rows.map((r) => [r.player_id, r.perfect_days])),
-    presence,
-  });
+  // Les mouvements d'abord (pompes, jambes, gainage, course…), puis les
+  // compteurs de jeu en filet. Les deux lectures tolèrent l'échec : sans
+  // claims on retombe sur les mesures de jeu, et l'écran reste debout.
+  const clesExercice = new Set(
+    catalogue.error
+      ? []
+      : (catalogue.data as { key: string; kind: string }[])
+          .filter((c) => c.kind === "exercise")
+          .map((c) => c.key),
+  );
+  const mesures = mesuresDeMouvement(
+    claims.error ? [] : (claims.data as { player_id: string; bonus_key: string }[]),
+    clesExercice,
+  );
+  mesures.set(
+    "serie",
+    new Map(players.map((p) => [p.id, stats.get(p.id)?.bestStreak ?? 0])),
+  );
+  mesures.set("matinal", premiersParJoueur);
+  mesures.set("seances", seancesParJoueur);
+  mesures.set("bonus", new Map(rows.map((r) => [r.player_id, r.bonus_points])));
+  mesures.set("parfaits", new Map(rows.map((r) => [r.player_id, r.perfect_days])));
+  mesures.set("presence", presence);
+
+  const mvps = distinctions(joueursActifs(presence, joursFaits), noms, mesures);
 
   const moi = rows.find((r) => r.player_id === playerId);
   const statsMoi = stats.get(playerId);
@@ -332,36 +370,75 @@ export function premiersDuJour(
 // Les distinctions : chacun son terrain
 // ---------------------------------------------------------------------------
 //
-// Règle d'acceptance posée par Jordan le 03/08 : **chaque joueur actif est
-// cité une fois et une seule** sur la carte « L'équipe ». C'est une contrainte
-// de couverture, et elle est incompatible avec « le meilleur de chaque mesure
-// gagne » : sur les données du 03/08, Pierre mène quatre mesures sur quatre et
-// quatre personnes ne sont nommées nulle part.
+// Règle d'acceptance posée par Jordan le 03/08 : **chaque joueur actif est cité
+// une fois et une seule** sur la carte « L'équipe ». C'est une contrainte de
+// couverture, incompatible avec « le meilleur de chaque mesure gagne » : sur
+// les données du 03/08, Pierre menait quatre mesures sur quatre et quatre
+// personnes n'étaient nommées nulle part.
 //
-// On inverse donc le problème. Sept terrains pour cinq actifs, et une
-// affectation gloutonne : chacun reçoit **le terrain où il est le plus fort
-// par rapport au groupe**, chaque terrain ne servant qu'une fois. Le premier
-// servi est celui qui domine le plus nettement sa mesure.
+// On inverse donc le problème. Beaucoup de terrains, cinq actifs, et une
+// affectation gloutonne : chacun reçoit **celui où il est le plus fort par
+// rapport au groupe**, chaque terrain ne servant qu'une fois.
 //
 // Le mensonge que ça pourrait introduire est écarté par une seule règle : **la
 // phrase ne se permet un superlatif que si le joueur mène vraiment sa mesure.**
-// Sinon elle énonce son chiffre, sans classer. « Hichem — 13 séances guidées
-// bouclées » reste vrai même si Pierre en a 19 ; « Hichem, le roi de la séance
-// guidée » ne l'aurait pas été.
+// Sinon elle énonce son chiffre, sans classer.
+//
+// Deuxième demande de Jordan (03/08, au vu des premières lignes) : les jours
+// parfaits et les séries ne parlent que des deux premiers. Les terrains qui
+// suivent sont donc d'abord **des mouvements** — pompes, jambes, gainage,
+// course, corde — tirés des bonus que chacun déclare. C'est là que les
+// tempéraments se voient : celui qui court, celui qui saute à la corde, celui
+// qui tient la chaise murale. Les mesures « de jeu » (série, points, présence)
+// restent en fin de liste, en filet.
 
-/** Les mesures brutes : une map joueur → valeur, par terrain. */
-export type Mesures = {
-  serie: Map<string, number>;
-  matinal: Map<string, number>;
-  seances: Map<string, number>;
-  bonus: Map<string, number>;
-  parfaits: Map<string, number>;
-  presence: Map<string, number>;
+/**
+ * Combien de répétitions, de minutes ou de kilomètres vaut un palier.
+ *
+ * Le catalogue ne stocke que des points, jamais des quantités — même constat
+ * que `REPS_PAR_PALIER` dans `lib/records.ts`, dont cette table est le
+ * prolongement à tout le catalogue d'exercices. Elle peut donc se
+ * désynchroniser du jour où un palier s'ajoute en base ; d'où `TERRAINS_SURS`
+ * plus bas, qui suspend un terrain plutôt que d'annoncer un total partiel.
+ *
+ * Les quantités sont lisibles dans les libellés du catalogue (« +50 pompes »,
+ * « 3 min de gainage », « 10 km de course ») : les tenir ici plutôt que de les
+ * analyser à l'exécution évite qu'un libellé retouché change un chiffre affiché.
+ */
+const QUANTITES: Record<string, number> = {
+  pompes_50: 50,
+  pompes_100: 100,
+  dips_50: 50,
+  squats_100: 100,
+  squats_200: 200,
+  squats_jump_50: 50,
+  squats_jump_100: 100,
+  fentes_100: 100,
+  fentes_200: 200,
+  chaise_3min: 3,
+  abdos_100: 100,
+  abdos_200: 200,
+  gainage_3min: 3,
+  burpees_30: 30,
+  burpees_60: 60,
+  climbers_100: 100,
+  climbers_200: 200,
+  jumping_jacks_100: 100,
+  jumping_jacks_200: 200,
+  corde_10min: 10,
+  course_5km: 5,
+  course_10km: 10,
+  marches_500: 500,
+  pas_10000: 1,
 };
 
+/** Un terrain : ce qu'on mesure, et comment on le raconte. */
 type Terrain = {
-  cle: keyof Mesures;
+  cle: string;
   emoji: string;
+  /** Les clés du catalogue qui l'alimentent. Vide = mesure calculée ailleurs
+      (série, séances, points, jours parfaits, présence). */
+  cles: string[];
   /** Le fait, sans superlatif. */
   fait: (v: number) => string;
   /** Le fait, quand le joueur mène vraiment la mesure. */
@@ -369,28 +446,121 @@ type Terrain = {
 };
 
 /**
- * Les sept terrains, dans l'ordre d'affichage.
+ * Les terrains, dans l'ordre d'affichage — et c'est un ordre qui compte.
  *
- * L'ordre compte deux fois : il départage les ex æquo de l'affectation (il
- * doit donc être stable), et c'est l'ordre des lignes à l'écran. La série
- * d'abord, parce que c'est la mesure dont le groupe parle.
+ * Il départage les ex æquo de l'affectation (il doit donc être stable), et
+ * comme le glouton sert d'abord les scores les plus dominants, ce sont les
+ * premiers terrains qui raflent les joueurs qui écrasent leur mesure. Les
+ * mouvements passent donc avant les compteurs de jeu : « 800 pompes en plus »
+ * dit quelque chose de quelqu'un, « 19 journées parfaites » beaucoup moins
+ * quand quatre personnes en ont 19.
  */
 const TERRAINS: Terrain[] = [
   {
     cle: "serie",
     emoji: "🔥",
+    cles: [],
     fait: (v) => `${v} jours parfaits d'affilée`,
     record: (v) => `la plus longue série du challenge : ${v} jours parfaits`,
   },
   {
     cle: "matinal",
     emoji: "🌅",
+    cles: [],
     fait: (v) => `${v} fois le premier du jour à boucler son 3/3`,
     record: (v) => `${v} fois le premier du jour, personne n'a fait mieux`,
   },
   {
-    cle: "seances",
+    cle: "pompes",
     emoji: "💪",
+    cles: ["pompes_50", "pompes_100", "dips_50"],
+    fait: (v) => `${frNum(v)} pompes déclarées en plus du contrat`,
+    record: (v) => `${frNum(v)} pompes en plus du contrat, le haut du corps du groupe`,
+  },
+  {
+    cle: "jambes",
+    emoji: "🦵",
+    cles: ["squats_100", "squats_200", "fentes_100", "fentes_200", "squats_jump_50", "squats_jump_100"],
+    fait: (v) => `${frNum(v)} squats et fentes en plus`,
+    record: (v) => `${frNum(v)} squats et fentes en plus, les jambes du groupe`,
+  },
+  {
+    cle: "abdos",
+    emoji: "🫁",
+    cles: ["abdos_100", "abdos_200"],
+    fait: (v) => `${frNum(v)} abdos déclarés en plus`,
+    record: (v) => `${frNum(v)} abdos en plus, le ventre le plus travaillé`,
+  },
+  {
+    cle: "course",
+    emoji: "🏃",
+    cles: ["course_5km", "course_10km"],
+    fait: (v) => `${v} km de course à côté`,
+    record: (v) => `${v} km de course à côté, le plus gros kilométrage`,
+  },
+  {
+    cle: "burpees",
+    emoji: "💥",
+    cles: ["burpees_30", "burpees_60"],
+    fait: (v) => `${frNum(v)} burpees encaissés`,
+    record: (v) => `${frNum(v)} burpees, l'exercice que personne n'aime`,
+  },
+  {
+    cle: "gainage",
+    emoji: "🧱",
+    cles: ["gainage_3min"],
+    fait: (v) => `${v} minutes de gainage`,
+    record: (v) => `${v} minutes de gainage, la planche du groupe`,
+  },
+  {
+    cle: "chaise",
+    emoji: "🪑",
+    cles: ["chaise_3min"],
+    fait: (v) => `${v} minutes de chaise murale`,
+    record: (v) => `${v} minutes de chaise murale, les cuisses en feu`,
+  },
+  {
+    cle: "corde",
+    emoji: "🪢",
+    cles: ["corde_10min"],
+    fait: (v) => `${v} minutes de corde à sauter`,
+    record: (v) => `${v} minutes de corde à sauter, personne d'autre n'y touche`,
+  },
+  {
+    cle: "climbers",
+    emoji: "🧗",
+    cles: ["climbers_100", "climbers_200"],
+    fait: (v) => `${frNum(v)} mountain climbers`,
+    record: (v) => `${frNum(v)} mountain climbers, le plus gros total`,
+  },
+  {
+    cle: "jacks",
+    emoji: "🤸",
+    cles: ["jumping_jacks_100", "jumping_jacks_200"],
+    fait: (v) => `${frNum(v)} jumping jacks`,
+    record: (v) => `${frNum(v)} jumping jacks, le plus gros total`,
+  },
+  {
+    cle: "marches",
+    emoji: "🪜",
+    cles: ["marches_500"],
+    fait: (v) => `${frNum(v)} marches d'escalier grimpées`,
+    record: (v) => `${frNum(v)} marches grimpées, le seul à les compter`,
+  },
+  {
+    cle: "pas",
+    emoji: "🚶",
+    cles: ["pas_10000"],
+    fait: (v) => `${v} journées à plus de 10 000 pas`,
+    record: (v) => `${v} journées à 10 000 pas, le plus gros marcheur`,
+  },
+  // ---- Les compteurs de jeu, en filet ----
+  // Ils ne disent rien d'un tempérament, mais ils garantissent qu'un actif
+  // qui ne déclare aucun bonus d'exercice a quand même une ligne.
+  {
+    cle: "seances",
+    emoji: "🏋️",
+    cles: [],
     fait: (v) =>
       `${v} séance${v > 1 ? "s" : ""} guidée${v > 1 ? "s" : ""} bouclée${v > 1 ? "s" : ""}`,
     record: (v) => `${v} séances guidées bouclées, le record de la bande`,
@@ -398,36 +568,77 @@ const TERRAINS: Terrain[] = [
   {
     cle: "bonus",
     emoji: "⚡",
+    cles: [],
     fait: (v) => `${fmtPoints(v)} pts de bonus au compteur`,
     record: (v) => `${fmtPoints(v)} pts de bonus, le plus gros magot`,
   },
   {
     cle: "parfaits",
     emoji: "✅",
+    cles: [],
     fait: (v) => `${v} journées parfaites`,
     record: (v) => `${v} journées parfaites, le meilleur total`,
   },
-  // Pas de terrain « volume » ici, et c'est délibéré. Le chiffre héros de la
-  // carte EST le total de répétitions du groupe : une ligne « Hichem —
-  // 5 100 répétitions » juste en dessous invite la soustraction qui l'écrase,
-  // au lieu de le distinguer. Et le volume vaut trois fois les jours parfaits
-  // à peu de chose près — il n'apporte aucune information de plus.
   {
     cle: "presence",
     emoji: "📅",
+    cles: [],
     fait: (v) => `présent ${v} jours sur la première mi-temps`,
     record: (v) => `présent ${v} jours, le plus assidu de tous`,
   },
 ];
+
+/** Une valeur par joueur, par terrain. */
+export type Mesures = Map<string, Map<string, number>>;
+
+/** Toutes les clés d'exercice que les terrains savent quantifier. */
+const CLES_CONNUES = new Set(TERRAINS.flatMap((t) => t.cles));
+
+/**
+ * Les terrains de mouvement, alimentés par les bonus déclarés.
+ *
+ * `inconnues` reçoit les clés d'exercice vues en base mais absentes de
+ * `QUANTITES` : un palier ajouté au catalogue et oublié ici. Le terrain
+ * concerné est alors **suspendu** plutôt qu'affiché à un total partiel —
+ * même parti pris que `volumeRecords()` dans `lib/records.ts`. Mieux vaut une
+ * distinction en moins qu'un chiffre faux sous le nom de quelqu'un.
+ */
+export function mesuresDeMouvement(
+  claims: { player_id: string; bonus_key: string }[],
+  clesExercice: Set<string>,
+): Mesures {
+  const suspendus = new Set<string>();
+  for (const c of claims) {
+    if (!clesExercice.has(c.bonus_key)) continue; // événement ou exécution
+    if (CLES_CONNUES.has(c.bonus_key) && QUANTITES[c.bonus_key] === undefined) {
+      const t = TERRAINS.find((x) => x.cles.includes(c.bonus_key));
+      if (t) suspendus.add(t.cle);
+    }
+  }
+
+  const m: Mesures = new Map();
+  for (const t of TERRAINS) {
+    if (t.cles.length === 0 || suspendus.has(t.cle)) continue;
+    const parJoueur = new Map<string, number>();
+    for (const c of claims) {
+      if (!t.cles.includes(c.bonus_key)) continue;
+      const q = QUANTITES[c.bonus_key];
+      if (q === undefined) continue;
+      parJoueur.set(c.player_id, (parJoueur.get(c.player_id) ?? 0) + q);
+    }
+    m.set(t.cle, parJoueur);
+  }
+  return m;
+}
 
 /**
  * Qui compte comme « actif ».
  *
  * Le seuil est celui que `fetchBilanSaison` applique déjà au bilan de saison —
  * **au moins la moitié des jours joués**. Il n'exclut personne à la main et la
- * marge est large : au 6 août, les cinq qui jouent sont entre 17 et 22 jours
- * de présence, les quatre autres entre 0 et 5. Reprendre ce seuil plutôt que
- * d'en inventer un garde une seule définition de « joueur actif » dans l'app.
+ * marge est large : au 6 août, les cinq qui jouent sont entre 17 et 22 jours de
+ * présence, les quatre autres entre 0 et 5. Reprendre ce seuil plutôt que d'en
+ * inventer un garde une seule définition de « joueur actif » dans l'app.
  *
  * Ceux qui n'y sont pas ne reçoivent PAS de ligne, et c'est voulu : « Nathan —
  * 2 exos validés » n'est pas une distinction, c'est un constat d'absence
@@ -451,16 +662,15 @@ export function joueursActifs(
  * du jeu, on recommence. Déterministe de bout en bout — à score égal, l'ordre
  * des terrains puis le prénom tranchent, jamais l'ordre de la base.
  *
- * S'il y avait plus d'actifs que de terrains, les derniers ne recevraient pas
- * de ligne. Sept terrains pour un groupe de neuf dont cinq jouent : la marge
- * est là, et le test d'acceptance la surveille.
+ * Dix-huit terrains pour cinq actifs : la marge est large, et le test
+ * d'acceptance la surveille.
  */
 export function distinctions(
   actifs: string[],
   noms: Map<string, string>,
-  m: Mesures,
+  mesures: Mesures,
 ): Mvp[] {
-  const valeur = (id: string, t: Terrain) => m[t.cle].get(id) ?? 0;
+  const valeur = (id: string, t: Terrain) => mesures.get(t.cle)?.get(id) ?? 0;
   const maxima = new Map(
     TERRAINS.map((t) => [
       t.cle,
