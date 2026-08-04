@@ -99,6 +99,12 @@ export default function App() {
   // (revue avant le 27/07) via ?lancement=1, lu après montage (pas d'hydratation).
   const [replayLaunch, setReplayLaunch] = useState(false);
   const [forceLaunch, setForceLaunch] = useState(false);
+  // Aperçu manuel de la mi-temps via ?mitemps=1. Même raison d'être que
+  // `?lancement=1` : la simulation de date (`?date=`) est coupée en
+  // production, donc une preview Vercel ne peut PAS montrer un écran daté
+  // avant sa date. Sans cette porte, l'écran du 7 août n'est relisible sur
+  // téléphone qu'à partir du 7 août — soit après l'envoi de la notif.
+  const [forceMiTemps, setForceMiTemps] = useState(false);
   // Modale « événement du jour » : montrée une fois par jour si un
   // événement a été tiré (pas les jours « rien »).
   const [showEventModal, setShowEventModal] = useState(false);
@@ -170,6 +176,7 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setForceLaunch(params.get("lancement") === "1");
+    setForceMiTemps(params.get("mitemps") === "1");
     // `?tab=chat` : c'est par là qu'arrive un tap sur une notification de
     // tchat quand l'app était fermée.
     if (params.get("tab") === "chat") setTab("chat");
@@ -351,20 +358,25 @@ export default function App() {
     // `aUneBasculeDeBareme` : le challenge d'origine, et lui seul. Une ligue
     // neuve a ses propres dates et n'a rien à raconter à la moitié de sa
     // deuxième semaine — même discriminant que la saison 4.
-    if (id.miTempsSeen || !aUneBasculeDeBareme(f) || !miTempsOuverte(f)) return;
-    const aJoue = [...data.entries.values()].some(
-      (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
-    );
-    if (!aJoue) {
-      id.markMiTempsSeen();
-      return;
+    // L'aperçu manuel passe outre la date, le drapeau « déjà vu » et le
+    // filtre « a déjà joué » : il sert précisément à relire l'écran quand
+    // aucune de ces conditions n'est réunie.
+    if (!forceMiTemps) {
+      if (id.miTempsSeen || !aUneBasculeDeBareme(f) || !miTempsOuverte(f)) return;
+      const aJoue = [...data.entries.values()].some(
+        (e) => e.player_id === player.id && (e.pushups || e.abs || e.squats),
+      );
+      if (!aJoue) {
+        id.markMiTempsSeen();
+        return;
+      }
     }
     if (miTempsDemandee.current) return;
     miTempsDemandee.current = true;
     fetchMiTemps(player.id, data.players, data.entries, f, ligueId).then((d) => {
       if (d) setMiTemps(d);
     });
-  }, [player, id, data.players, data.entries, data.offline, f, ligueId]);
+  }, [player, id, data.players, data.entries, data.offline, f, ligueId, forceMiTemps]);
 
   /** Le bilan de la mi-temps en texte : WhatsApp, Messages. */
   async function shareMiTempsTexte() {
@@ -572,7 +584,7 @@ export default function App() {
   // vaut mieux qu'un empilement — et avant l'install, comme eux : on ouvre
   // sur du positif. Les stats sont gelées au 06/08, l'écran dit donc la même
   // chose au 7 au réveil qu'au 10 en rentrant de vacances.
-  if (!over && miTemps && !id.miTempsSeen) {
+  if (!over && miTemps && (forceMiTemps || !id.miTempsSeen)) {
     return (
       <div style={accent}>
         <MiTempsScreen
@@ -581,7 +593,10 @@ export default function App() {
           onShareImage={shareMiTempsImage}
           onShareTexte={shareMiTempsTexte}
           onClose={() => {
-            id.markMiTempsSeen();
+            // Un aperçu manuel ne consomme pas l'affichage unique : relire
+            // l'écran aujourd'hui ne doit pas priver du 7 au matin.
+            if (!forceMiTemps) id.markMiTempsSeen();
+            setForceMiTemps(false);
             setMiTemps(null);
           }}
         />
