@@ -595,6 +595,55 @@ button {
   transition: none;
 }
 
+/* ------------------------------------------------------------------
+   Mi-temps : les deux nappes de couleur du fond de la story.
+
+   Deux taches floues qui dérivent lentement, aux coins opposés, sur le
+   fond sombre habituel. Le dégradé plein cadre a été essayé et écarté :
+   deux couleurs chaudes qui se mélangent donnent un brun clair au milieu
+   de l'écran — c'est-à-dire exactement là où le texte se pose, et le
+   texte y devenait illisible.
+
+   Aux coins, la bande centrale reste sombre : le contraste du texte est
+   celui de l'app, la couleur occupe tout le reste. Et comme les nappes
+   bougent, la story n'est jamais tout à fait la même image.
+-------------------------------------------------------------------- */
+.nappe {
+  position: absolute;
+  /* Déborde de chaque côté : la dérive ne doit jamais découvrir de bord. */
+  inset: -25%;
+  /* Sous le contenu, au-dessus du fond : le `isolate` du <main> garde ce
+     -1 dans son propre contexte d'empilement. Sans lui, les nappes
+     passeraient au-dessus du texte — un élément positionné peint
+     par-dessus un bloc qui ne l'est pas. */
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(38px);
+  will-change: transform;
+}
+.nappe-a {
+  animation: nappe-derive-a 19s ease-in-out infinite alternate;
+}
+.nappe-b {
+  animation: nappe-derive-b 24s ease-in-out infinite alternate;
+}
+@keyframes nappe-derive-a {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, 5%, 0) scale(1.12);
+  }
+}
+@keyframes nappe-derive-b {
+  from {
+    transform: translate3d(5%, 4%, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-5%, -4%, 0) scale(1);
+  }
+}
+
 /* Reduced motion : tout devient instantané, rien ne casse */
 @media (prefers-reduced-motion: reduce) {
   .exo-card,
@@ -650,4 +699,11 @@ button {
   /* .reel-strip est absent volontairement : neutraliser son animation
      la laisserait bloquée sur un leurre. C'est la modale qui coupe la
      roue en amont (matchMedia), on n'arrive jamais ici avec une bande. */
+  /* Les nappes cessent de dériver mais RESTENT : elles sont le fond de
+     l'écran, pas une décoration. Les couper laisserait la story sur du
+     noir, ce qui n'est pas la même page. */
+  .nappe-a,
+  .nappe-b {
+    animation: none;
+  }
 }
