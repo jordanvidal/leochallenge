@@ -172,6 +172,21 @@ function Ligne({ emoji, children }: { emoji: string; children: React.ReactNode }
   );
 }
 
+/** Un des trois exos du contrat : le nombre, puis son nom.
+    Colonne de largeur fixe pour que les trois « 100 » s'alignent — c'est
+    le lockup de l'app (100·100·100) déplié à la verticale, et ça se lit
+    d'un coup d'œil là où la phrase se lisait en trois lignes molles. */
+function Exo({ nom }: { nom: string }) {
+  return (
+    <div className="flex items-baseline gap-4">
+      <span className="num-display w-[4.2rem] shrink-0 text-5xl leading-none">
+        100
+      </span>
+      <span className="text-2xl font-bold">{nom}</span>
+    </div>
+  );
+}
+
 type Props = {
   player: Player;
   replay?: boolean;
@@ -210,11 +225,14 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
         />
       </Reveal>
       <Reveal ordre={2}>
-        {/* Le « chaque jour » est déjà dans le héros (28 jours, du … au …) :
-            le répéter ici coûtait une quatrième ligne de titre. */}
-        <h1 className="text-4xl font-black leading-[1.05]">
-          100 pompes, 100 abdos, 100 squats.
-        </h1>
+        {/* Les trois exos empilés, nombres alignés à gauche : la phrase
+            « 100 pompes, 100 abdos, 100 squats » se cassait en trois lignes
+            où aucun des trois 100 ne tombait au même endroit. */}
+        <div className="space-y-2">
+          <Exo nom="pompes" />
+          <Exo nom="abdos" />
+          <Exo nom="squats" />
+        </div>
       </Reveal>
       <Reveal ordre={3}>
         <p className="text-muted">
@@ -236,115 +254,139 @@ export default function TutorialStory({ player, replay = false, onDone }: Props)
       <Reveal ordre={1}>
         <Hero
           valeur={<CountUp to={7} />}
-          legende="points pour une journée complète"
+          legende="points quand tu as fait les trois"
           couleur={teinte}
         />
       </Reveal>
       <Reveal ordre={2}>
+        {/* « Journée complète » ne veut rien dire au premier soir : on dit
+            de quoi elle est faite, avec les trois nombres, et on n'y revient
+            plus. */}
+        <p className="text-muted">
+          Une journée complète, c&apos;est{" "}
+          <b className="text-ink">100 pompes, 100 abdos et 100 squats</b>. Deux
+          exos sur trois, ce n&apos;est pas une journée complète.
+        </p>
+      </Reveal>
+      <Reveal ordre={3}>
         <div className="flex gap-8 border-t border-line pt-5">
           <Stat valeur={10.5} label="le même soir, à 3 jours d'affilée" rang={0} />
           <Stat valeur={14} label="le même soir, à 7 jours d'affilée" rang={1} />
         </div>
       </Reveal>
-      <Reveal ordre={3}>
+      <Reveal ordre={4}>
         <p className="text-muted">
-          Un jour sauté remet ce compteur à zéro. Ce n&apos;est pas le gros
-          soir qui gagne le challenge, c&apos;est celui qui ne s&apos;arrête
-          pas.
+          Un jour sauté remet ce compteur à zéro — sauf une fois. Tu as{" "}
+          <b className="text-ink">un joker pour tout le challenge</b> : si tu
+          reviens dès le lendemain, il recolle le trou et ta série repart où
+          elle en était.
         </p>
       </Reveal>
     </div>,
 
-    // 3 — Le duel. La carte où quelqu'un d'autre entre dans l'écran.
+    // 3 — Le duel. Les 3 points ne sont pas le sujet : le sujet, c'est
+    // qu'une semaine entière se joue devant quelqu'un qui te regarde.
     <div key="duel" className="space-y-6">
       <Reveal ordre={0}>
         <p className={eyebrow}>Le lundi</p>
       </Reveal>
       <Reveal ordre={1}>
-        <Hero
-          valeur={<CountUp to={3} />}
-          legende="points en jeu, contre un seul joueur"
-          couleur={teinte}
-        />
+        <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
+          Tu es tiré contre un pote.
+        </h1>
       </Reveal>
       <Reveal ordre={2}>
-        <p className="text-muted">
-          Chaque lundi, tu es mis face au joueur qui te colle au classement.
-          Celui qui a le plus de journées complètes d&apos;ici dimanche les
-          prend à l&apos;autre.{" "}
-          <b className="text-ink">
-            C&apos;est le seul endroit du jeu où on peut en perdre.
-          </b>
+        <p className="text-lg text-muted">
+          Chaque lundi, l&apos;app te met face au joueur juste devant ou juste
+          derrière toi au classement. Toute la semaine, tu vois ses journées
+          se remplir à côté des tiennes.
         </p>
       </Reveal>
       <Reveal ordre={3}>
-        <div className="flex gap-8 border-t border-line pt-5">
-          <Stat valeur={3} label="au meilleur de la semaine" rang={0} />
-          <Stat valeur={5} label="à qui fait ses sept jours" rang={1} />
-        </div>
+        <p className="text-muted">
+          Dimanche soir, celui qui a le plus de journées complètes gagne le
+          duel. <b className="text-ink">L&apos;autre le voit aussi.</b>
+        </p>
+      </Reveal>
+      <Reveal ordre={4}>
+        <p className="border-t border-line pt-4 text-sm text-faint">
+          3 points changent de main. C&apos;est peu — ce n&apos;est pas pour
+          ça qu&apos;on ne veut pas perdre.
+        </p>
       </Reveal>
     </div>,
 
-    // 4 — Ce qu'on ajoute. Le héros est un exemple, pas une règle : c'est
-    // la carte qui résiste le plus au gabarit « un chiffre par écran ».
+    // 4 — Les bonus. Le titre d'abord, l'intérêt ensuite, les montants en
+    // dernier : mis en héros, le +20 des 10 km passait pour la règle alors
+    // que c'est un exemple parmi vingt-trois.
     <div key="bonus" className="space-y-6">
       <Reveal ordre={0}>
-        <p className={eyebrow}>En faire plus</p>
+        <p className={eyebrow}>Les bonus</p>
       </Reveal>
       <Reveal ordre={1}>
-        <Hero
-          valeur={<CountUp to={20} />}
-          legende="points pour 10 km de course, déclarés le soir même"
-          couleur={teinte}
-        />
+        <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
+          Ce que tu ajoutes creuse l’écart.
+        </h1>
       </Reveal>
       <Reveal ordre={2}>
-        <div className="flex gap-8 border-t border-line pt-5">
-          <Stat valeur={4} label="50 pompes de plus" rang={0} />
-          <Stat valeur={4} label="100 abdos de plus" rang={1} />
-          <Stat valeur={8} label="5 km de course" rang={2} />
-        </div>
+        <p className="text-lg text-muted">
+          Tout le monde fait les mêmes 300 répétitions. Ce que tu fais après,
+          tu le déclares le soir même — et ça ne compte que pour toi.
+        </p>
       </Reveal>
       <Reveal ordre={3}>
-        <p className="text-muted">
-          Deux gars qui font leurs trois exos tous les soirs finissent à
-          égalité. C&apos;est ici que ça se décide.
+        <div className="flex gap-8 border-t border-line pt-5">
+          <Stat valeur={4} label="50 pompes de plus" rang={0} />
+          <Stat valeur={8} label="5 km de course" rang={1} />
+          <Stat valeur={20} label="10 km" rang={2} />
+        </div>
+      </Reveal>
+      <Reveal ordre={4}>
+        <p className="text-sm text-faint">
+          Vingt-trois exos au catalogue, du gainage aux burpees. Tu prends ce
+          que tu as vraiment fait.
         </p>
       </Reveal>
     </div>,
 
-    // 5 — Le tirage, et la phrase de sortie.
+    // 5 — Le tirage. Ce qui compte n'est pas le montant mais le fait qu'une
+    // règle tombe du ciel, la même pour tous, et qu'on ne la connaît qu'au
+    // réveil : c'est ce qui fait qu'on ouvre l'app le matin.
     <div key="tirage" className="space-y-6">
       <Reveal ordre={0}>
         <p className={eyebrow}>Chaque matin</p>
       </Reveal>
       <Reveal ordre={1}>
-        <Hero
-          valeur={<CountUp to={14} />}
-          suffixe="au lieu de 7"
-          legende="ta journée, un jour de quitte ou double"
-          couleur={teinte}
-        />
+        <h1 className="text-4xl font-black leading-[1.05]" style={{ color: teinte }}>
+          Une carte est tirée pour tout le groupe.
+        </h1>
       </Reveal>
       <Reveal ordre={2}>
+        <p className="text-lg text-muted">
+          Personne ne sait laquelle avant de se lever. Souvent, il ne se passe
+          rien. Sinon, la journée change de règle{" "}
+          <b className="text-ink">pour tout le monde en même temps</b>.
+        </p>
+      </Reveal>
+      <Reveal ordre={3}>
         <div className="space-y-2.5 border-t border-line pt-5">
           <Ligne emoji="🎲">
-            un exo compte double. Si ce sont les pompes, tes pompes du jour
-            valent le double
+            un exo compte double : celui qui est tiré, pour tout le monde
           </Ligne>
           <Ligne emoji="🎰">
-            quitte ou double : tu finis tes trois exos, ta journée compte
-            double. Tu ne finis pas, tu ne perds rien
+            quitte ou double : ta journée compte double si tu la finis, et ne
+            te coûte rien si tu la rates
           </Ligne>
           <Ligne emoji="👊">
-            le boss du dimanche : 200 pompes dans la journée, et tu prends +10
+            le boss du dimanche : 200 pompes dans la journée, à prendre ou à
+            laisser
           </Ligne>
         </div>
       </Reveal>
-      <Reveal ordre={3}>
+      <Reveal ordre={4}>
         <p className="text-muted">
-          Le {frenchDayMonth(f.end)}, il y aura un premier au classement. Ce
-          soir, tout le monde est à zéro.
+          Le {frenchDayMonth(f.end)}, il y aura un premier. Ce soir, tout le
+          monde est à zéro.
         </p>
       </Reveal>
     </div>,
