@@ -144,20 +144,24 @@ function CountUp({
   return <>{txt}</>;
 }
 
-/** Un bloc qui monte à son tour. `ordre` est son rang dans la cascade. */
+/** Un bloc qui monte à son tour. `ordre` est son rang dans la cascade,
+    `pas` l'écart entre deux rangs — resserré là où les lignes sont
+    nombreuses, pour que la carte ne se fasse pas attendre. */
 function Reveal({
   ordre = 0,
+  pas = 160,
   children,
 }: {
   ordre?: number;
+  pas?: number;
   children: React.ReactNode;
 }) {
   const [vu, setVu] = useState(prefersReducedMotion());
   useEffect(() => {
     if (prefersReducedMotion()) return;
-    const id = setTimeout(() => setVu(true), 90 + ordre * 160);
+    const id = setTimeout(() => setVu(true), 90 + ordre * pas);
     return () => clearTimeout(id);
-  }, [ordre]);
+  }, [ordre, pas]);
   return (
     <div
       style={{
@@ -411,18 +415,18 @@ export default function MiTempsScreen({
             </div>
           </Reveal>
           {data.mvps.length > 0 && (
-            <Reveal ordre={3}>
-              <div className="space-y-3 border-t border-line pt-5">
-                {data.mvps.map((m) => (
-                  <Mvp
-                    key={m.emoji}
-                    emoji={m.emoji}
-                    nom={m.nom}
-                    exploit={m.exploit}
-                  />
-                ))}
-              </div>
-            </Reveal>
+            // Une par une, et pas en bloc : c'est un palmarès qu'on égrène.
+            // Le pas est plus LONG que la cascade générale, pas plus court :
+            // à 110 ms les cinq lignes arrivaient si vite qu'on ne voyait
+            // toujours qu'un bloc — le geste ne servait à rien. À 190 ms on
+            // les lit une par une, et la carte se pose en 1,8 s.
+            <div className="space-y-3 border-t border-line pt-5">
+              {data.mvps.map((m, k) => (
+                <Reveal key={m.emoji} ordre={3 + k} pas={190}>
+                  <Mvp emoji={m.emoji} nom={m.nom} exploit={m.exploit} />
+                </Reveal>
+              ))}
+            </div>
           )}
         </div>
     ),
@@ -517,7 +521,9 @@ export default function MiTempsScreen({
                 Instagram et Facebook, qui ne savent rien faire d'un bloc de
                 texte. Le texte reste juste en dessous — c'est le format qui
                 se colle dans le groupe WhatsApp. */}
-            <div className="space-y-2.5">
+            {/* `pointer-events-auto` : la carte entière est inerte pour
+                laisser passer les taps de navigation, ces deux-là non. */}
+            <div className="pointer-events-auto space-y-2.5">
               <button
                 onClick={onShareImage}
                 className="min-h-11 w-full rounded-2xl px-4 py-3.5 text-center font-bold"
@@ -526,7 +532,7 @@ export default function MiTempsScreen({
                   color: "var(--color-bg)",
                 }}
               >
-                Partager la carte 📸
+                Partager sur les réseaux 📲
               </button>
               <button
                 onClick={onShareTexte}
@@ -548,6 +554,10 @@ export default function MiTempsScreen({
 
   function next() {
     setI((v) => v + 1);
+  }
+
+  function prev() {
+    setI((v) => Math.max(0, v - 1));
   }
 
   return (
@@ -612,29 +622,48 @@ export default function MiTempsScreen({
         </button>
       </div>
 
-      {/* Zone de tap : tape n'importe où pour avancer. La dernière carte
-          n'en est pas une — elle porte le bouton de partage, et un bouton
-          dans un bouton est du HTML invalide autant qu'un tap qui
-          déclencherait les deux actions à la fois. */}
-      {last ? (
-        <div className="flex flex-1 flex-col justify-center px-8 text-left">
-          <div key={i}>{cards[i]}</div>
+      {/* Les zones de tap, en couches par-dessus la carte : un tiers à
+          gauche pour revenir, le reste pour avancer — le geste des stories,
+          que tout le monde a déjà dans les doigts.
+
+          La carte est `pointer-events-none` et les zones passent dessous :
+          c'est ce qui évite d'imbriquer un bouton dans un bouton (HTML
+          invalide) tout en laissant les boutons de partage de la dernière
+          carte reprendre la main avec `pointer-events-auto`.
+
+          Sur la PREMIÈRE carte, il n'y a rien derrière : la zone
+          « suivant » prend toute la largeur, et le tout premier tap avance
+          où qu'il tombe. Sur la DERNIÈRE, pas de zone « suivant » du tout —
+          on en sort par le bouton du pied, jamais par un tap dans le vide.
+          C'est le comportement des stories, à la lettre. */}
+      <div className="relative flex flex-1 flex-col justify-center px-8 text-left">
+        <div key={i} className="pointer-events-none relative z-10">
+          {cards[i]}
         </div>
-      ) : (
-        <button
-          onClick={next}
-          aria-label="Carte suivante"
-          className="flex flex-1 flex-col justify-center px-8 text-left"
-        >
-          <div key={i}>{cards[i]}</div>
-        </button>
-      )}
+        {i > 0 && (
+          <button
+            onClick={prev}
+            aria-label="Carte précédente"
+            className="absolute inset-y-0 left-0 z-0 w-1/3"
+          />
+        )}
+        {!last && (
+          <button
+            onClick={next}
+            aria-label="Carte suivante"
+            className={`absolute inset-y-0 right-0 z-0 ${i > 0 ? "w-2/3" : "w-full"}`}
+          />
+        )}
+      </div>
 
       {/* Pied : bouton net sur la dernière carte, sinon indice de tap. */}
       <div className="px-6 pb-3">
         {last ? (
           <BigButton onClick={onClose}>On y retourne</BigButton>
         ) : (
+          // Pas de mode d'emploi du retour : le geste des stories est déjà
+          // dans les doigts de tout le monde, et une phrase de deux lignes
+          // au pied d'une story est du bruit.
           <p className="py-3 text-center text-sm text-faint">
             Tape pour continuer
           </p>
