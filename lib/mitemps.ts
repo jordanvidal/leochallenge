@@ -15,7 +15,8 @@ import {
   addDays,
   diffDays,
   Fenetre,
-  joursDeFenetre,
+  jourDeMiTemps,
+  ouvertureMiTemps,
   parisToday,
 } from "./challenge";
 import { fmtPoints, LeaderboardRow } from "./gamification";
@@ -24,26 +25,11 @@ import { computeStats, ordonneClassement } from "./score";
 import { supabase } from "./supabase";
 import { Entry, entryCount, entryKey, Player } from "./types";
 
-/**
- * Le dernier jour de la première mi-temps.
- *
- * Déduit de la fenêtre plutôt qu'écrit en dur : la règle du repo veut que les
- * dates du challenge vivent dans `lib/challenge.ts` et se dérivent, jamais
- * qu'un composant connaisse un « 6 août ». Sur le challenge d'origine (50
- * jours à partir du 13/07), ça rend bien le 06/08 : 25 jours faits, 25 devant.
- *
- * Sur un nombre impair de jours, la première moitié prend le jour du milieu
- * (`ceil`) — mieux vaut une mi-temps qui arrive un jour trop tard qu'un écran
- * qui promet plus de jours restants qu'il n'en existe.
- */
-export function jourDeMiTemps(f: Fenetre): string {
-  return addDays(f.start, Math.ceil(joursDeFenetre(f) / 2) - 1);
-}
-
-/** Le matin où l'écran s'ouvre : le lendemain de la mi-temps. */
-export function ouvertureMiTemps(f: Fenetre): string {
-  return addDays(jourDeMiTemps(f), 1);
-}
+// Les dates de la mi-temps elles-mêmes vivent dans `lib/challenge.ts`, avec
+// toutes les autres dates du challenge — la route de notification en a
+// besoin côté serveur et ne doit pas importer ce module-ci, qui traîne le
+// client Supabase du navigateur.
+export { jourDeMiTemps, ouvertureMiTemps };
 
 /**
  * La mi-temps est-elle ouverte pour cette fenêtre ?
