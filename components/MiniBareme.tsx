@@ -17,12 +17,13 @@
 // côté au seul moment où quelqu'un pose la question.
 
 import { useCoucheRetour } from "@/hooks/useRetour";
-import { saison3Started, saison4Started } from "@/lib/challenge";
+import { aUneBasculeDeBareme, baremeS3, saison4Started } from "@/lib/challenge";
 import { useFenetre } from "./ligue/LigueContexte";
 
 export function MiniBareme({
   s3,
   s4,
+  histoire = true,
   /** Encastré en pied du détail joueur : il porte son propre titre et se
       détache du bloc au-dessus. En destination, l'en-tête de la feuille
       dit déjà « Comment on marque » — le répéter serait du bruit. */
@@ -33,8 +34,14 @@ export function MiniBareme({
       parce que les deux bascules ne se recouvrent pas — une ligue neuve
       est en S3 sans jamais passer en S4. */
   s4: boolean;
+  /** Cette bande a-t-elle vécu les changements de règles ? « depuis le
+      20/07 » ne veut rien dire pour une ligue qui démarre en août : c'est
+      l'histoire d'un autre groupe, et la dater ferait douter d'une règle
+      pourtant active dès son jour 1. */
+  histoire?: boolean;
   avecTitre?: boolean;
 }) {
+  const depuis = (quand: string) => (histoire ? ` (${quand})` : "");
   return (
 <div className={`${avecTitre ? "mt-8" : "mt-2"} mb-4 rounded-2xl bg-surface p-4 text-xs text-muted`}>
   {/* Titres de section en `quiet` : ils nomment ce qui suit, on les lit. */}
@@ -72,9 +79,13 @@ export function MiniBareme({
     <div className="flex items-baseline gap-3">
       <dt className="w-14 shrink-0 font-bold text-ink">+ bonus</dt>
       <dd>
-        {s3 ? "" : "premier du jour, "}séances, événements et exos
-        déclarés s&apos;ajoutent par-dessus
+        {s3 ? "" : "premier du jour, séances, "}événements et exos déclarés
+        s&apos;ajoutent par-dessus
       </dd>
+    </div>
+    <div className="flex items-baseline gap-3">
+      <dt className="w-14 shrink-0 font-bold text-ink">🔙 +3</dt>
+      <dd>le retour : ton 3/3 le lendemain d&apos;un jour à zéro</dd>
     </div>
     <div className="flex items-baseline gap-3">
       <dt className="w-14 shrink-0 font-bold text-ink">⚔️ ±3</dt>
@@ -82,12 +93,18 @@ export function MiniBareme({
     </div>
     <div className="flex items-baseline gap-3">
       <dt className="w-14 shrink-0 font-bold text-ink">🏆 +3</dt>
-      <dd>gagner la semaine : le vainqueur du classement hebdo prend 3 pts au général (posés le dimanche, depuis le 20/07)</dd>
+      <dd>
+        gagner la semaine : le vainqueur du classement hebdo prend 3 pts au
+        général, posés le dimanche{depuis("depuis le 20/07")}
+      </dd>
     </div>
     {s3 && (
       <div className="flex items-baseline gap-3">
         <dt className="w-14 shrink-0 font-bold text-ink">📅 +5</dt>
-        <dd>la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le dimanche (depuis le 27/07)</dd>
+        <dd>
+          la semaine pleine : 7 jours parfaits du lundi au dimanche, posés le
+          dimanche{depuis("depuis le 27/07")}
+        </dd>
       </div>
     )}
   </dl>
@@ -190,7 +207,12 @@ export function BaremeSheet({ onClose }: { onClose: () => void }) {
         </button>
         <h1 className="flex-1 text-lg font-bold">Comment on marque</h1>
       </div>
-      <MiniBareme s3={saison3Started(f)} s4={saison4Started(f)} avecTitre={false} />
+      <MiniBareme
+        s3={baremeS3(f)}
+        s4={saison4Started(f)}
+        histoire={aUneBasculeDeBareme(f)}
+        avecTitre={false}
+      />
       <div className="h-4 shrink-0" />
     </div>
   );

@@ -8,8 +8,9 @@
 import { useEffect, useState } from "react";
 import { useCoucheRetour } from "@/hooks/useRetour";
 import {
+  aUneBasculeDeBareme,
+  baremeS3,
   frenchDateShort,
-  saison3Started,
   saison4Started,
 } from "@/lib/challenge";
 import {
@@ -125,7 +126,9 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
   // Le mini-barème décrit les règles EN VIGUEUR. C'est l'écran qu'on ouvre
   // quand on ne comprend pas son score : le faire passer à la S3 avant la
   // S3, c'est répondre à côté au seul moment où quelqu'un pose la question.
-  const s3 = saison3Started(f);
+  // Une ligue neuve, elle, n'a jamais connu autre chose que la S3 — d'où
+  // `baremeS3` et non `saison3Started` (voir lib/challenge.ts).
+  const s3 = baremeS3(f);
   const s4 = saison4Started(f);
   const [data, setData] = useState<Breakdown | null>(null);
   const [days, setDays] = useState<DayPoints[] | null>(null);
@@ -301,7 +304,7 @@ export default function PlayerBreakdown({ player, row, from, until, label, onClo
             </div>
           )}
 
-          <MiniBareme s3={s3} s4={s4} />
+          <MiniBareme s3={s3} s4={s4} histoire={aUneBasculeDeBareme(f)} />
         </div>
       )}
     </div>

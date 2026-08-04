@@ -1,6 +1,6 @@
 "use client";
 
-// Tuto de première connexion : 4 cartes qu'on tape pour avancer.
+// Tuto de première connexion : 5 cartes qu'on tape pour avancer.
 // Une idée par carte, dans l'esprit « on frappe l'écran au pouce ».
 // Le tour des onglets a été retiré : cinq lignes pour nommer cinq
 // onglets déjà visibles en bas de l'écran, personne ne les lisait.
@@ -10,8 +10,8 @@
 
 import { useState } from "react";
 import {
+  baremeS3,
   frenchDayMonth,
-  saison3Started,
   saison4Started,
 } from "@/lib/challenge";
 import { Player } from "@/lib/types";
@@ -53,7 +53,11 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
   // bascule, merger la branche avant lundi ferait mentir l'écran des règles
   // pendant tout le week-end — celui où la prime hebdo et les duels de la
   // S2 se jouent encore sous l'ancien barème.
-  const s3 = saison3Started(f);
+  //
+  // `baremeS3` et pas `saison3Started` : une ligue neuve est en S3 dès
+  // l'inscription, y compris la veille de son jour 1. C'est précisément le
+  // moment où on lit le tuto pour la première fois.
+  const s3 = baremeS3(f);
   const s4 = saison4Started(f);
   const cards = [
     // 1 — Le principe
@@ -84,18 +88,40 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
         <Rule amount="×2">série de 7 jours parfaits, et ça ne monte plus</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-muted">
-        Un seul malus dans tout le jeu : perdre son duel de la semaine, −3.
-        Pour le reste, tes pastilles vides suffisent — tout le monde les voit.
+        Tes pastilles vides suffisent comme punition — tout le monde les voit.
       </p>
     </div>,
 
-    // 3 — Les bonus
+    // 3 — La semaine
+    // Trois lignes qui pesaient jusqu'ici plus de 10 points par semaine sans
+    // être nommées nulle part à l'arrivée d'un joueur.
+    <div key="semaine">
+      <h1 className="text-2xl font-bold">Le dimanche, la semaine se solde</h1>
+      <dl className="mt-5 space-y-3">
+        <Rule amount="⚔️ ±3">
+          le duel : chaque lundi tu es tiré contre ton voisin de classement.
+          Le plus de jours parfaits d&apos;ici dimanche prend 3 pts à
+          l&apos;autre
+        </Rule>
+        <Rule amount="🏆 +3">gagner la semaine au classement hebdo</Rule>
+        {s3 && (
+          <Rule amount="📅 +5">
+            la semaine pleine : 7 jours parfaits, du lundi au dimanche
+          </Rule>
+        )}
+      </dl>
+      <p className="mt-6 border-t border-line pt-4 text-muted">
+        Le duel est le seul endroit du jeu où l&apos;on perd des points.
+      </p>
+    </div>,
+
+    // 4 — Les bonus
     <div key="bonus">
       <h1 className="text-2xl font-bold">Les bonus, par-dessus</h1>
       <p className="mt-3 text-muted">Des points en plus qui s&apos;empilent sur ta base :</p>
       <dl className="mt-5 space-y-3">
         {!s3 && <Rule amount="🥇">premier à finir son 3/3 dans la journée</Rule>}
-        <Rule amount="💪">séance guidée bouclée</Rule>
+        <Rule amount="🔙">le retour : ton 3/3 le lendemain d&apos;un jour à zéro</Rule>
         <Rule amount="＋">exos en plus que tu déclares toi-même</Rule>
       </dl>
       <p className="mt-6 border-t border-line pt-4 text-sm text-faint">
@@ -104,7 +130,7 @@ export default function TutorialScreen({ player, replay = false, onDone }: Props
       </p>
     </div>,
 
-    // 4 — Les événements du jour
+    // 5 — Les événements du jour
     <div key="events">
       <h1 className="text-2xl font-bold">L&apos;événement du jour</h1>
       <p className="mt-3 text-muted">
