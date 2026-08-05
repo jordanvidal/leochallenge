@@ -286,27 +286,39 @@ export default function App() {
     if (playerId) resyncPush(playerId);
   }, [playerId]);
 
-  // Événement du jour : plus d'ouverture forcée à l'accueil. Un bandeau non
-  // bloquant l'annonce dans TodayScreen (EventBanner) ; la modale — la roue,
-  // le détail — devient une destination qu'on ouvre au tap, jamais une porte
-  // sur le chemin de la coche. `eventSeen` pilote la visibilité du bandeau.
-  //
-  // Lu dès le premier rendu, pas dans un effet : TodayScreen réserve la
-  // place du bandeau avec un skeleton tant que `bonus` n'est pas revenu, et
-  // le bandeau doit le remplacer dans la MÊME frame que l'arrivée de la
-  // donnée. Avec l'ancienne init à `true` corrigée en effet, il manquait
-  // une frame — le temps qu'elle passe, la place se refermait puis se
-  // rouvrait sous le pouce. L'effet reste pour re-poser la question à
-  // chaque fetch (retour d'arrière-plan, passage de minuit).
-  const [eventSeen, setEventSeen] = useState(
-    () =>
-      typeof window === "undefined" ||
-      localStorage.getItem(CLE_EVENEMENT_VU) === parisToday(),
-  );
+  /**
+   * L'événement du jour, et le seul aller-retour de doctrine de ce repo.
+   *
+   * Le 29/07, la roue a été retirée du démarrage : elle interceptait le
+   * chemin de la coche, un bandeau non bloquant devait suffire. Le 05/08,
+   * le doublement des pompes est passé inaperçu une journée entière — et
+   * en relisant, ce n'était pas un accident. Le bandeau et la roue
+   * partageaient un seul drapeau : ouvrir la roue marquait l'événement vu,
+   * donc effaçait le bandeau, donc l'événement quittait l'écran pour la
+   * journée sans laisser un seul chemin de retour.
+   *
+   * Les deux se séparent ici, et chacun retrouve son métier :
+   *
+   *   la roue   — s'ouvre UNE fois par jour, à la première arrivée sur
+   *               l'accueil, et le drapeau daté l'empêche de revenir. Un
+   *               tap sur « C'est parti » et on est chez soi : c'est une
+   *               interception, elle est assumée, elle coûte un pouce et
+   *               elle ne se répète pas.
+   *   le bandeau — reste posé jusqu'à minuit, vu ou pas vu, et rouvre la
+   *               roue autant de fois qu'on veut.
+   *
+   * Les gardes ne sont pas cosmétiques. `avantDepart` : une ligue qui n'a
+   * pas commencé n'a rien à faire d'un « aujourd'hui, double pompes » —
+   * son accueil est AvantPremiere, et la roue passerait par-dessus.
+   * `effTab` : on ouvre l'app sur le tchat depuis une notification, la
+   * roue n'a pas à s'interposer là non plus — elle attendra l'accueil.
+   */
   useEffect(() => {
     if (!player || !bonus?.event) return;
-    setEventSeen(localStorage.getItem(CLE_EVENEMENT_VU) === parisToday());
-  }, [player, bonus?.event]);
+    if (avantDepart || over || effTab !== "today") return;
+    if (localStorage.getItem(CLE_EVENEMENT_VU) === parisToday()) return;
+    setShowEventModal(true);
+  }, [player, bonus?.event, avantDepart, over, effTab]);
 
   /**
    * L'écran de lancement de la saison en cours (S3, puis S4 à partir du
@@ -409,11 +421,11 @@ export default function App() {
     if (canal === "download") data.showToast("Image enregistrée 📸");
   }
 
-  /** Événement vu pour la journée : ferme la modale si ouverte et retire le
-      bandeau. Appelé par le ✕ du bandeau comme par la fermeture de la roue. */
+  /** La roue se ferme : elle a été montrée aujourd'hui, elle ne se rouvrira
+      pas toute seule avant demain. Le bandeau, lui, ne bouge pas — c'est par
+      lui qu'on revient à la roue le reste de la journée. */
   function dismissEventModal() {
     localStorage.setItem(CLE_EVENEMENT_VU, parisToday());
-    setEventSeen(true);
     setShowEventModal(false);
   }
 
@@ -694,9 +706,8 @@ export default function App() {
             gamification={gamification}
             gamificationEnPanne={gamificationEnPanne}
             bonus={bonus}
-            showEvent={!eventSeen && bonus?.event ? bonus.event : null}
+            showEvent={bonus?.event ?? null}
             onOpenEvent={() => setShowEventModal(true)}
-            onDismissEvent={dismissEventModal}
             sessionStarted={session.started}
             onStartWorkout={() => {
               setWorkoutOnBonus(false);

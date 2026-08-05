@@ -63,55 +63,46 @@ export default function BonusSection({
 
   return (
     <section className="mt-5">
-      {/* Bandeau événement du jour : global, donc neutre, pas couleur joueur */}
-      {bonus.event && (
+      {/* Le bandeau du boss du dimanche, et lui seul (05/08).
+          Tous les tirages s'annonçaient ici, en gris, à trente pixels du
+          lanceur — une deuxième annonce du même événement, plus faible que
+          celle du haut de l'écran, et dont le badge mentait un jour sur
+          sept (« +0 » pour `bonus_doubles`, resté hors du endsWith). Ce
+          qu'un joueur doit savoir du tirage se lit maintenant en tête de
+          l'accueil, en couleur, avec la consigne.
+          Le boss reste parce qu'il n'est pas qu'une annonce : c'est le seul
+          tirage qui se déclare, et son bouton doit vivre à portée de pouce,
+          près des autres déclarations. */}
+      {boss && (
         <div className="mb-3 flex items-center gap-3 rounded-2xl bg-raised px-4 py-3">
           <span className="text-2xl" aria-hidden>
-            {bonus.event.emoji}
+            {boss.emoji}
           </span>
-          <p className="flex-1 text-sm font-medium">{bonus.event.label}</p>
-          {boss ? (
-            <button
-              aria-pressed={bossClaimed}
-              onClick={() => {
-                navigator.vibrate?.(bossClaimed ? 8 : 18);
-                if (bossClaimed) onUnclaim(boss);
-                else onClaim(boss);
-              }}
-              className="min-h-11 shrink-0 rounded-full px-4 text-sm font-bold transition-transform active:scale-[0.97]"
-              style={
-                bossClaimed
-                  ? {
-                      background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                      boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
-                      color: player.color,
-                    }
-                  : {
-                      background: "var(--color-surface)",
-                      boxShadow: "inset 0 0 0 1px var(--color-line)",
-                      color: "var(--color-ink)",
-                    }
-              }
-            >
-              {bossClaimed
-                ? "Fait ✓"
-                : `Je l'ai fait +${fmtPoints(boss.points)}`}
-            </button>
-          ) : bonus.event.key.endsWith("_double") ? (
-            // Quitte ou double et les trois doublements d'exo multiplient :
-            // leur montant de catalogue (1) est un rouage interne, pas une
-            // promesse. Affiché tel quel, « +1 » annonçait au groupe un
-            // point unique là où la journée entière compte double.
-            //
-            // En or, comme les puces qu'il double : c'est le même sujet sur
-            // deux écrans, et le bandeau est le seul endroit où le joueur
-            // apprend la nouvelle avant d'ouvrir la feuille.
-            <span className="num-display text-x2 shrink-0 text-xl">×2</span>
-          ) : (
-            <span className="num-display shrink-0 text-xl text-muted">
-              +{fmtPoints(bonus.event.points)}
-            </span>
-          )}
+          <p className="flex-1 text-sm font-medium">{boss.label}</p>
+          <button
+            aria-pressed={bossClaimed}
+            onClick={() => {
+              navigator.vibrate?.(bossClaimed ? 8 : 18);
+              if (bossClaimed) onUnclaim(boss);
+              else onClaim(boss);
+            }}
+            className="min-h-11 shrink-0 rounded-full px-4 text-sm font-bold transition-transform active:scale-[0.97]"
+            style={
+              bossClaimed
+                ? {
+                    background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                    boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 65%, transparent)`,
+                    color: player.color,
+                  }
+                : {
+                    background: "var(--color-surface)",
+                    boxShadow: "inset 0 0 0 1px var(--color-line)",
+                    color: "var(--color-ink)",
+                  }
+            }
+          >
+            {bossClaimed ? "Fait ✓" : `Je l'ai fait +${fmtPoints(boss.points)}`}
+          </button>
         </div>
       )}
 

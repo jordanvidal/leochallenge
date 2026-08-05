@@ -22,11 +22,7 @@
 // anticipé de blocs purement informatifs.
 
 import { useEffect, useState } from "react";
-import {
-  BonusState,
-  CLE_EVENEMENT_VU,
-  estJourOffAujourdhui,
-} from "@/lib/bonus";
+import { BonusState, estJourOffAujourdhui } from "@/lib/bonus";
 import { parisToday } from "@/lib/challenge";
 
 const CLE_INDICE = "lc100.accueilJour";
@@ -34,6 +30,7 @@ const CLE_INDICE = "lc100.accueilJour";
 type IndiceJour = {
   j: string; // le jour de l'indice — périmé dès minuit
   ev: boolean; // un événement a été tiré aujourd'hui
+  boss: boolean; // ...et c'est le boss du dimanche, seul tirage à bandeau bas
   off: boolean; // aujourd'hui est le jour off
   seance: boolean; // une séance a été ouverte côté serveur aujourd'hui
 };
@@ -55,15 +52,15 @@ export function useIndiceAccueil(
   bonus: BonusState | null,
   sessionStarted: boolean,
 ) {
-  // Ce qu'on attend des fetchs, lu une fois à l'ouverture. `banniereHaut`
-  // croise l'indice avec « déjà vu aujourd'hui » (le ✕ d'hier soir ne vaut
-  // rien ce matin, celui d'il y a une heure éteint le bandeau ET sa place).
+  // Ce qu'on attend des fetchs, lu une fois à l'ouverture. Le croisement
+  // avec « déjà vu aujourd'hui » est parti le 05/08 avec le ✕ du bandeau :
+  // un événement tiré aujourd'hui donne un bandeau, point — plus rien ne
+  // peut l'éteindre avant minuit, donc plus rien ne peut fermer sa place.
   const [attendu] = useState(() => {
     const i = lireIndice();
     return {
       ev: !!i?.ev,
-      banniereHaut:
-        !!i?.ev && localStorage.getItem(CLE_EVENEMENT_VU) !== parisToday(),
+      boss: !!i?.boss,
       off: !!i?.off,
       seance: !!i?.seance,
     };
@@ -78,6 +75,7 @@ export function useIndiceAccueil(
     const indice: IndiceJour = {
       j: parisToday(),
       ev: !!bonus.event,
+      boss: bonus.event?.key === "boss_dimanche",
       off: estJourOffAujourdhui(bonus),
       seance: sessionStarted || attendu.seance,
     };

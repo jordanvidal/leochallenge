@@ -30,14 +30,13 @@ import { useFenetre } from "./ligue/LigueContexte";
 
 // Hauteurs mesurées sur le rendu réel (Chromium, 375/390/430 px de large) —
 // la règle du Skeleton : la place finale exacte, pas une approximation.
-/** EventBanner : 68 px quel que soit le libellé (le titre est tronqué). */
-const H_BANDEAU_EVENEMENT = 68;
-/** Bandeau événement interne à BonusSection : 64 px pour un libellé de
-    deux lignes, l'état le plus probable (les libellés du catalogue font
-    ~45 caractères). Le boss du dimanche (bouton dans le bandeau) monte à
-    68-84 px : l'écart résiduel ne dure que le temps du fetch, on ne stocke
-    pas la forme exacte de chaque événement pour 4 px un jour sur sept. */
-const H_BANDEAU_BONUS = 64;
+/** EventBanner : hauteur fixe quel que soit le tirage — le titre est
+    tronqué, la consigne réserve ses deux lignes (`line-clamp-2`). */
+const H_BANDEAU_EVENEMENT = 118;
+/** Le bandeau du boss du dimanche, dans BonusSection : c'est le seul qui
+    survit là-bas, parce que lui porte un bouton (« Je l'ai fait »). Les
+    autres tirages ne s'annoncent plus qu'en haut de l'écran. */
+const H_BANDEAU_BOSS = 68;
 /** Le rang « Déclarer un bonus » : min-h-12, donc 48 px exactement. */
 const H_RANG_BONUS = 48;
 
@@ -51,11 +50,11 @@ type Props = {
       tait au lieu de faire respirer un loader qui n'aboutira pas. */
   gamificationEnPanne: boolean;
   bonus: BonusState | null;
-  /** L'événement du jour à annoncer, ou null s'il est déjà vu / absent.
-      Un bandeau non bloquant, plus une modale à l'accueil. */
+  /** L'événement du jour, ou null si aucun n'a été tiré. Le bandeau reste
+      posé jusqu'à minuit — il ne s'écarte plus, et c'est par lui qu'on
+      rouvre la roue une fois qu'elle s'est montrée le matin. */
   showEvent: BonusCatalogItem | null;
   onOpenEvent: () => void;
-  onDismissEvent: () => void;
   /** Une séance a été lancée aujourd'hui : sans ça, on ne coche rien. */
   sessionStarted: boolean;
   onStartWorkout: () => void;
@@ -80,7 +79,6 @@ export default function TodayScreen({
   bonus,
   showEvent,
   onOpenEvent,
-  onDismissEvent,
   sessionStarted,
   onStartWorkout,
   onPlanBonus,
@@ -266,19 +264,15 @@ export default function TodayScreen({
         )}
       </header>
 
-      {/* L'événement du jour, annoncé sans bloquer. Tap → la roue et le
-          détail ; ✕ → écarté pour la journée. Tant que `bonus` n'est pas
-          revenu et que l'indice promet un bandeau pas encore vu, sa place
-          exacte est tenue — l'arrivée de la donnée ne pousse plus le
-          lanceur sous le pouce. */}
+      {/* L'événement du jour, juste sous la date : c'est la première chose
+          que l'écran raconte, et il la raconte jusqu'à minuit. Tap → la
+          roue. Tant que `bonus` n'est pas revenu et que l'indice promet un
+          événement, sa place exacte est tenue — l'arrivée de la donnée ne
+          pousse plus le lanceur sous le pouce. */}
       {!over &&
         (showEvent ? (
-          <EventBanner
-            event={showEvent}
-            onOpen={onOpenEvent}
-            onDismiss={onDismissEvent}
-          />
-        ) : bonus === null && attendu.banniereHaut ? (
+          <EventBanner event={showEvent} onOpen={onOpenEvent} />
+        ) : bonus === null && attendu.ev ? (
           <Skeleton
             className="mt-4"
             h={H_BANDEAU_EVENEMENT}
@@ -411,11 +405,12 @@ export default function TodayScreen({
           le lanceur en bas plutôt que de laisser un trou sous eux. */}
       {!over && <div className="flex-1" />}
 
-      {/* Bonus : bandeau événement + puces déclaratives. L'assaisonnement,
-          pas le plat — la séance de base reste le héros.
+      {/* Bonus : les puces déclaratives, et le bandeau du boss du dimanche
+          quand c'est lui qui est tiré. L'assaisonnement, pas le plat — la
+          séance de base reste le héros.
           Avant le retour du fetch, sa place est tenue : le rang « Déclarer
-          un bonus » vient toujours (48 px), le bandeau interne seulement si
-          l'indice promet un événement. C'est le bloc juste au-dessus du
+          un bonus » vient toujours (48 px), le bandeau du boss seulement si
+          l'indice promet ce tirage-là. C'est le bloc juste au-dessus du
           lanceur — son arrivée était le saut le plus sûr de l'écran. */}
       {!over &&
         (bonus ? (
@@ -433,8 +428,8 @@ export default function TodayScreen({
             role="status"
             aria-label="Bonus du jour en cours de chargement"
           >
-            {attendu.ev && (
-              <Skeleton className="mb-3" h={H_BANDEAU_BONUS} radius={16} />
+            {attendu.boss && (
+              <Skeleton className="mb-3" h={H_BANDEAU_BOSS} radius={16} />
             )}
             <Skeleton h={H_RANG_BONUS} radius={16} />
           </section>
