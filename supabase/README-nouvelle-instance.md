@@ -139,9 +139,11 @@ déploiement rouge qu'une instance qui se croit terminée depuis un an.
 Les crons Vercel (`reminder-soft` 20h, `reminder-final` 22h30, `weekly-recap`
 lundi 10h) suivent le projet, ils sont déjà dans `vercel.json`. Rien à faire.
 Le plan Hobby autorise 100 crons par projet — ses contraintes sont ailleurs :
-pas plus d'un déclenchement par jour, et l'heure à ±59 min près. Le reste passe
-par GitHub Actions : `daily-event` (9h), `streak-risk` (17h), `last-standing`
-(21h30), `weekly-close` (dimanche 21h) et le filet du récap hebdo.
+pas plus d'un déclenchement par jour, et l'heure à ±59 min près. `jour-off` (6h)
+et `daily-event` (7h) y sont aussi : leur heure fait partie du produit, et le
+retard de GitHub (2h à 3h50, mesuré) les vidait de leur sens. Le reste passe
+par GitHub Actions : `streak-risk` (17h), `last-standing` (21h30),
+`weekly-close` (dimanche 21h) et le filet du récap hebdo.
 
 ⚠️ Les workflows `.github/workflows/*.yml` ne tapent que **l'instance
 d'origine**. Pour que la nouvelle bande ait ses notifications, il faut ajouter

@@ -139,7 +139,7 @@ Précisions :
 
 ## 4. L'événement du jour
 
-Chaque matin à **9h**, la machine tire un événement (ou rien). Tu reçois une notif qui dit qu'il s'est passé quelque chose — mais pas quoi. Ouvre l'appli pour découvrir.
+Chaque matin à **7h**, la machine tire un événement (ou rien). Tu reçois une notif qui dit qu'il s'est passé quelque chose — mais pas quoi. Ouvre l'appli pour découvrir.
 
 | Événement | Effet |
 |---|---|
@@ -160,7 +160,7 @@ Le dimanche : rien 41 %, boss du dimanche 25 %, pompes doublées 4 %, abdos doub
 
 Les deux nouveaux se financent sur « rien » et sur les doublements d'exo (12 % → 9 %) ; quitte ou double ne bouge pas d'un point. Pourquoi 8 % et pas 5 : il ne reste que 29 jours, dont quatre seront des jours off — donc sans tirage. À 5 %, il y avait une chance sur trois qu'un des deux ne sorte **jamais** d'ici le 31 août : une règle annoncée au groupe et jamais vue. À 8 %, chacun a environ 86 % de chances de tomber au moins une fois. C'est le calendrier qui a tranché, pas l'équilibrage.
 
-**Un jour off n'a pas d'événement.** Le repos est la nouvelle du matin ; « repose-toi » à 6h et « charge sur les bonus » à 9h se contrediraient.
+**Un jour off n'a pas d'événement.** Le repos est la nouvelle du matin ; « repose-toi » à 6h et « charge sur les bonus » à 7h se contrediraient.
 
 (Du 27/07 au 02/08 : rien 52 %, les trois doublements 12 % chacun, quitte ou double 12 % ; le dimanche, rien 45 %, boss 25 %, les trois doublements 6 % chacun, quitte ou double 12 %.)
 
@@ -238,8 +238,8 @@ Toutes les heures sont en heure de Paris.
 
 | Quand | Quoi | Qui la reçoit |
 |---|---|---|
-| 9h | « Le tirage est tombé » (sans dire quoi) | Tout le monde — seulement si un événement est tombé |
 | 6h | « 😴 Jour off » — et il dit ce que c'est | Tout le monde, les jours off (lundi→vendredi, un par semaine) |
+| 7h | « Le tirage est tombé » (sans dire quoi) | Tout le monde — seulement si un événement est tombé |
 | 17h | « Ta série est en jeu » | Ceux qui ont une série de 3+ jours et rien coché |
 | 20h | « Marc et Léo ont fini. Pas toi. » | Les actifs encore à 0/3 |
 | 21h30 | « Dernier debout » | Le SEUL actif à 0/3 quand tous les autres ont avancé |

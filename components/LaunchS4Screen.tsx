@@ -156,7 +156,7 @@ export default function LaunchS4Screen({
         </NewsRow>
         <NewsRow icon="😴">
           Un <b className="text-ink">jour off n&apos;a pas d&apos;événement</b>{" "}
-          : « repose-toi » à 6h et « charge sur les bonus » à 9h se
+          : « repose-toi » à 6h et « charge sur les bonus » à 7h se
           contrediraient.
         </NewsRow>
       </div>
