@@ -1,8 +1,9 @@
 // Tirage + annonce du jour off, 6h (Paris). Cron Vercel, pas GitHub
 // Actions : mesurés sur ce repo, les jobs GitHub arrivent avec 50 min à
-// 3h17 de retard, et un jour off annoncé à 9h17 n'est plus un jour off.
+// 3h50 de retard, et un jour off annoncé à 9h17 n'est plus un jour off.
 // Vercel garantit l'heure à ±59 min près sur Hobby — donc entre 6h et
-// 7h, toujours avant le tirage de l'événement.
+// 7h, toujours avant le tirage de l'événement (7h-7h59 depuis le 05/08,
+// contre 9h auparavant : la marge s'est resserrée, l'ordre tient).
 //
 // Ce job ÉCRIT de l'état (la ligne du jour off), comme weekly-recap.
 // C'est la seconde raison de le mettre sur Vercel.

@@ -3,16 +3,19 @@
 // Deux différences avec l'événement du jour, et elles vont dans le même
 // sens : ce push DIT ce qu'il annonce, et il part tôt.
 //
-// Le teaser de 9h protège une surprise — la roue de la modale est le
+// Le teaser de 7h protège une surprise — la roue de la modale est le
 // seul moment de découverte de la journée. Un jour de repos n'a rien à
 // protéger : quelqu'un qui apprend à 21h qu'il pouvait souffler n'a pas
 // eu de jour off, il a eu une information. D'où 6h, et d'où le texte en
 // clair.
 //
-// 6h et pas 9h pour la même raison : le cron de l'événement tourne à 9h,
-// et la fonction SQL résout le jour off AVANT de tirer l'événement. Sans
-// ce job matinal, le repos serait décidé à 9h — après le réveil de ceux
-// qui s'entraînent le matin.
+// 6h et pas plus tard, aussi, parce que le cron de l'événement tourne à
+// 7h (05/08 : il était à 9h, sur GitHub Actions) et que la fonction SQL
+// résout le jour off AVANT de tirer l'événement. Sans ce job matinal, le
+// repos serait décidé à 7h — après le réveil de ceux qui s'entraînent le
+// matin. L'ordre tient : 6h-6h59 précède 7h-7h59. Et même s'il ne tenait
+// pas, `get_daily_event()` appelle `get_jour_off()` lui-même — arriver
+// premier ne lui ferait pas tirer d'événement un jour de repos.
 
 import { parisToday, sendToPlayers, serverSupabase } from "./push";
 import { joueursDuTerrain, TERRAIN_ENV, type Terrain } from "./ligues";

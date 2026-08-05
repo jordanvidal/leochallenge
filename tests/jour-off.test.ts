@@ -62,7 +62,7 @@ describe("notifyJourOff", () => {
 });
 
 describe("le texte du push", () => {
-  // Le jour off ne se tease pas. L'événement de 9h protège la surprise de
+  // Le jour off ne se tease pas. L'événement de 7h protège la surprise de
   // la roue ; un repos qu'on découvre à 21h n'est pas un repos, c'est une
   // information. Le titre et le corps disent donc tout, tout de suite.
   it("dit ce qu'il annonce, sans énigme", () => {
