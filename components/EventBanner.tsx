@@ -1,87 +1,89 @@
 "use client";
 
-// Bandeau « événement du jour », non bloquant, en tête de TodayScreen.
-// Il a remplacé la modale qui s'ouvrait à l'accueil : l'événement s'annonce,
-// il n'intercepte plus le chemin de la coche (PRODUCT.md — « une destination,
-// jamais une interception »). La roue et le détail restent à un tap ; le ✕
-// écarte l'annonce pour la journée. La couleur du joueur (--pc) le teinte,
-// comme la modale.
+// Le bandeau « événement du jour », en tête de TodayScreen.
+//
+// Il a beaucoup changé le 05/08, après un matin où le doublement des
+// pompes est passé inaperçu de bout en bout. Deux défauts se cumulaient.
+//
+// Il disait le nom du tirage, jamais ce qu'il change : « Pompes double »
+// posé sur une ligne de 68 px, à côté d'un « voir » gris, se lit comme un
+// libellé décoratif. Il dit maintenant la consigne — la même phrase que la
+// roue, écrite pour tenir ici (lib/bonus.ts) — et le badge du multiplicateur
+// prend la forme pleine des doublements (DESIGN.md : `badge-x2`, un aplat à
+// texte sombre, jamais une pastille ronde).
+//
+// Il s'écartait surtout d'un ✕, et le même drapeau servait à la roue :
+// ouvrir la roue effaçait le bandeau, donc l'événement disparaissait de
+// l'écran pour la journée entière, sans aucun chemin de retour. Le ✕ est
+// parti. Le bandeau reste jusqu'à minuit, et il est la porte qui rouvre la
+// roue autant de fois qu'on veut.
+//
+// Sa hauteur est fixe (deux lignes de consigne réservées, `line-clamp-2`) :
+// TodayScreen tient sa place au chargement, et une place réservée doit être
+// une place exacte.
 
-import { BonusCatalogItem } from "@/lib/bonus";
-import { fmtPoints } from "@/lib/gamification";
+import { BonusCatalogItem, badgeEvenement, consigneEvenement } from "@/lib/bonus";
 
 export default function EventBanner({
   event,
   onOpen,
-  onDismiss,
 }: {
   event: BonusCatalogItem;
   onOpen: () => void;
-  onDismiss: () => void;
 }) {
-  // Même titre que la modale (avant le « : » de description).
+  // Même titre que la roue (avant le « : » de description).
   const title = event.label.split(" : ")[0];
-  // Même badge que la modale, MÊME EXPRESSION : le « s? » couvre
-  // `bonus_doubles`, au pluriel, qui porte 0 point au catalogue et
-  // n'affichait donc aucun badge avec un simple endsWith("_double").
-  const badge = /_doubles?$/.test(event.key)
-    ? "×2"
-    : event.points > 0
-      ? `+${fmtPoints(event.points)}`
-      : null;
+  const badge = badgeEvenement(event);
+  const consigne = consigneEvenement(event)[0];
 
   return (
-    <div
-      className="mt-4 flex items-center gap-2 rounded-2xl px-3 py-2.5"
+    <button
+      onClick={onOpen}
+      aria-label={`Événement du jour : ${title}. ${consigne} Voir le tirage.`}
+      className="mt-4 block w-full rounded-2xl px-4 py-3 text-left transition-transform active:scale-[0.99]"
       style={{
         background: "color-mix(in oklch, var(--pc) 14%, var(--color-surface))",
-        boxShadow: "inset 0 0 0 1px color-mix(in oklch, var(--pc) 32%, transparent)",
+        boxShadow:
+          "inset 0 0 0 1px color-mix(in oklch, var(--pc) 32%, transparent)",
       }}
     >
-      <button
-        onClick={onOpen}
-        aria-label={`Événement du jour : ${title}. Voir le détail.`}
-        className="flex min-w-0 flex-1 items-center gap-3 py-1 text-left transition-transform active:scale-[0.99]"
+      <span
+        aria-hidden
+        className="block text-[11px] leading-4 font-bold tracking-wide uppercase"
+        style={{ color: "var(--pc)" }}
       >
-        <span aria-hidden className="shrink-0 text-xl">
-          {event.emoji}
+        Événement du jour
+      </span>
+
+      <span aria-hidden className="mt-1.5 flex items-center gap-2.5">
+        <span className="shrink-0 text-2xl leading-7">{event.emoji}</span>
+        <span className="min-w-0 flex-1 truncate text-lg leading-7 font-bold">
+          {title}
         </span>
-        <span className="min-w-0">
-          <span className="flex items-center gap-2">
-            <span className="truncate font-bold">{title}</span>
-            {badge && (
-              <span
-                className="num-display shrink-0 text-xs font-bold"
-                style={{ color: "var(--pc)" }}
-              >
-                {badge}
-              </span>
-            )}
+        {badge && (
+          // L'aplat plein du doublement : c'est la forme, pas la teinte,
+          // qui distingue le ×2 des couleurs joueur (DESIGN.md).
+          <span
+            className="num-display shrink-0 rounded-full px-2 py-0.5 text-sm leading-6 font-bold"
+            style={{ background: "var(--color-x2)", color: "var(--color-bg)" }}
+          >
+            {badge}
           </span>
-          <span className="block text-xs text-muted">
-            Événement du jour · voir
-          </span>
-        </span>
-        <span aria-hidden className="shrink-0 text-muted">
-          ›
-        </span>
-      </button>
-      {/* 44 px de cible, 32 px de visuel : le bouton s'élargit, l'anneau
-          reste sur un span intérieur. Les marges négatives compensent les
-          6 px gagnés de chaque côté — le bandeau ne bouge pas d'un pixel. */}
-      <button
-        onClick={onDismiss}
-        aria-label="Masquer l'événement pour aujourd'hui"
-        className="-my-1.5 -mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full text-sm text-faint"
+        )}
+        {/* Le chevron, seul reste de l'affordance : le bandeau ouvre la
+            roue, et rien d'autre sur cet écran n'a cette forme. */}
+        <span className="shrink-0 leading-7 text-muted">›</span>
+      </span>
+
+      {/* Deux lignes réservées, toujours : la consigne la plus courte en
+          occupe deux à 375 px, et une hauteur qui danse d'une ligne ferait
+          sauter tout ce qui est en dessous — jusqu'au lanceur. */}
+      <span
+        aria-hidden
+        className="mt-1 line-clamp-2 block min-h-10 text-sm leading-5 text-muted"
       >
-        <span
-          aria-hidden
-          className="flex size-8 items-center justify-center rounded-full"
-          style={{ boxShadow: "inset 0 0 0 1px var(--color-line)" }}
-        >
-          ✕
-        </span>
-      </button>
-    </div>
+        {consigne}
+      </span>
+    </button>
   );
 }

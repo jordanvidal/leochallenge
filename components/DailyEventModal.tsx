@@ -4,11 +4,18 @@
 // quand un événement a été tiré (pas les jours « rien »). Met en valeur
 // l'événement du groupe — roue qui tire l'emoji, ce qu'il faut faire, le
 // gain. Style calqué sur TutorialScreen : plein écran, une idée, un pouce.
+//
+// La copie (consigne) et le badge ont déménagé dans lib/bonus.ts le 05/08 :
+// le bandeau de l'accueil dit désormais la même chose, et deux textes qui
+// disent la même règle finissent toujours par ne plus la dire pareil.
 
 import { useMemo, useState } from "react";
 
-import { BonusCatalogItem } from "@/lib/bonus";
-import { fmtPoints } from "@/lib/gamification";
+import {
+  badgeEvenement,
+  BonusCatalogItem,
+  consigneEvenement,
+} from "@/lib/bonus";
 import { Player } from "@/lib/types";
 import { BigButton } from "./ui";
 
@@ -22,59 +29,6 @@ type Props = {
 /** Nombre de leurres qui défilent avant le bon. Assez pour qu'on n'ait pas
     le temps de lire, pas assez pour qu'on s'ennuie. */
 const DECOYS = 12;
-
-/** Copie soignée par événement : ce qu'il faut faire, aujourd'hui. Le
-    montant, lui, reste lu au catalogue (source de vérité). */
-const COPY: Record<string, { howto: string }> = {
-  // Le doublement porte sur la coche ET sur les bonus de l'exo déclarés
-  // dans la journée. Le dire : c'est là que se gagnent les gros points,
-  // et la feuille de déclaration marque les puces concernées d'un ×2.
-  pompes_double: {
-    howto:
-      "Aujourd'hui, tes pompes comptent double : la coche, et chaque bonus de pompes que tu déclares.",
-  },
-  abdos_double: {
-    howto:
-      "Aujourd'hui, tes abdos comptent double : la coche, et chaque bonus d'abdos que tu déclares.",
-  },
-  squats_double: {
-    howto:
-      "Aujourd'hui, tes squats comptent double : la coche, et chaque bonus de squats que tu déclares.",
-  },
-  happy_hour: {
-    howto: "Termine ta séance entre 18h et 20h pour empocher le bonus.",
-  },
-  leve_tot: {
-    howto: "Termine ta séance avant 7h du matin. Le lève-tôt est récompensé.",
-  },
-  quitte_ou_double: {
-    howto:
-      "Boucle ton 3/3 aujourd'hui et tes points de BASE du jour comptent double. Si tu rates, rien ne change — aucune perte.",
-  },
-  jour_miroir: {
-    howto:
-      "Le dernier du classement général reçoit un coup de pouce pour se relancer. Le bas de tableau a sa chance.",
-  },
-  // « 200 au total » se lisait comme 200 EN PLUS des 100 du contrat, et
-  // rien ne disait que la puce « +100 pompes » restait cochable à côté.
-  // Les deux se disent en une phrase : le compte, puis le cumul.
-  boss_dimanche: {
-    howto:
-      "200 pompes au total sur la journée, les 100 du challenge comprises : 100 de plus, et c'est plié. À déclarer dans le bandeau de l'écran Aujourd'hui — la puce « +100 pompes » se coche en plus.",
-  },
-  // S4 (03/08). Le premier tirage qui ne vise aucun exo en particulier :
-  // il paie la feuille entière. Dire « déclarées » est essentiel — il ne
-  // double ni la coche ni le boss du dimanche, seulement les puces.
-  bonus_doubles: {
-    howto:
-      "Toutes les puces que tu déclares aujourd'hui comptent double. C'est le jour où charger rapporte vraiment.",
-  },
-  // Le seul événement qui ne demande rien de plus que le contrat : aucune
-  // puce à cocher, aucune heure à viser.
-  jour_de_fete: {
-    howto: "Boucle ton 3/3 et c'est tout : +5 en plus, sans rien déclarer.",
-  },
-};
 
 /** Mélange une copie du tableau (Fisher-Yates). Sans ça, les leurres
     défilent toujours dans l'ordre du catalogue et la boucle se voit. */
@@ -103,25 +57,13 @@ export default function DailyEventModal({
   );
 
   const accent = { "--pc": player.color } as React.CSSProperties;
-  const howto = COPY[event.key]?.howto ?? event.label;
+  // La consigne au complet : le bandeau de l'accueil n'en montre que la
+  // première phrase, la roue a la place de tout dire.
+  const howto = consigneEvenement(event).join(" ");
   const glow = {
     filter: `drop-shadow(0 8px 24px color-mix(in oklch, ${player.color} 45%, transparent))`,
   };
-  // Multiplicateurs : les doublements d'exo (pompes / abdos / squats),
-  // « quitte ou double » et, depuis la S4, « bonus doublés ». Le badge dit
-  // ×2 plutôt qu'un montant.
-  //
-  // Le « s? » final n'est pas une coquetterie : la clé de la S4 est
-  // `bonus_doubles`, au pluriel, parce qu'elle parle de plusieurs puces.
-  // Un endsWith("_double") la manquait — et comme elle porte 0 point au
-  // catalogue (son montant est la somme des puces du jour, pas un
-  // forfait), elle retombait sur `points > 0` et n'affichait AUCUN badge.
-  const badge =
-    /_doubles?$/.test(event.key)
-      ? "×2"
-      : event.points > 0
-        ? `+${fmtPoints(event.points)}`
-        : null;
+  const badge = badgeEvenement(event);
 
   // La bande : des leurres puisés dans les autres événements tirables,
   // puis le bon en dernière position — c'est là que la roue s'arrête.
@@ -187,13 +129,24 @@ export default function DailyEventModal({
           <div className="mt-6 flex items-center gap-3">
             <h1 className="text-3xl font-bold">{event.label.split(" : ")[0]}</h1>
             {badge && (
+              // Le doublement prend l'aplat plein de l'or (DESIGN.md :
+              // `badge-x2`), un forfait garde la teinte du joueur. C'est la
+              // forme qui dit « ça multiplie », et elle est la même ici,
+              // dans le bandeau de l'accueil et sur les puces de la feuille.
               <span
                 className="num-display shrink-0 rounded-full px-3 py-1 text-lg font-bold"
-                style={{
-                  background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
-                  color: player.color,
-                  boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 55%, transparent)`,
-                }}
+                style={
+                  badge === "×2"
+                    ? {
+                        background: "var(--color-x2)",
+                        color: "var(--color-bg)",
+                      }
+                    : {
+                        background: `color-mix(in oklch, ${player.color} 22%, var(--color-surface))`,
+                        color: player.color,
+                        boxShadow: `inset 0 0 0 1.5px color-mix(in oklch, ${player.color} 55%, transparent)`,
+                      }
+                }
               >
                 {badge}
               </span>

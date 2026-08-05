@@ -3,6 +3,7 @@
 // déclarations. Aucun montant en dur ici — tout vient du catalogue.
 
 import { addDays, parisToday, saison3Started } from "./challenge";
+import { fmtPoints } from "./gamification";
 import { outbox, OutboxEntry, SendOutcome } from "./outbox";
 import { supabase, SUPABASE_SCHEMA } from "./supabase";
 
@@ -127,10 +128,108 @@ export async function fetchBonus(): Promise<BonusState | null> {
   };
 }
 
-/** Le jour où l'événement a été vu (bandeau écarté ou roue ouverte).
-    Une seule clé pour App (qui l'écrit) et TodayScreen (qui la lit pour
-    réserver — ou non — la place du bandeau avant le retour du fetch). */
+/** Le jour où la roue du tirage a été montrée. Elle s'ouvre toute seule
+    une fois par jour (05/08) ; cette clé est ce qui l'empêche de revenir
+    aux ouvertures suivantes. Le bandeau de l'accueil, lui, ne la lit plus :
+    il reste posé jusqu'à minuit, vu ou pas. */
 export const CLE_EVENEMENT_VU = "lc100.eventSeenDay";
+
+/**
+ * Le tirage multiplie-t-il les points au lieu d'en donner un montant ?
+ *
+ * Le « s? » n'est pas une coquetterie : la clé de la S4 est
+ * `bonus_doubles`, au pluriel, parce qu'elle parle de plusieurs puces. Un
+ * `endsWith("_double")` la manquait — et comme elle porte 0 point au
+ * catalogue (son montant est la somme des puces du jour, pas un forfait),
+ * elle retombait sur le montant et annonçait « +0 » au groupe. Ce test a
+ * vécu recopié dans trois composants, juste dans deux ; il vit ici
+ * maintenant, et il n'y a plus qu'un endroit où se tromper.
+ */
+export function estDoublement(item: BonusCatalogItem): boolean {
+  return /_doubles?$/.test(item.key);
+}
+
+/** Le badge du tirage : « ×2 » quand il multiplie, « +N » quand il paie un
+    forfait, rien quand il ne promet aucun montant (le jour miroir paie
+    quelqu'un d'autre). Même réponse sur tous les écrans. */
+export function badgeEvenement(item: BonusCatalogItem): string | null {
+  if (estDoublement(item)) return "×2";
+  return item.points > 0 ? `+${fmtPoints(item.points)}` : null;
+}
+
+/**
+ * Ce qu'il faut faire aujourd'hui, dit en phrases.
+ *
+ * La première porte la règle entière : c'est la seule que montre le
+ * bandeau de l'accueil, et elle est calibrée pour ses deux lignes (50 à
+ * 85 caractères — en dessous elle laisse un trou, au-dessus elle se fait
+ * rogner). Les suivantes ajoutent la nuance, et n'existent que dans la
+ * roue, qui a l'écran pour elle.
+ *
+ * Un seul texte pour les deux écrans : deux copies de la même règle
+ * finissent toujours par ne plus dire la même chose. Le montant, lui,
+ * n'est jamais écrit ici — il est lu au catalogue, seule source de vérité.
+ */
+const CONSIGNES: Record<string, string[]> = {
+  // Le doublement porte sur la coche ET sur les bonus de l'exo déclarés
+  // dans la journée. Le dire : c'est là que se gagnent les gros points,
+  // et la feuille de déclaration marque les puces concernées d'un ×2.
+  pompes_double: [
+    "Tes pompes comptent double : la coche, et les bonus de pompes.",
+    "Le bon jour pour empiler les séries.",
+  ],
+  abdos_double: [
+    "Tes abdos comptent double : la coche, et les bonus d'abdos.",
+    "Le bon jour pour empiler les séries.",
+  ],
+  squats_double: [
+    "Tes squats comptent double : la coche, et les bonus de squats.",
+    "Le bon jour pour empiler les séries.",
+  ],
+  happy_hour: [
+    "Termine ta séance entre 18h et 20h : c'est la fenêtre qui paie.",
+    "En dehors, la séance compte toujours — le bonus, non.",
+  ],
+  leve_tot: [
+    "Termine ta séance avant 7h du matin : le lève-tôt est récompensé.",
+    "Le créneau ne repasse pas dans la journée.",
+  ],
+  quitte_ou_double: [
+    "Boucle ton 3/3 et tes points de BASE du jour comptent double.",
+    "Si tu rates, rien ne change — aucune perte.",
+  ],
+  jour_miroir: [
+    "Le dernier du classement général reçoit un coup de pouce.",
+    "Le bas de tableau a sa chance de se relancer.",
+  ],
+  // « 200 au total » se lisait comme 200 EN PLUS des 100 du contrat, et
+  // rien ne disait que la puce « +100 pompes » restait cochable à côté.
+  // Les deux se disent en deux temps : le compte, puis le cumul.
+  boss_dimanche: [
+    "200 pompes sur la journée, les 100 du challenge comprises.",
+    "100 de plus, et c'est plié. À déclarer dans le bandeau des bonus, en bas de l'accueil — la puce « +100 pompes » se coche en plus.",
+  ],
+  // S4 (03/08). Le premier tirage qui ne vise aucun exo en particulier :
+  // il paie la feuille entière. Dire « déclarées » est essentiel — il ne
+  // double ni la coche ni le boss du dimanche, seulement les puces.
+  bonus_doubles: [
+    "Toutes les puces que tu déclares aujourd'hui comptent double.",
+    "C'est le jour où charger rapporte vraiment.",
+  ],
+  // Le seul événement qui ne demande rien de plus que le contrat : aucune
+  // puce à cocher, aucune heure à viser.
+  jour_de_fete: [
+    "Boucle ton 3/3 et c'est tout : les points tombent en plus.",
+    "Rien à déclarer, aucune heure à viser.",
+  ],
+};
+
+/** La consigne du tirage, phrase par phrase. Un événement inconnu du
+    tableau (ajouté en base avant l'app) retombe sur son libellé : jamais
+    un bandeau muet. */
+export function consigneEvenement(item: BonusCatalogItem): string[] {
+  return CONSIGNES[item.key] ?? [item.label];
+}
 
 /** Aujourd'hui est-il le jour off ? La question que posent les écrans. */
 export function estJourOffAujourdhui(state: BonusState | null): boolean {

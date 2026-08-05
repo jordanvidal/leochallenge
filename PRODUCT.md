@@ -34,6 +34,7 @@ Physique, direct, nocturne. Un objet qu'on frappe avec le pouce, pas une interfa
 2. **La couleur, c'est les joueurs.** Une couleur d'accent par joueur (palette fixe de 8), cohérente partout — pastilles, historique, stats. Le reste est neutre pur (chroma 0), sombre.
 3. **Le tap est physique.** Touch targets ≥ 44px, feedback immédiat (couleur + coche + vibration), optimistic UI sans spinner bloquant.
 4. **La pression sociale est l'interface.** La ligne des potes du jour et l'historique visible par tous portent la rétention ; le fil raconte ce qui s'est passé, et le tchat (28/07) héberge ce que le groupe en dit. Un salon n'est jamais sur le chemin d'une séance : c'est une destination, jamais une interception.
+   - *Une seule interception assumée (05/08) : la roue du tirage, une fois par jour, à la première arrivée sur l'accueil.* Le principe avait été étendu à elle le 29/07 — elle ne s'ouvrait plus qu'au tap sur un bandeau — et le résultat s'est vu : un doublement des pompes passé inaperçu une journée entière. Une règle qui change le barème du jour n'est pas une destination, c'est une nouvelle : elle se dit, une fois, et elle coûte un pouce. Le bandeau de l'accueil, lui, la répète jusqu'à minuit et rouvre la roue à volonté. Ce n'est PAS un précédent pour d'autres écrans : ce qui n'est pas une règle du jour attend qu'on vienne le chercher.
 5. **Dire la vérité.** Écriture échouée = rollback visible + toast, pas de faux succès.
 
 ## Accessibility & Inclusion
