@@ -22,6 +22,7 @@ import { Gamification } from "@/lib/gamification";
 import { Entry, entryCount, entryKey, EXERCISES, Player } from "@/lib/types";
 import BonusSection from "./BonusSection";
 import EventBanner from "./EventBanner";
+import InstallBanner from "./InstallBanner";
 import JourOffBanner from "./JourOffBanner";
 import NotifBanner from "./NotifBanner";
 import RankLine from "./RankLine";
@@ -66,6 +67,10 @@ type Props = {
   bonusEnAttente: number;
   onInvite: () => void;
   onGoLeaderboard: () => void;
+  /** L'app tourne depuis l'écran d'accueil. Faux = le bandeau d'install
+      reste en bas de l'accueil, tant que ça reste faux. */
+  installee: boolean;
+  onInstaller: () => void;
   showToast: (msg: string) => void;
 };
 
@@ -87,6 +92,8 @@ export default function TodayScreen({
   bonusEnAttente,
   onInvite,
   onGoLeaderboard,
+  installee,
+  onInstaller,
   showToast,
 }: Props) {
   const f = useFenetre();
@@ -497,6 +504,11 @@ export default function TodayScreen({
           avait fini sa séance atterrissait donc sur Tour 1/4 avec un toast
           « celle-ci ne comptera pas », libre de dérouler douze blocs pour
           rien. Un bouton qui mène à ça ne vaut mieux pas exister. */}
+
+      {/* L'install avant les notifs, et pas seulement par ordre d'importance :
+          sur iPhone, le push n'existe pas hors PWA installée, donc tant que
+          ce bandeau-là est affiché, `NotifBanner` se tait de lui-même. */}
+      {!installee && <InstallBanner player={player} onInstaller={onInstaller} />}
 
       <NotifBanner player={player} onDone={showToast} />
 
