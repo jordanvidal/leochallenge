@@ -98,6 +98,8 @@ export default function App() {
   );
   // « Aujourd'hui » n'existe plus après le 31/08 : on le renvoie sur le Bilan.
   const effTab: Tab = over && tab === "today" ? "bilan" : tab;
+  // L'écran d'installation rouvert depuis le bandeau de l'accueil.
+  const [installDemande, setInstallDemande] = useState(false);
   const [workoutOpen, setWorkoutOpen] = useState(false);
   // Ouverture directe sur l'onglet bonus (entrée « Enchaîner des bonus »).
   const [workoutOnBonus, setWorkoutOnBonus] = useState(false);
@@ -169,6 +171,7 @@ export default function App() {
   useCoucheRetour(() => dismissEventModal(), showEventModal);
   useCoucheRetour(() => setReplayTuto(false), replayTuto);
   useCoucheRetour(() => setReplayLaunch(false), replayLaunch);
+  useCoucheRetour(() => setInstallDemande(false), installDemande);
   // Le chemin retour : le moment que le fil doit retrouver et montrer,
   // demandé depuis une citation du tchat. Même raison de vivre ici.
   const [feedFocus, setFeedFocus] = useState<string | null>(null);
@@ -625,12 +628,20 @@ export default function App() {
     );
   }
 
-  if (!id.standalone && !id.installLater) {
+  // L'écran d'installation : imposé à l'ouverture tant qu'on ne l'a pas
+  // repoussé, puis rappelé à la demande depuis le bandeau de l'accueil. Le
+  // retour volontaire ne consomme pas le « Plus tard » — il n'y a rien à
+  // repousser dans un écran qu'on vient d'ouvrir soi-même.
+  if (installDemande || (!id.standalone && !id.installLater)) {
     return (
       <div style={accent}>
         <InstallScreen
           installPrompt={id.installPrompt}
-          onLater={id.installLaterOnce}
+          libelleRetour={installDemande ? "Retour" : "Plus tard"}
+          onLater={() => {
+            if (installDemande) setInstallDemande(false);
+            else id.installLaterOnce();
+          }}
         />
       </div>
     );
@@ -722,6 +733,8 @@ export default function App() {
             bonusEnAttente={bonusEnAttente}
             onInvite={invite}
             onGoLeaderboard={() => setTab("leaderboard")}
+            installee={id.standalone}
+            onInstaller={() => setInstallDemande(true)}
             showToast={data.showToast}
           />
         )}
