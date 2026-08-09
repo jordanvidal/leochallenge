@@ -5,7 +5,7 @@
 // les neuf joueurs. Si elle casse, un cron pourrait ne notifier personne — ou
 // notifier deux fois.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FENETRE_ENV } from "@/lib/challenge";
 import {
   JOUEURS_MINIMUM,
@@ -54,6 +54,23 @@ describe("surChaqueTerrain", () => {
     expect(r.resultats).toEqual([
       { ligue: null, erreur: "lecture Supabase échouée" },
     ]);
+  });
+
+  it("crie dans les logs au lieu de se taire", async () => {
+    // Le compte-rendu ne suffit pas : le tirage de « Les sangcho » a échoué
+    // quatre matins de suite sans qu'aucune alerte ne sorte. L'erreur doit
+    // atterrir dans les logs Vercel, pas seulement dans le corps de la
+    // réponse HTTP.
+    const espion = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await surChaqueTerrain(async () => {
+        throw new Error("tirage échoué : row-level security");
+      });
+      expect(espion).toHaveBeenCalledOnce();
+      expect(String(espion.mock.calls[0][0])).toContain("[cron] terrain");
+    } finally {
+      espion.mockRestore();
+    }
   });
 });
 
