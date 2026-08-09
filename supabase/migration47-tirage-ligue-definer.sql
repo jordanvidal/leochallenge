@@ -1,0 +1,42 @@
+-- migration47-tirage-ligue-definer.sql — le tirage du jour redevient possible
+-- dans une ligue
+--
+-- Se joue après migration38. Aucune instruction ne touche `public`.
+--
+-- Constat du 09/08, quatre jours après le départ de « Les sangcho » :
+-- `app.daily_events` ne contenait qu'une ligne, posée à la main. Aucun
+-- événement n'a jamais été tiré pour une ligue — ni par le cron de 7h, ni à
+-- l'ouverture de l'app.
+--
+-- La cause tient en un mot manquant. `public.get_daily_event()` est SECURITY
+-- DEFINER depuis migration8 ; sa copie dans `app` (migration38) ne l'est pas.
+-- Elle s'exécute donc avec le rôle de l'appelant — `anon`, clé publique — et
+-- `app.daily_events` n'a qu'une policy SELECT (migration36). L'`insert` du
+-- tirage part en `42501 new row violates row-level security policy`, la RPC
+-- lève, et `surChaqueTerrain` range l'erreur dans un compte-rendu que
+-- personne ne lit. Quatre jours de silence, sans une ligne rouge nulle part.
+--
+-- Pourquoi DEFINER plutôt qu'une policy INSERT sur `app.daily_events` : une
+-- policy ouvrirait l'écriture de n'importe quel `event_key` à n'importe quel
+-- porteur de la clé anonyme — le barème du jour se choisirait depuis la
+-- console du navigateur. La fonction, elle, ne laisse passer que son propre
+-- tirage. C'est déjà l'arbitrage retenu côté `public`, et le seul écart entre
+-- les deux schémas est cet oubli.
+--
+-- Le corps n'est pas retouché : `set search_path = app` est déjà posé
+-- (obligatoire pour une fonction DEFINER), la fenêtre est vérifiée en tête —
+-- « au moins une ligue tourne aujourd'hui » — et le trigger
+-- `guard_fenetre_evenement` refuse de toute façon un jour hors ligue. Un
+-- appelant anonyme ne gagne donc rien d'autre que le droit de faire tirer la
+-- journée en cours, ce qui est exactement le contrat de la fonction.
+--
+-- migration38 n'est pas retouchée : elle est déjà appliquée. Une base rejouée
+-- de zéro passe 38 puis 47 et arrive au même état que la prod.
+
+alter function app.get_daily_event() security definer;
+
+-- Le propriétaire décide des droits d'une fonction DEFINER. `postgres` est
+-- déjà propriétaire (migration38 l'a créée), on le réaffirme pour qu'une base
+-- montée par un autre rôle ne se retrouve pas avec un tirage aux droits de ce
+-- rôle-là.
+alter function app.get_daily_event() owner to postgres;

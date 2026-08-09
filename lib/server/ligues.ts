@@ -197,6 +197,12 @@ export async function surChaqueTerrain<T extends object>(
       try {
         return { ligue, ...(await travail(t)) };
       } catch (e) {
+        // Le compte-rendu suffisait tant que quelqu'un le lisait. Personne ne
+        // le lit : le tirage de « Les sangcho » a échoué quatre matins de
+        // suite (RLS, cf. migration47) sans laisser une trace ailleurs que
+        // dans le corps d'une réponse HTTP que seul Vercel a vue passer. Une
+        // ligne rouge dans les logs, elle, se retrouve.
+        console.error(`[cron] terrain ${ligue ?? "origine"} :`, e);
         return { ligue, erreur: (e as Error).message };
       }
     }),
