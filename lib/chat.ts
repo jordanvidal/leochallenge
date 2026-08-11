@@ -12,6 +12,7 @@
 import { dayLabel, FeedEvent, parisDayOf } from "./feed";
 import { supabase } from "./supabase";
 import { leGroupPass } from "./ligue";
+import { trouverLiens } from "./liens";
 
 export const CHAT_PAGE_SIZE = 50;
 
@@ -153,6 +154,12 @@ export type MentionSpan = {
  * « mail@leo » ne mentionne personne (un `@` collé à une lettre n'ouvre
  * pas une mention). Les prénoms sont essayés du plus long au plus court,
  * pour que « @Leon » désigne Leon même quand Léo existe aussi.
+ *
+ * Ce qui tombe DANS un lien n'est jamais une mention. Une URL comme
+ * « instagram.com/@leo » nomme un compte, pas quelqu'un du salon : la
+ * surligner serait déjà faux, mais surtout elle réveillerait Léo au nom
+ * d'un lien où personne ne l'appelait. Le `/` n'étant ni une lettre ni un
+ * chiffre, la règle du « @ collé » ne suffisait pas à l'écarter.
  */
 export function findMentions(
   body: string,
@@ -161,11 +168,17 @@ export function findMentions(
   const parLongueur = [...players].sort((a, b) => b.name.length - a.name.length);
   const spans: MentionSpan[] = [];
   const bas = plat(body);
+  const liens = trouverLiens(body);
 
   for (let i = 0; i < body.length; i++) {
     if (body[i] !== "@") continue;
     // Un « @ » précédé d'une lettre ou d'un chiffre est une adresse.
     if (i > 0 && ALPHANUM.test(body[i - 1])) continue;
+    const lien = liens.find((l) => i >= l.start && i < l.end);
+    if (lien) {
+      i = lien.end - 1; // rien à chercher jusqu'au bout du lien
+      continue;
+    }
     for (const p of parLongueur) {
       const nom = plat(p.name);
       const fin = i + 1 + nom.length;
@@ -190,21 +203,39 @@ export function mentionedPlayerIds(
   return [...new Set(findMentions(body, players).map((m) => m.playerId))];
 }
 
-/** Un morceau de message à rendre : du texte, ou une mention à colorer. */
-export type Segment = { texte: string; playerId?: string };
+/** Un morceau de message à rendre : du texte nu, une mention à colorer
+    (`playerId`), ou un lien à ouvrir (`href`). Jamais les deux à la fois :
+    une mention repérée dans une URL n'en est pas une (findMentions). */
+export type Segment = { texte: string; playerId?: string; href?: string };
 
-/** Découpe un message en texte et mentions, pour le rendu de la bulle. */
+/** Découpe un message en texte, mentions et liens, pour le rendu de la
+    bulle. Les morceaux remis bout à bout redonnent le corps EXACT — c'est
+    ce qui garantit qu'aucun caractère n'est perdu ni dupliqué en route. */
 export function segmentsOf(
   body: string,
   players: { id: string; name: string }[],
 ): Segment[] {
-  const spans = findMentions(body, players);
+  // Les deux familles de spans ne se chevauchent jamais : findMentions
+  // ignore ce qui tombe dans un lien. Un tri suffit donc à les fusionner.
+  const spans = [
+    ...findMentions(body, players).map((m) => ({
+      start: m.start,
+      end: m.end,
+      seg: { texte: body.slice(m.start, m.end), playerId: m.playerId },
+    })),
+    ...trouverLiens(body).map((l) => ({
+      start: l.start,
+      end: l.end,
+      seg: { texte: body.slice(l.start, l.end), href: l.href },
+    })),
+  ].sort((a, b) => a.start - b.start);
+
   if (spans.length === 0) return [{ texte: body }];
   const out: Segment[] = [];
   let curseur = 0;
   for (const s of spans) {
     if (s.start > curseur) out.push({ texte: body.slice(curseur, s.start) });
-    out.push({ texte: body.slice(s.start, s.end), playerId: s.playerId });
+    out.push(s.seg);
     curseur = s.end;
   }
   if (curseur < body.length) out.push({ texte: body.slice(curseur) });

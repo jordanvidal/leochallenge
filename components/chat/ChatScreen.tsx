@@ -168,6 +168,28 @@ export default function ChatScreen({
     return () => window.removeEventListener("scroll", onScroll);
   }, [nouveaux, enBas]);
 
+  /**
+   * Le message dans le presse-papier.
+   *
+   * On copie le corps BRUT, tel qu'il a été écrit : les « @Jordan » de la
+   * bulle sont des étiquettes à l'écran mais du texte en base, et coller
+   * un message ailleurs doit rendre ce que son auteur a tapé — un lien
+   * entier, une mention avec son arobase.
+   *
+   * L'échec est dit, pas avalé (principe 5 de PRODUCT.md) : le
+   * presse-papier refuse hors contexte sécurisé et sur certains
+   * navigateurs embarqués, et un toast « Copié » sur un presse-papier
+   * vide est exactement le faux succès que l'app s'interdit.
+   */
+  async function copier(body: string) {
+    try {
+      await navigator.clipboard.writeText(body);
+      showToast("Message copié");
+    } catch {
+      showToast("Copie impossible");
+    }
+  }
+
   /** Rejoint un message cité et l'allume une fois : sans ce signal, on
       ne sait pas où on vient d'atterrir. */
   function rejoindre(id: string) {
@@ -373,11 +395,13 @@ export default function ChatScreen({
         <MessageSheet
           mine={menu.player_id === player.id}
           supprime={menu.deleted_at !== null}
+          copiable={menu.body.trim().length > 0}
           reactions={chat.reactions.get(menu.id) ?? []}
           byId={byId}
           myId={player.id}
           onReact={(e) => toggleReaction(menu.id, e)}
           onReply={() => setReply(menu)}
+          onCopy={() => copier(menu.body)}
           onDelete={() => remove(menu.id)}
           onClose={() => setMenu(null)}
         />
