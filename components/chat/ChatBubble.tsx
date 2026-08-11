@@ -20,9 +20,11 @@ import {
   segmentsOf,
 } from "@/lib/chat";
 import { eventPhrase, FeedEvent, timeOf } from "@/lib/feed";
+import { spotifyRefsOf } from "@/lib/spotify";
 import { Player } from "@/lib/types";
 import { ChatPhoto } from "./ChatPhoto";
 import { ChatVocal } from "./ChatVocal";
+import SpotifyCard from "./SpotifyCard";
 
 /**
  * Le message cité, posé AU-DESSUS de la réponse et non dedans.
@@ -204,6 +206,10 @@ export default function ChatBubble({
       ? { path: message.audio_path, ms: message.audio_ms }
       : null;
   const legende = message.body.trim().length > 0;
+  // Les liens Spotify du message. Trois cartes au plus : au-delà, la
+  // conversation disparaît sous les pochettes, et c'est elle qu'on est
+  // venu lire. Un message supprimé n'a plus de corps, donc plus de liens.
+  const spotify = supprime ? [] : spotifyRefsOf(message.body).slice(0, 3);
 
   function annulerAppui() {
     if (presse.current) {
@@ -480,6 +486,18 @@ export default function ChatBubble({
         </p>
         )}
         </div>
+
+        {/* Ce que les liens Spotify du message partagent. Sous la bulle,
+            dans le même bloc de gestes : glisser ou appuyer longuement
+            sur la carte répond et ouvre la feuille comme sur le reste du
+            message — c'est toujours le même message. */}
+        {spotify.map((ref) => (
+          <SpotifyCard
+            key={`${ref.kind}-${ref.id}`}
+            refSpotify={ref}
+            gesteConsomme={() => consomme.current}
+          />
+        ))}
 
         {emojis.length > 0 && (
           // Le tapback : posé SUR la bulle, du côté opposé à son auteur —
