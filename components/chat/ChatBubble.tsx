@@ -418,7 +418,39 @@ export default function ChatBubble({
           {supprime
             ? "Message supprimé"
             : segmentsOf(message.body, players).map((seg, i) =>
-                seg.playerId ? (
+                seg.href ? (
+                  // Souligné, et rien d'autre : pas de couleur inventée
+                  // pour l'occasion. La couleur, c'est les joueurs — un
+                  // bleu de lien serait la neuvième teinte de l'app, et
+                  // la seule qui ne désigne personne. Le soulignement se
+                  // lit aussi bien sur l'aplat d'accent d'une bulle à moi
+                  // que sur le `surface` des autres.
+                  //
+                  // `break-all` sur le lien seul : une URL sans espace
+                  // pousserait la bulle hors de l'écran, alors que le
+                  // `break-words` de la phrase ne coupe qu'entre les mots.
+                  <a
+                    key={i}
+                    href={seg.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    // Le clic est neutralisé quand l'appui long a déjà
+                    // ouvert la feuille : sinon le lien s'ouvrirait
+                    // par-dessus, comme la photo avant lui (ChatPhoto).
+                    onClick={(e) => {
+                      if (consomme.current) e.preventDefault();
+                    }}
+                    // iOS ouvre son propre aperçu de lien à l'appui long,
+                    // par-dessus la feuille d'actions qui s'ouvre au même
+                    // moment. Un seul appui long dans l'app, et c'est le
+                    // nôtre : les cinq emojis et « Répondre » valent mieux
+                    // ici que le menu de partage du système.
+                    style={{ WebkitTouchCallout: "none" }}
+                    className="font-bold break-all underline underline-offset-2"
+                  >
+                    {seg.texte}
+                  </a>
+                ) : seg.playerId ? (
                   // La mention devient une étiquette : c'est ce qui la
                   // distingue d'un prénom écrit au fil de la phrase, et
                   // donc ce qui dit « celui-là a été prévenu ».

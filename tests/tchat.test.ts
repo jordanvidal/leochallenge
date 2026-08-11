@@ -184,6 +184,22 @@ describe("mentionedPlayerIds — ce qui traverse un mute", () => {
   it("ne mentionne personne sans arobase", () => {
     expect(mentionedPlayerIds("Jordan a fini premier", JOUEURS)).toEqual([]);
   });
+
+  it("ne prend pas un compte cité dans une URL pour une mention", () => {
+    // Le faux positif qui coûte le plus cher : ce message ne nomme
+    // personne du salon, et Léo n'a aucune raison d'être réveillé parce
+    // qu'un lien contient son pseudo. Le `/` n'étant ni une lettre ni un
+    // chiffre, la règle du « @ collé » ne l'écartait pas.
+    expect(
+      mentionedPlayerIds("regarde https://instagram.com/@leo", JOUEURS),
+    ).toEqual([]);
+  });
+
+  it("attrape quand même la mention qui suit un lien", () => {
+    expect(
+      mentionedPlayerIds("https://instagram.com/@leo t'as vu @Jordan ?", JOUEURS),
+    ).toEqual(["jordan"]);
+  });
 });
 
 describe("findMentions — les positions, pas seulement le oui/non", () => {
@@ -247,6 +263,35 @@ describe("segmentsOf — le découpage pour la bulle", () => {
     expect(segmentsOf("@Jordan", JOUEURS)).toEqual([
       { texte: "@Jordan", playerId: "jordan" },
     ]);
+  });
+
+  it("sépare texte et lien", () => {
+    expect(segmentsOf("écoute ça https://a.fr/b", JOUEURS)).toEqual([
+      { texte: "écoute ça " },
+      { texte: "https://a.fr/b", href: "https://a.fr/b" },
+    ]);
+  });
+
+  it("range mentions et liens dans l'ordre du message", () => {
+    expect(segmentsOf("@Jordan https://a.fr ok", JOUEURS)).toEqual([
+      { texte: "@Jordan", playerId: "jordan" },
+      { texte: " " },
+      { texte: "https://a.fr", href: "https://a.fr" },
+      { texte: " ok" },
+    ]);
+  });
+
+  it("laisse le lien en un seul morceau, sans mention dedans", () => {
+    // Le pendant visible du test de mentionedPlayerIds : ce qui n'a
+    // prévenu personne ne doit pas non plus se colorer dans la bulle.
+    expect(segmentsOf("https://instagram.com/@leo", JOUEURS)).toEqual([
+      { texte: "https://instagram.com/@leo", href: "https://instagram.com/@leo" },
+    ]);
+  });
+
+  it("recolle exactement un message qui mêle mention et lien", () => {
+    const corps = "@Léo regarde (https://a.fr/x_(y)) et dis-moi. @Jordan aussi";
+    expect(segmentsOf(corps, JOUEURS).map((s) => s.texte).join("")).toBe(corps);
   });
 });
 

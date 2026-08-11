@@ -50,21 +50,28 @@ function Sheet({
 export function MessageSheet({
   mine,
   supprime,
+  copiable,
   reactions,
   byId,
   myId,
   onReact,
   onReply,
+  onCopy,
   onDelete,
   onClose,
 }: {
   mine: boolean;
   supprime: boolean;
+  /** Il y a du texte à copier. Une photo ou un vocal sans légende n'a
+      rien à mettre dans le presse-papier, et un bouton qui copierait le
+      vide serait un bouton qui ment. */
+  copiable: boolean;
   reactions: ChatReaction[];
   byId: Map<string, Player>;
   myId: string;
   onReact: (emoji: string) => void;
   onReply: () => void;
+  onCopy: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -142,9 +149,25 @@ export function MessageSheet({
               onReply();
               onClose();
             }}
-            className="min-h-13 border-b border-line py-3 text-left font-bold"
+            className="min-h-13 border-b border-line py-3 text-left font-bold last:border-b-0"
           >
             Répondre
+          </button>
+        )}
+        {copiable && !supprime && (
+          // La copie vit ici et pas dans une sélection de texte native :
+          // les poignées d'iOS s'arment sur le MÊME appui long que cette
+          // feuille, et le glissé de sélection sur le même geste que
+          // « répondre ». Trois gestes pour une seule pression, c'est
+          // deux de trop. Un bouton dit ce qu'il fait et ne vole rien.
+          <button
+            onClick={() => {
+              onCopy();
+              onClose();
+            }}
+            className="min-h-13 border-b border-line py-3 text-left font-bold last:border-b-0"
+          >
+            Copier le texte
           </button>
         )}
         {mine && !supprime && (
