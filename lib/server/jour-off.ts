@@ -61,7 +61,18 @@ export async function estJourOff(t: Terrain = TERRAIN_ENV): Promise<boolean> {
     personne ne l'a fait, sinon elle relit. Rejouer le job n'envoie pas
     deux notifications — le second appel trouve le tirage déjà fait et
     repart, mais on ne peut pas le savoir d'ici. La déduplication vient
-    du fait qu'un seul cron le déclenche. */
+    du fait qu'un seul cron le déclenche.
+ *
+ *  « Sinon elle relit » n'a été VRAI qu'à partir de la migration 48. Avant
+ *  elle, un tirage négatif ne laissait aucune trace et le prochain appel
+ *  en refaisait un : le 17/08, un joueur a fait tirer NON à 00h52 (d'où un
+ *  événement du jour), puis ce cron a fait tirer OUI à 6h. Jour off et
+ *  pompes doublées le même matin.
+ *
+ *  Reste un trou, connu et non corrigé ici : quand le tirage gagnant vient
+ *  d'un client entre minuit et 6h, `deja` est vrai et on se tait — le jour
+ *  off n'est annoncé à personne (03/08). Le boucher demande un verrou
+ *  d'annonce sur `jours_off`, donc une colonne de plus en prod. */
 export async function notifyJourOff(t: Terrain = TERRAIN_ENV): Promise<{
   day: string;
   off: boolean;
